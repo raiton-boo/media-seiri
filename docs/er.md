@@ -97,9 +97,7 @@ erDiagram
         int link_id PK
         int skipped_source_file_id FK
         int adopted_library_file_id FK
-        text status "auto_skipped / marked_distinct"
-        text decided_by "cli / web"
-        text decided_at
+        text created_at
     }
     REPAIR_ATTEMPTS {
         int attempt_id PK
@@ -127,15 +125,6 @@ erDiagram
         text message
         text occurred_at
     }
-    JOBS {
-        int job_id PK
-        int duplicate_link_id FK
-        text job_type "copy_distinct"
-        text status "queued / running / done / failed"
-        text requested_by "web"
-        text requested_at
-        text finished_at
-    }
     LOCKS {
         text lock_name PK
         text holder
@@ -161,7 +150,6 @@ erDiagram
     SOURCE_FILES ||--o{ REPAIR_ATTEMPTS : "修復"
     SOURCE_FILES ||--o{ ERRORS : "対象"
     SOURCE_FILES ||--o{ EVENTS : "対象"
-    DUPLICATE_LINKS ||--o{ JOBS : "別物の追加コピー"
 ```
 
 ## 2. テーブルの説明
@@ -177,11 +165,10 @@ erDiagram
 | `media_metadata`  | 内容ごとの、撮影日時・日付の精度・カメラ・GPS など                                    | I-02, D-_, G-_, S-\* |
 | `file_groups`     | RAW+JPEG などの同名グループ。出力名の語幹を共有する                                   | I-05                 |
 | `library_files`   | ライブラリに保存したファイル。台帳のパスはすべて相対パス                              | M-06                 |
-| `duplicate_links` | 重複の「スキップ側」と「採用側」の対応。Web の「別物」判定の状態もここに持つ          | P-02〜P-05           |
+| `duplicate_links` | 重複の「スキップ側」と「採用側」の対応                                                | P-02, P-03           |
 | `repair_attempts` | 修復の試行の記録(手順・成否・出力先)                                                  | R-02〜R-04           |
 | `errors`          | エラー一覧の元になる記録                                                              | L-04                 |
 | `events`          | 逐次ログの元になるイベント。CLI の表示も Web の実行状況も、ここから作る               | L-01, L-03           |
-| `jobs`            | Web から依頼した追加コピーのジョブ(CLI の完了待ちを含む)                              | P-06                 |
 | `locks`           | ライブラリへの書き込みの排他制御(§12)                                                 |                      |
 
 ## 3. 設計のポイント
@@ -212,15 +199,11 @@ erDiagram
 - ZIP の中身: 親の `source_files`(`container_id`)と、ZIP 内のパス(`entry_path`)で表す。
 - これにより、ドライブ文字やマウント先が変わっても、台帳をそのまま使える [W-04]。
 
-### 3-5. 重複と「別物」判定の状態(仮)
+### 3-5. 重複の記録(確定)
 
-| `duplicate_links.status` | 意味                                               |
-| :----------------------- | :------------------------------------------------- |
-| `auto_skipped`           | ハッシュ一致で、自動でスキップした                 |
-| `marked_distinct`        | Web で「別物」と判定した。追加コピーのジョブを作る |
-
-- 追加コピーが完了したら、スキップ側の `source_files.state` を `done` にし、新しい `library_files` を作る。
-- 同じ組み合わせが、再び重複として表示されないようにするため、`marked_distinct` の記録を残す。
+- `duplicate_links` は、「スキップ側」と「採用側」の対応だけを持つ(自動スキップのみ)。
+- 「別物」判定は作らない(スコープ外)。そのため、判定の状態や、追加コピーのジョブのテーブルは持たない。
+- 将来、「別物」判定を追加する場合は、`duplicate_links` に状態の列と、ジョブのテーブルを追加する。
 
 ## 4. 値の一覧
 

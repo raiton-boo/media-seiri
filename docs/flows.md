@@ -172,48 +172,9 @@ flowchart TD
 - 各手順の成否は、すべて `repair_attempts` に残す。
 - 修復で直った場合でも、日付が取れなければ `_unknown/修復後も日付なし/` に置く。
 
-## 6. 重複の「別物」判定と追加コピー(Web)
+## 6. CLI と Web の同期
 
-仕様書 §5, §12 に対応する。「別物」判定の記録は Web で行い、追加コピーはジョブとして実行する。
-
-```mermaid
-sequenceDiagram
-    actor U as 利用者
-    participant W as Web
-    participant DB as 台帳
-    participant J as ジョブ実行
-    participant L as ライブラリ
-
-    U->>W: 重複比較の画面で「別物」と判定
-    W->>DB: duplicate_links を marked_distinct に更新
-    W->>DB: jobs に copy_distinct を追加 queued
-    W-->>U: 受け付けた 実行を待機中と表示
-    J->>DB: queued のジョブを取得
-    J->>DB: 書き込みロックを取得
-    alt CLI が実行中でロックを持っている
-        DB-->>J: 取得できない
-        J->>DB: 待機のまま 再試行
-        Note over J,DB: CLI の完了後に取得できる
-    else 取得できた
-        J->>L: 日付から名前と置き場所を決定
-        J->>L: 一時ファイルにコピー
-        J->>L: ハッシュを照合して正式名へ
-        J->>DB: library_files を追加
-        J->>DB: source_files を done に更新
-        J->>DB: jobs を done に更新
-        J->>DB: ロックを解放
-    end
-    DB-->>W: 変更を通知 リアルタイム
-    W-->>U: 完了を表示
-```
-
-- 同じ組み合わせは、再び重複として表示されない(`marked_distinct` の記録が残る)。
-- ジョブが失敗した場合は、`jobs.status = failed` と `errors` に記録し、Web に表示する。
-- 閲覧専用ビューア(他の PC)では、この操作は行えない [W-03]。
-
-## 7. CLI と Web の同期
-
-仕様書 §12, §13 に対応する。CLI と Web は同じ台帳を共有し、書き込みの競合はロックで避ける。
+仕様書 §12, §13 に対応する。CLI と Web は同じ台帳を共有する。書き込むのは CLI だけで、Web は読み取り専用。2つの実行が同時に書き込まないよう、ロックで避ける。
 
 ```mermaid
 flowchart LR
@@ -225,21 +186,18 @@ flowchart LR
     subgraph Webside["Web"]
         W1["events と runs を読み取り"] --> W2["実行状況をリアルタイム表示"]
         W3["一覧 地図 統計 アルバム"]
-        W4["別物の判定"]
     end
     C2 --> DB
     DB --> W1
     DB --> W3
-    W4 --> DB
     LOCK{{"書き込みロック"}}
     C1 -.取得.-> LOCK
-    W4 -.ジョブ実行時に取得.-> LOCK
 ```
 
 - Web の読み取りは、ロックと無関係に常にできる。
-- 閲覧専用ビューアは、スナップショットを読み取り専用で開き、ロックを取らない。
+- Web は、すべてのモードで読み取り専用で、ロックを取らない。他の PC では、スナップショットを開く。
 
-## 8. ライブラリの照合(verify)
+## 7. ライブラリの照合(verify)
 
 仕様書 §6, §8-4 に対応する。
 
@@ -264,7 +222,7 @@ flowchart TD
 - ライブラリを別のドライブへコピーしたあとの確認に使う。
 - 検出した差異は、エラー一覧に記録する。ファイルの修復や削除はしない。
 
-## 9. 未決
+## 8. 未決
 
 - 各図の「仮」の規則は、`features/` で詳細を確認する。
 - 並列処理の具体的な構成(ファイル単位か、ドライブ単位か)は、技術選定のあとで決める(仕様書 §17)。
