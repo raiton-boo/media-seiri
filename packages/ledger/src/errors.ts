@@ -9,7 +9,11 @@ export type LedgerErrorCode =
   // 別のライブラリの台帳を、開こうとした
   | 'LIBRARY_ID_MISMATCH'
   // ライブラリ ID が台帳になく、指定もされていない
-  | 'LIBRARY_ID_REQUIRED';
+  | 'LIBRARY_ID_REQUIRED'
+  // ロックの保持者が、自分ではなくなった(途絶と見なされて、別の実行に引き継がれた)
+  | 'LOCK_LOST'
+  // 作業用の台帳を、スナップショットで置き換えるのに、利用者の確認がない
+  | 'SNAPSHOT_CONFIRMATION_REQUIRED';
 
 export class LedgerError extends Error {
   readonly code: LedgerErrorCode;
