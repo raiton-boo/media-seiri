@@ -340,11 +340,12 @@ file-seiri/
 │   ├── core/       ← 台帳のスキーマ・型・日付の決定・命名の規則(CLI と Web が共有)
 │   ├── cli/        ← 取り込み・verify・drives・logs など
 │   └── viewer/     ← Hono のサーバー + Next.js の画面(静的書き出し。単体の実行ファイルにする)
-├── poc/            ← 使い捨ての試作(`viewer-embed/` など)。本実装には使わない
+├── poc/            ← 使い捨ての試作(`viewer-embed/` など)。本実装には使わない。ワークスペースの外
 ├── data/           ← 作業用の台帳・ログ・一時領域(.gitignore)
 ├── mise.toml       ← Bun のバージョンの固定
 ├── biome.json      ← Linter / Formatter の設定
-└── tsconfig, bun のワークスペースの設定(本実装のときに作る)
+├── package.json    ← Bun のワークスペース(`packages/*`)と、共通のスクリプト(`check`・`typecheck`・`test`)
+└── tsconfig.base.json ← 共通の TypeScript の設定(各パッケージが継承する)
 ```
 
 - 純粋な規則(日付の決定、名前の決定、衝突判定)は、`core` に置き、副作用(ファイルの読み書き)から分けて、テストしやすくする。
