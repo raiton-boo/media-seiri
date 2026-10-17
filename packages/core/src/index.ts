@@ -4,3 +4,5 @@ export const PROJECT_NAME = 'file-seiri';
 /** どのパッケージから呼ばれたかを含む、短い説明の文字列を返す */
 export const describePackage = (packageName: string): string =>
   `${PROJECT_NAME}/${packageName}`;
+
+export * from './date/index.ts';
