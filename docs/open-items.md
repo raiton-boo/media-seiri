@@ -40,7 +40,6 @@
 | Takeout の json    | ファイル名の形式。実際の ZIP をサンプルで確認                                                                      | [zip-handling](features/zip-handling.md)                                   | 実データ |
 | 修復の手順         | 動画の再構築 → メタデータの再書込み → 切れた画像の救出(仮)。使うツールは技術選定で                                 | [仕様書 §10-3](specification.md)、[repair](features/repair.md)             | PoC      |
 | 「一部のみ救出」   | 扱いと、試行の上限(時間・回数)(仮)                                                                                 | [repair](features/repair.md)                                               | 実装時   |
-| 破損のエラーコード | 修復に失敗したとき、`CORRUPTED` と `REPAIR_FAILED` のどちらを記録するか(仕様書 §14 の説明が重なっている。**未決**) | [仕様書 §14](specification.md)、[repair](features/repair.md)               | 実装時   |
 | 修復の再実行       | 前回の結果があれば再試行せず、`--retry-repair` で再試行(仮)                                                        | [repair](features/repair.md)                                               | 実装時   |
 | ZIP の文字コード   | 判定が曖昧なときは cp932 を優先(仮)                                                                                | [zip-handling](features/zip-handling.md)                                   | 実データ |
 
