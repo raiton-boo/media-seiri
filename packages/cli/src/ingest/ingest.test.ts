@@ -358,23 +358,50 @@ describe('ingest --dry-run: エラー・対象外', () => {
     expect(text(result)).toMatch(/エラー[^\n]*: 1 ファイル \(EMPTY_FILE 1\)/);
   });
 
-  test('メタデータを読めない(全部ゼロ)ものは、CORRUPTED。_unknown/読み取り不可/ に置く予定', async () => {
+  test('メタデータを読めないもの(全部ゼロ)は、破損にしない。普通のファイルと同じ流れで、日付は、ファイル名などで決める', async () => {
     const world = await newWorld();
-    addFile(world, 'DCIM/broken.jpg', new Uint8Array(64));
+    addFile(world, 'DCIM/IMG_20240305_102030.jpg', new Uint8Array(64));
+    addFile(world, 'DCIM/broken.jpg', new Uint8Array(65));
     const result = await ingestDry(world);
-    expect(plannedPaths(world)['DCIM/broken.jpg']).toBe(
-      '_unknown/読み取り不可/broken.jpg'
+    const planned = plannedPaths(world);
+    // ファイル名の日付で決まる / 決まらなければ、日付なし(読み取り不可には、置かない)
+    expect(planned['DCIM/IMG_20240305_102030.jpg']).toMatch(
+      /^2024\/03\/2024\.03\.05_10-20-30_/
     );
+    expect(planned['DCIM/broken.jpg']).toBe('_unknown/日付なし/broken.jpg');
+    // エラー一覧には載せない。警告のイベントだけ
+    expect(rows(world, 'SELECT count(*) AS n FROM errors')).toEqual([{ n: 0 }]);
     expect(
-      rows(world, "SELECT code FROM errors WHERE code = 'CORRUPTED'")
-    ).toHaveLength(1);
+      rows(
+        world,
+        "SELECT count(*) AS n FROM events WHERE code = 'META_UNREADABLE' AND level = 'WARN'"
+      )
+    ).toEqual([{ n: 2 }]);
     expect(stateOf(world, 'DCIM/broken.jpg')?.state).toBe('planned');
-    expect(text(result)).toMatch(/破損\(修復の対象\)[^\n]*: 1 ファイル/);
-    expect(result.code).toBe(EXIT_CODES.completedWithErrors);
-    // メタデータは、保存しない(読めていない)
-    expect(rows(world, 'SELECT count(*) AS n FROM media_metadata')).toEqual([
-      { n: 0 },
-    ]);
+    expect(text(result)).toMatch(/メタデータなし[^\n]*: 2 ファイル/);
+    expect(text(result)).not.toContain('CORRUPTED');
+    expect(result.code).toBe(EXIT_CODES.ok);
+    // 日付の取得元は、ファイル名として、台帳に残る(メタデータの行は、作る)
+    expect(
+      rows(
+        world,
+        'SELECT date_source FROM media_metadata ORDER BY date_source'
+      ).map((r) => r.date_source)
+    ).toEqual(['filename', 'none']);
+  });
+
+  test('メタデータが読めなくても、Takeout の json があれば、日付に使う', async () => {
+    const world = await newWorld();
+    addFile(world, 'DCIM/t.jpg', new Uint8Array(64));
+    addFile(
+      world,
+      'DCIM/t.jpg.json',
+      JSON.stringify({ photoTakenTime: { timestamp: '1709600523' } })
+    );
+    await ingestDry(world);
+    expect(plannedPaths(world)['DCIM/t.jpg']).toBe(
+      '2024/03/2024.03.05_10-02-03_t.jpg'
+    );
   });
 
   test('読めないバイト(権限なし)は READ_FAILED。コピーの予定にしない', async () => {

@@ -181,6 +181,7 @@ const tally = (
   };
   analyses.forEach((analysis, index) => {
     const filePlan = plan.files[index];
+    if (analysis.metadataError) summary.metadataUnreadable += 1;
     if (analysis.content) {
       if (analysis.fromCache) summary.hashFromCache += 1;
       else summary.hashComputed += 1;
@@ -188,13 +189,11 @@ const tally = (
     if (analysis.problem) {
       bump(analysis.problem.code);
       summary.errorFiles += 1;
-      if (analysis.problem.code === 'CORRUPTED') summary.corrupted += 1;
     }
     switch (filePlan?.action) {
       case 'copy': {
         summary.copyFiles += 1;
         summary.copyBytes += analysis.file.sizeBytes;
-        if (analysis.unreadable) break;
         const date = plan.groupDates[filePlan.groupIndex];
         if (date?.source === 'json') summary.fallbackJson += 1;
         else if (date?.source === 'filename') summary.fallbackFilename += 1;

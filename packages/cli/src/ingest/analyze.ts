@@ -31,8 +31,11 @@ export type FileAnalysis = {
   content: Content | undefined;
   /** キャッシュから得た(ハッシュを計算していない) */
   fromCache: boolean;
-  /** メタデータを読めなかった(破損の疑い)。グループには入れず、`_unknown/読み取り不可/` に置く */
-  unreadable: boolean;
+  /**
+   * メタデータを読めなかった理由。読めなかっただけで、破損とは限らない(写真として開けるかもしれない)ため、
+   * 普通のファイルと同じ流れにする。日付は、ファイル名・Takeout の json で決める。
+   */
+  metadataError: string | undefined;
   /** ExifTool の警告(切れた画像など)。エラーではないが、破損の手がかり(修復の段階で使う) */
   warning: string | undefined;
   /** このファイルに起きた問題。1 つだけ記録する */
@@ -94,7 +97,8 @@ const withTakeoutGps = (
 /**
  * 1 ファイルを解析する: メタデータ → 日付 → ハッシュ(キャッシュ)。
  * - `xmp` は、メタデータを読まない(ファイル名と更新日だけで、日付を決める。グループの代表には、なりにくい)。
- * - メタデータを読めなければ `unreadable`(`CORRUPTED`。修復は、まだ行わない)。
+ * - メタデータを読めなくても、破損とはしない(`metadataError` に理由を残し、日付は、ファイル名・json で決める)。
+ *   破損は、デコードなどが失敗したときで、別の段階(修復)で扱う(仕様書 §10)。
  * - ハッシュを計算できなければ(読めない・読んでいる間に変わった)、`READ_FAILED`。
  * 例外にはしない(1 つのファイルの失敗で、実行全体を止めないため)。
  */
@@ -106,7 +110,7 @@ export const analyzeFile = async (
   const mtime = new Date(file.mtimeMs);
   let dateInput: DateInput = { fileName: file.fileName, mtime };
   let details: MediaDetails = {};
-  let unreadable = false;
+  let metadataError: string | undefined;
   let warning: string | undefined;
   let problem: FileAnalysis['problem'];
 
@@ -128,11 +132,15 @@ export const analyzeFile = async (
       details = withTakeoutGps(read.metadata.details, takeout);
       warning = read.metadata.warning;
     } else {
-      unreadable = true;
-      problem = {
-        code: 'CORRUPTED',
-        detail: `メタデータを読めません: ${read.error}`,
-      };
+      metadataError = read.error;
+      // 読めなかった場合も、Takeout の json があれば、日付に使う
+      if (takeout.photoTakenEpochSeconds !== undefined) {
+        dateInput = {
+          ...dateInput,
+          takeoutPhotoTakenEpochSeconds: takeout.photoTakenEpochSeconds,
+        };
+      }
+      details = withTakeoutGps({}, takeout);
     }
   }
 
@@ -162,7 +170,7 @@ export const analyzeFile = async (
     details,
     content,
     fromCache,
-    unreadable,
+    metadataError,
     warning,
     problem,
   };
