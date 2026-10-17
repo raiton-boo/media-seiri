@@ -9,6 +9,7 @@ dist/
 # --- 自動生成するファイル
 poc/viewer-embed/src/assets.ts
 next-env.d.ts
+poc/viewer-embed/public/maplibre-gl-worker.mjs
 
 # --- 本ツールの作業用データ
 data/
