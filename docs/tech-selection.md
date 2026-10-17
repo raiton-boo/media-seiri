@@ -84,13 +84,21 @@
 | CLI のライブ表示             | Ink(React で書く TUI)+ 色(picocolors)                              | React に慣れていれば、ダッシュボードを、部品として書ける。TTY でないときは、ログの行だけにする(要確認)                                                                                                          |
 | Web サーバー                 | Hono                                                               | 軽量で、Bun と相性が良い。リアルタイム更新は、SSE(Server-Sent Events)                                                                                                                                           |
 | 画面                         | **Next.js**(App Router、静的書き出し `output: 'export'`)+ Tailwind | 画面は、クライアント側で描画し、データは Hono の API から取得する。書き出した静的ファイルを、Hono が配信する。サーバー機能の Next.js(SSR など)は、単体の実行ファイルに入れにくいため、使わない(要確認:§10 の 8) |
-| 画面の状態・通信             | TanStack Query                                                     | 一覧のキャッシュと、SSE との組み合わせ                                                                                                                                                                          |
+| 画面の状態・通信             | TanStack Query(Suspense モード)                                    | 一覧のキャッシュと、SSE との組み合わせ。読み込み中は、Suspense のスケルトンを出す(§3-1)                                                                                                                         |
 | 一覧の仮想スクロール         | TanStack Virtual                                                   | 数十万件のアルバムに対応(`album.md` 7章)                                                                                                                                                                        |
 | 地図                         | **MapLibre GL JS**                                                 | クラスタ(まとまり)の機能を内蔵し、数万件でも軽い(§7)                                                                                                                                                            |
 | グラフ                       | Recharts または ECharts(PoC で選ぶ)                                | 月別・年別、カメラ別、時間帯(`statistics.md`)                                                                                                                                                                   |
 | 画面の部品                   | 自作 + Tailwind                                                    | 依存を増やさない(仮)                                                                                                                                                                                            |
 | 実行ファイルの作成(ビューア) | `bun build --compile`(Windows・macOS 向け)                         | §8                                                                                                                                                                                                              |
 | Docker                       | **使わない**(§9)                                                   |                                                                                                                                                                                                                 |
+
+### 3-1. Next.js の使い方(決定)
+
+- **静的書き出し(`output: 'export'`)で使う。** 画面は、すべて、ブラウザ側で描画し、データは、Hono の API から取得する。
+- **`use cache` / Cache Components / Partial Prerendering(PPR)は、使わない。** これらは、サーバーが要り、静的書き出しに対応していない([参考](https://mcpservers.org/agent-skills/vercel/openreview/next-cache-components))。家の PC に配る、単体の実行ファイルとは、両立しない。データも、ローカルの SQLite から、API で取得するだけで、サーバー側のキャッシュの利点は、小さい。
+- **Suspense は、使う。** React の標準の機能で、画面側の「読み込み中」のスケルトンに使える。TanStack Query(Suspense モード)と組み合わせる。
+- 静的書き出しで使えない機能(要サーバー)は、使わない: `generateStaticParams` のない動的ルート、Cookie、リダイレクト、リライト、ISR など([参考](https://nextjs.org/docs/app/building-your-application/deploying/static-exports))。**年・月・できごとなど、可変の URL は、クエリ文字列と、画面側のルーティングで表す。**
+- 「Mac だけ、サーバーとして動かして `use cache` を使う」案は、画面が 2 通りになるため、採らない。
 
 ## 4. ハッシュのアルゴリズム [H-05]
 
