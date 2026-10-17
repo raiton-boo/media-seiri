@@ -56,7 +56,7 @@ export const recordPlan = (
     if (analysis.content)
       setSourceFileContent(db, sourceFileId, analysis.content.contentId);
     // メタデータは、内容ごとに 1 つ(読めたものだけ。`.xmp` は、読んでいない)
-    if (analysis.content && !analysis.unreadable && file.kind !== 'xmp') {
+    if (analysis.content && file.kind !== 'xmp') {
       upsertMediaMetadata(db, {
         contentId: analysis.content.contentId,
         date: analysis.resolution,
@@ -64,6 +64,13 @@ export const recordPlan = (
       });
     }
 
+    if (analysis.metadataError) {
+      event(
+        'WARN',
+        'META_UNREADABLE',
+        `${file.relPath}: メタデータを読めません(${analysis.metadataError})。ファイル名などで日付を決めます`
+      );
+    }
     if (analysis.warning)
       event('WARN', 'META_WARNING', `${file.relPath}: ${analysis.warning}`);
     const failure = failureByRelPath.get(file.relPath);
@@ -88,7 +95,7 @@ export const recordPlan = (
         occurredAt: at,
       });
       event(
-        analysis.problem.code === 'READ_FAILED' ? 'ERROR' : 'WARN',
+        'ERROR',
         analysis.problem.code,
         `${file.relPath}: ${analysis.problem.detail}`
       );

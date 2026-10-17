@@ -25,8 +25,8 @@ export type IngestSummary = {
   fallbackFilename: number;
   unknownNone: number;
   unknownInvalid: number;
-  /** メタデータを読めなかった(破損の疑い)。`_unknown/読み取り不可/` の予定 */
-  corrupted: number;
+  /** メタデータを読めなかった(破損とは限らない)。日付は、ファイル名・json で決めた */
+  metadataUnreadable: number;
   orphanSidecars: number;
   /** 取り込みの対象外(件数のみ) */
   unsupported: number;
@@ -60,7 +60,7 @@ export const emptySummary = (): IngestSummary => ({
   fallbackFilename: 0,
   unknownNone: 0,
   unknownInvalid: 0,
-  corrupted: 0,
+  metadataUnreadable: 0,
   orphanSidecars: 0,
   unsupported: 0,
   takeoutJson: 0,
@@ -137,7 +137,14 @@ export const formatSummary = (
       `${count(summary.unknownNone + summary.unknownInvalid)} ファイル (なし ${count(summary.unknownNone)} / 不正 ${count(summary.unknownInvalid)})`
     )
   );
-  lines.push(line('破損(修復の対象)', `${count(summary.corrupted)} ファイル`));
+  if (summary.metadataUnreadable > 0) {
+    lines.push(
+      line(
+        'メタデータなし',
+        `${count(summary.metadataUnreadable)} ファイル(読めなかった。日付は、ファイル名などで決めた)`
+      )
+    );
+  }
   const excluded = [
     `対象外 ${count(summary.unsupported)}`,
     `Takeout の json ${count(summary.takeoutJson)}`,

@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   type Bucket,
-  buildPlacement,
   choosePlacements,
   type DateResolution,
   type FileGroup,
@@ -105,10 +104,9 @@ const decideDuplicates = (
 /**
  * 解析の結果から、取り込みの予定を作る(コピーはしない)。
  * 1. 重複(台帳全体と、この実行の中)を決める
- * 2. 同じフォルダ・同じ語幹のファイルを、グループにする(読めなかったもの・エラーのものは、除く)
+ * 2. 同じフォルダ・同じ語幹のファイルを、グループにする(バイトが読めなかったものは、除く)
  * 3. グループの日付を、1 回だけ決める。置き場所と名前を決め、衝突したら、連番を取り直す
  *    (衝突 = 台帳にある・この実行で予約した・保存先に実在する。大文字小文字は、区別しない)
- * 4. 読めなかったもの(`unreadable`)は、1 つずつ `_unknown/読み取り不可/` に置く
  * 解析の並びが同じなら、予定も、いつも同じになる。
  */
 export const buildPlan = (
@@ -134,11 +132,10 @@ export const buildPlan = (
     reserved.add(CASE_INSENSITIVE(path));
   };
 
-  // グループに入れるもの: 読めて、エラーがなく、重複でないもの(`.xmp` は、あとで RAW に従う)
+  // グループに入れるもの: バイトが読めて、重複でないもの(`.xmp` は、あとで RAW に従う)
   const groupable: SourceFile[] = [];
   analyses.forEach((analysis, index) => {
     if (analysis.problem?.code === 'READ_FAILED') return;
-    if (analysis.unreadable) return;
     if (duplicates.has(index) && analysis.file.kind !== 'xmp') return;
     groupable.push({
       id: analysis.file.relPath,
@@ -197,38 +194,6 @@ export const buildPlan = (
         failures.push({ relPath: member.file.id, detail });
     }
   }
-
-  // 読めなかったもの: 1 つずつ、`_unknown/読み取り不可/` に置く
-  analyses.forEach((analysis, index) => {
-    if (!analysis.unreadable || analysis.problem?.code === 'READ_FAILED')
-      return;
-    if (duplicates.has(index)) return;
-    for (
-      let sequence = undefined as number | undefined;
-      ;
-      sequence = (sequence ?? 0) + 1
-    ) {
-      const placement = buildPlacement(
-        { kind: 'unknown', reason: 'unreadable' },
-        analysis.file.fileName,
-        sequence
-      );
-      const path = placementPath(placement);
-      if (isTaken(path)) continue;
-      reserve(path);
-      const groupIndex = groups.length;
-      groups.push({ stem: analysis.file.fileName, bucket: placement.bucket });
-      groupDates.push(analysis.resolution);
-      files[index] = {
-        action: 'copy',
-        destinationPath: path,
-        bucket: placement.bucket,
-        groupIndex,
-      };
-      if (sequence !== undefined) sequencedGroups += 1;
-      return;
-    }
-  });
 
   return { files, groups, groupDates, sequencedGroups, failures };
 };
