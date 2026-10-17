@@ -17,12 +17,14 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
 コマンド:
   library init <保存先のパス>   ライブラリを作る(目印・台帳・設定)
   ingest <ソース...> --dest <ライブラリの根>
-                                ソースを取り込む(いまは --dry-run のみ。保存先には、書かない)
+                                ソースを取り込む(--dry-run: コピーせず、結果だけ)
 
 オプション:
   --data-dir <パス>   作業用の領域(data/)の場所。環境変数 FILE_SEIRI_DATA_DIR でも指定できる
   --dest <パス>       ingest の保存先(ライブラリの根)
   --dry-run           ingest で、コピーせずに、結果だけを見る
+  --resume            ingest で、中断した実行を、続きから実行する
+  -y, --yes           ingest で、コピーの前の確認を、省く
   --rehash            ingest で、ハッシュのキャッシュを使わず、計算し直す
   --restore-snapshot  ingest で、スナップショットのほうが新しいとき、置き換えてよい(確認済み)
   -h, --help          この説明を表示する`;
@@ -37,6 +39,8 @@ export type RunEnvironment = {
   timeZone?: string;
   isInteractive?: boolean;
   confirm?: (question: string) => Promise<boolean>;
+  shouldStop?: () => boolean;
+  ingestHooks?: CommandContext['ingestHooks'];
 };
 
 /**
@@ -56,6 +60,8 @@ export const run = async (
         'dry-run': { type: 'boolean' },
         rehash: { type: 'boolean' },
         'restore-snapshot': { type: 'boolean' },
+        resume: { type: 'boolean' },
+        yes: { type: 'boolean', short: 'y' },
         help: { type: 'boolean', short: 'h' },
       },
       allowPositionals: true,
@@ -78,6 +84,8 @@ export const run = async (
         environment.isInteractive ??
         Boolean(process.stdin.isTTY && process.stdout.isTTY),
       confirm: environment.confirm ?? askYesNo,
+      shouldStop: environment.shouldStop ?? (() => false),
+      ingestHooks: environment.ingestHooks,
     };
     const [command, subcommand, ...rest] = positionals;
     if (command === 'library' && subcommand === 'init' && rest.length <= 1) {
@@ -90,6 +98,8 @@ export const run = async (
         dryRun: values['dry-run'] ?? false,
         rehash: values.rehash ?? false,
         restoreSnapshot: values['restore-snapshot'] ?? false,
+        resume: values.resume ?? false,
+        yes: values.yes ?? false,
       });
     }
     throw new CliError(

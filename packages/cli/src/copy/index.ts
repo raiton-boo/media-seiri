@@ -1,7 +1,9 @@
 export {
   type CleanupResult,
+  cleanupAppleDouble,
   cleanupPartFiles,
   isPartFileName,
+  usesAppleDouble,
 } from './cleanup.ts';
 export {
   COPY_CHUNK_BYTES,

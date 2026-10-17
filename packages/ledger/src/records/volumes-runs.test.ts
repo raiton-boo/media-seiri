@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { openDb, seedRun, T0, T1 } from './fixtures.ts';
-import { finishRun, getRun, listUnfinishedRuns, startRun } from './runs.ts';
+import {
+  finishRun,
+  getRun,
+  interruptRunningRuns,
+  listUnfinishedRuns,
+  resumeRun,
+  startRun,
+} from './runs.ts';
 import { findVolumeByUuid, getVolume, upsertVolume } from './volumes.ts';
 
 describe('volumes', () => {
@@ -120,5 +127,74 @@ describe('runs', () => {
     expect(
       listUnfinishedRuns(db, other.volumeId).map((run) => run.runId)
     ).toEqual([other.runId]);
+  });
+});
+
+describe('resumeRun・interruptRunningRuns', () => {
+  test('中断した実行を、同じ ID で再開できる(状態は running、終了時刻は消える)', () => {
+    const db = openDb();
+    const { runId } = seedRun(db);
+    finishRun(db, runId, { status: 'interrupted', finishedAt: T1 });
+    resumeRun(db, runId);
+    expect(getRun(db, runId)).toMatchObject({
+      status: 'running',
+      finishedAt: null,
+    });
+  });
+
+  test('完了・失敗した実行、dry-run、ない実行は、再開できない', () => {
+    const db = openDb();
+    const done = seedRun(db);
+    finishRun(db, done.runId, { status: 'completed', finishedAt: T1 });
+    expect(() => resumeRun(db, done.runId)).toThrow(
+      '再開できる実行ではありません'
+    );
+    const failed = startRun(db, {
+      sourceVolumeId: done.volumeId,
+      isDryRun: false,
+      startedAt: T0,
+    });
+    finishRun(db, failed, { status: 'failed', finishedAt: T1 });
+    expect(() => resumeRun(db, failed)).toThrow();
+    const dry = startRun(db, {
+      sourceVolumeId: done.volumeId,
+      isDryRun: true,
+      startedAt: T0,
+    });
+    finishRun(db, dry, { status: 'interrupted', finishedAt: T1 });
+    expect(() => resumeRun(db, dry)).toThrow();
+    expect(() => resumeRun(db, 999)).toThrow();
+  });
+
+  test('実行中のままの本実行だけを、まとめて interrupted にする(dry-run・完了済みは、そのまま)', () => {
+    const db = openDb();
+    const { volumeId, runId: running } = seedRun(db);
+    const running2 = startRun(db, {
+      sourceVolumeId: volumeId,
+      isDryRun: false,
+      startedAt: T0,
+    });
+    const dry = startRun(db, {
+      sourceVolumeId: volumeId,
+      isDryRun: true,
+      startedAt: T0,
+    });
+    const done = startRun(db, {
+      sourceVolumeId: volumeId,
+      isDryRun: false,
+      startedAt: T0,
+    });
+    finishRun(db, done, { status: 'completed', finishedAt: T0 });
+
+    expect(interruptRunningRuns(db, T1).sort()).toEqual(
+      [running, running2].sort()
+    );
+    expect(getRun(db, running)).toMatchObject({
+      status: 'interrupted',
+      finishedAt: '2026-10-18T01:00:00.000Z',
+    });
+    expect(getRun(db, dry)?.status).toBe('running');
+    expect(getRun(db, done)?.status).toBe('completed');
+    expect(interruptRunningRuns(db, T1)).toEqual([]);
   });
 });

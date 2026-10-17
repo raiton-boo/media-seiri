@@ -21,6 +21,8 @@ export type IngestSummary = {
   duplicatesInRun: number;
   /** 前の実行で、処理済み(同じボリューム・パス・サイズ・更新日)のため、スキップしたもの */
   alreadyProcessed: number;
+  /** 再開で、前回までに、この実行の中で完了していたもの */
+  alreadyDoneInRun: number;
   fallbackJson: number;
   fallbackFilename: number;
   unknownNone: number;
@@ -43,6 +45,19 @@ export type IngestSummary = {
   sequencedGroups: number;
   capacity: CapacityEstimate | undefined;
   problems: Problem[];
+  /** 本実行の、コピーの結果(dry-run では、undefined) */
+  copy: CopyResult | undefined;
+};
+
+export type StopReason = 'user' | 'lock-lost' | 'drive-removed' | 'disk-full';
+
+export type CopyResult = {
+  copied: number;
+  copiedBytes: number;
+  failed: number;
+  /** 重複として、採用側に結びつけた数(今回の中の重複) */
+  linkedDuplicates: number;
+  stopReason: StopReason | undefined;
 };
 
 export const emptySummary = (): IngestSummary => ({
@@ -56,6 +71,7 @@ export const emptySummary = (): IngestSummary => ({
   duplicatesInLibrary: 0,
   duplicatesInRun: 0,
   alreadyProcessed: 0,
+  alreadyDoneInRun: 0,
   fallbackJson: 0,
   fallbackFilename: 0,
   unknownNone: 0,
@@ -74,6 +90,7 @@ export const emptySummary = (): IngestSummary => ({
   sequencedGroups: 0,
   capacity: undefined,
   problems: [],
+  copy: undefined,
 });
 
 /** ボリュームの説明: 名前 (形式 / 種類 / 空き) */
@@ -117,6 +134,14 @@ export const formatSummary = (
       `${count(summary.duplicatesInLibrary + summary.duplicatesInRun)} ファイル (ライブラリに既存 ${count(summary.duplicatesInLibrary)} / 今回の中 ${count(summary.duplicatesInRun)})`
     )
   );
+  if (summary.alreadyDoneInRun > 0) {
+    lines.push(
+      line(
+        '完了済み',
+        `${count(summary.alreadyDoneInRun)} ファイル(再開。この実行で、前に完了したもの)`
+      )
+    );
+  }
   if (summary.alreadyProcessed > 0) {
     lines.push(
       line(
@@ -205,4 +230,30 @@ const formatErrorCodes = (summary: IngestSummary): string => {
   return entries.length === 0
     ? ''
     : ` (${entries.map(([code, n]) => `${code} ${n}`).join(' / ')})`;
+};
+
+const STOP_MESSAGES: Record<StopReason, string> = {
+  user: '中断しました(Ctrl-C)。--resume で、続きから実行できます',
+  'lock-lost':
+    'ロックを失ったため、安全に止めました(別の実行が、ロックを引き継ぎました)',
+  'drive-removed':
+    'ドライブが抜けた可能性があるため、中断しました。接続を確かめて、--resume で続けてください',
+  'disk-full':
+    '保存先の容量が足りなくなったため、中断しました。空きを作って、--resume で続けてください',
+};
+
+/** 本実行のコピーの結果を、表示する行にする */
+export const formatCopyResult = (result: CopyResult): string[] => {
+  const lines = [
+    '',
+    line(
+      'コピー済み',
+      `${count(result.copied)} ファイル ${formatBytes(result.copiedBytes)}`
+    ),
+    line('重複の記録', `${count(result.linkedDuplicates)} ファイル`),
+    line('コピー失敗', `${count(result.failed)} ファイル`),
+  ];
+  if (result.stopReason)
+    lines.push('', `中断: ${STOP_MESSAGES[result.stopReason]}`);
+  return lines;
 };

@@ -579,16 +579,18 @@ describe('ingest --dry-run: エラー・対象外', () => {
 });
 
 describe('ingest: 準備と保存先の検査', () => {
-  test('--dry-run がなければ、まだ実装していないと、止める', async () => {
+  test('--dry-run と --resume は、一緒に使えない(2)', async () => {
     const world = await newWorld();
     const result = await runIn(world, [
       'ingest',
       join(world.srcRoot, 'DCIM'),
       '--dest',
       world.library,
+      '--dry-run',
+      '--resume',
     ]);
     expect(result.code).toBe(EXIT_CODES.failed);
-    expect(result.stderr.join('\n')).toContain('--dry-run');
+    expect(result.stderr.join('\n')).toContain('--resume');
   });
 
   test('引数が足りなければ、使い方を出して 2', async () => {
