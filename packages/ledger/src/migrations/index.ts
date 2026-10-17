@@ -1,3 +1,5 @@
+/// <reference path="../sql.d.ts" />
+
 import initial from './0001_initial.sql' with { type: 'text' };
 import libraryPathNoCase from './0002_library_path_nocase.sql' with {
   type: 'text',
