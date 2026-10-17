@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mapConcurrent } from './concurrency.ts';
+import { mapConcurrent, readConcurrency } from './concurrency.ts';
 import {
   assertDifferentVolumes,
   capacityProblem,
@@ -51,6 +51,15 @@ describe('mapConcurrent', () => {
       })
     ).rejects.toThrow('boom');
     expect(started).toEqual([1, 2]);
+  });
+});
+
+describe('readConcurrency(仕様書 §17-3)', () => {
+  test('SSD は並列、HDD・USB・不明は順番', () => {
+    expect(readConcurrency('ssd')).toBe(4);
+    expect(readConcurrency('hdd')).toBe(1);
+    expect(readConcurrency('usb')).toBe(1);
+    expect(readConcurrency(undefined)).toBe(1);
   });
 });
 

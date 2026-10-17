@@ -1,5 +1,6 @@
 import type { Database } from 'bun:sqlite';
 import {
+  getMediaMetadata,
   insertDuplicateLink,
   recordError,
   recordEvent,
@@ -55,13 +56,31 @@ export const recordPlan = (
 
     if (analysis.content)
       setSourceFileContent(db, sourceFileId, analysis.content.contentId);
-    // メタデータは、内容ごとに 1 つ(読めたものだけ。`.xmp` は、読んでいない)
+    // メタデータは、内容ごとに 1 つ(`.xmp` は、読んでいない)。
+    // コピーするファイルは、グループで決めた日付を記録する(同名グループは、全員に同じ日付を当てるため。
+    // 名前・置き場所と、台帳の日付・取得元が、食い違わないようにする)。参考の更新日だけは、このファイルのもの。
+    // 重複など(グループの外)は、すでにある内容のメタデータを、上書きしない。
     if (analysis.content && file.kind !== 'xmp') {
-      upsertMediaMetadata(db, {
-        contentId: analysis.content.contentId,
-        date: analysis.resolution,
-        ...analysis.details,
-      });
+      const contentId = analysis.content.contentId;
+      if (filePlan?.action === 'copy') {
+        const groupDate = plan.groupDates[filePlan.groupIndex];
+        upsertMediaMetadata(db, {
+          contentId,
+          date: groupDate
+            ? {
+                ...groupDate,
+                referenceMtime: analysis.resolution.referenceMtime,
+              }
+            : analysis.resolution,
+          ...analysis.details,
+        });
+      } else if (!getMediaMetadata(db, contentId)) {
+        upsertMediaMetadata(db, {
+          contentId,
+          date: analysis.resolution,
+          ...analysis.details,
+        });
+      }
     }
 
     if (analysis.metadataError) {

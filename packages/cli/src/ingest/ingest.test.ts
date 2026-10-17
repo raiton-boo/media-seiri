@@ -241,6 +241,71 @@ describe('ingest --dry-run: 基本', () => {
   });
 });
 
+describe('ingest --dry-run: グループの日付の記録', () => {
+  test('日付のない動画は、同じ語幹の写真の日付が、名前にも台帳(日付・取得元)にも使われる', async () => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/IMG_0001.JPG', DATE_2024_03_05);
+    addVideo(world, 'DCIM/IMG_0001.MOV', 'nodate.mp4');
+    await ingestDry(world);
+    const planned = plannedPaths(world);
+    expect(planned['DCIM/IMG_0001.MOV']).toBe(
+      '2024/03/2024.03.05_10-20-30_IMG_0001.mov'
+    );
+    // 動画のメタデータにも、グループの日付(写真の EXIF)が入る(動画自身は、日付が不正だった)
+    expect(
+      rows(
+        world,
+        `SELECT s.rel_path, m.taken_at, m.date_precision, m.date_source
+         FROM source_files s JOIN media_metadata m ON m.content_id = s.content_id ORDER BY s.rel_path`
+      )
+    ).toEqual([
+      {
+        rel_path: 'DCIM/IMG_0001.JPG',
+        taken_at: '2024-03-05T10:20:30',
+        date_precision: 'full',
+        date_source: 'exif',
+      },
+      {
+        rel_path: 'DCIM/IMG_0001.MOV',
+        taken_at: '2024-03-05T10:20:30',
+        date_precision: 'full',
+        date_source: 'exif',
+      },
+    ]);
+  });
+
+  test('重複(グループの外)のファイルは、採用側のメタデータを、上書きしない', async () => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/a.jpg', {
+      ...DATE_2024_03_05,
+      ImageDescription: 'same',
+    });
+    // 同じ内容で、日付のないファイル名(同じ内容なので、同じ日付のはず。ここでは、順序の確認)
+    await addPhoto(world, 'DCIM/b.jpg', {
+      ...DATE_2024_03_05,
+      ImageDescription: 'same',
+    });
+    await ingestDry(world);
+    expect(rows(world, 'SELECT count(*) AS n FROM media_metadata')).toEqual([
+      { n: 1 },
+    ]);
+    expect(rows(world, 'SELECT date_source FROM media_metadata')).toEqual([
+      { date_source: 'exif' },
+    ]);
+  });
+
+  test('参考の更新日は、そのファイル自身のもの', async () => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/IMG_0001.JPG', DATE_2024_03_05);
+    addVideo(world, 'DCIM/IMG_0001.MOV', 'nodate.mp4');
+    await ingestDry(world);
+    // どちらの更新日も 2000-01-01(テストでそろえた値)
+    expect(
+      rows(world, 'SELECT DISTINCT mtime_ref_ms FROM media_metadata')
+    ).toEqual([{ mtime_ref_ms: 946_684_800_000 }]);
+  });
+});
+
 describe('ingest --dry-run: 重複', () => {
   test('この実行の中で、同じ内容が複数あれば、先の 1 件だけを採用する', async () => {
     const world = await newWorld();
