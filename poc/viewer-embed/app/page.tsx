@@ -16,6 +16,7 @@ export default function Page() {
       <h1>file-seiri PoC</h1>
       <p>{message}</p>
       <a href="/about">aboutへ</a>
+      <a href="/map">地図へ</a>
     </main>
   );
 }
