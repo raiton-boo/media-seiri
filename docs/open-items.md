@@ -27,7 +27,6 @@
 | 再実行の判定      | 「ボリューム+相対パス+サイズ+mtime」で処理済みを判定(仮)          | [仕様書 §8](specification.md)、[multi-source](features/multi-source.md) | 実装時 |
 | 中断後の再開      | 再開の単位と、状態の持ち方(仮)                                    | [仕様書 §8](specification.md)、[multi-source](features/multi-source.md) | 実装時 |
 | `verify --sample` | 抜き取り方(仮)                                                    | [hash-verify](features/hash-verify.md)                                  | 実装時 |
-| 排他制御          | 2 つ目の実行は「終了」か「待機」か。ハートビートの時間(60 秒、仮) | [仕様書 §12](specification.md)                                          | 実装時 |
 | 変更通知          | CLI と Web の間は、まずポーリング(仮)                             | [tech-selection](tech-selection.md)                                     | PoC    |
 
 ## 3. 容量・ZIP・修復
