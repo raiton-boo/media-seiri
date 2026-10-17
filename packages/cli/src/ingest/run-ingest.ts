@@ -31,7 +31,7 @@ import {
   analyzeFile,
   type FileAnalysis,
 } from './analyze.ts';
-import { mapConcurrent } from './concurrency.ts';
+import { mapConcurrent, readConcurrency } from './concurrency.ts';
 import { type OpenedLibrary, openLibraryForIngest } from './library.ts';
 import { buildPlan, type IngestPlan } from './plan.ts';
 import {
@@ -50,8 +50,6 @@ import {
   type IngestSummary,
 } from './summary.ts';
 
-/** ソースを読む解析(メタデータ・ハッシュ)を、同時に動かす数 */
-const ANALYSIS_CONCURRENCY = 4;
 const PROGRESS_INTERVAL = 1000;
 const COMMIT_BATCH_SIZE = 500;
 
@@ -302,7 +300,7 @@ const ingestSource = async (
     let analyzed = 0;
     const analyses = await mapConcurrent(
       rows,
-      ANALYSIS_CONCURRENCY,
+      readConcurrency(sourceVolume.mediaKind),
       async ({ file, sourceFileId }) => {
         const analysis = await analyzeFile(
           file,
