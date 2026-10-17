@@ -18,6 +18,9 @@
     "packages/core": {
       "name": "@file-seiri/core",
     },
+    "packages/ledger": {
+      "name": "@file-seiri/ledger",
+    },
     "packages/viewer": {
       "name": "@file-seiri/viewer",
       "dependencies": {
@@ -29,6 +32,8 @@
     "@file-seiri/cli": ["@file-seiri/cli@workspace:packages/cli"],
 
     "@file-seiri/core": ["@file-seiri/core@workspace:packages/core"],
+
+    "@file-seiri/ledger": ["@file-seiri/ledger@workspace:packages/ledger"],
 
     "@file-seiri/viewer": ["@file-seiri/viewer@workspace:packages/viewer"],
 

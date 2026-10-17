@@ -4,7 +4,7 @@
 CLI・Web・閲覧専用ビューアは、同じ台帳を共有する。閲覧専用ビューアは、スナップショットを読み取り専用で開く。
 
 状態の凡例: **確定** = 設計方針が合意済み / **仮** = 暫定(`features/` と技術選定のあとで見直す)。
-列の型は論理的なもの。実際の型は、技術選定のあとで決める。
+列の型は論理的なもの。実際の型(SQLite)は §7 に書く。
 
 ## 1. 全体図
 
@@ -29,7 +29,7 @@ erDiagram
         text status "running / completed / interrupted / failed"
         text started_at
         text finished_at
-        text revision_after "実行後の台帳リビジョン"
+        int revision_after "実行後の台帳リビジョン"
     }
     SOURCE_FILES {
         int source_file_id PK
@@ -40,7 +40,7 @@ erDiagram
         text rel_path "ボリューム内の相対パス"
         text entry_path "ZIP 内のパス"
         int size_bytes
-        int mtime_ns
+        int mtime_ms
         text kind "photo / raw / video / sidecar"
         text ext
         int content_id FK
@@ -56,7 +56,7 @@ erDiagram
         int volume_id PK, FK
         text rel_path PK
         int size_bytes PK
-        int mtime_ns PK
+        int mtime_ms PK
         int content_id FK
         text computed_at
     }
@@ -66,7 +66,7 @@ erDiagram
         text date_precision "full / date / month / year / none / invalid"
         text date_source "exif / video / json / filename / none"
         text date_reason "フォールバックの理由"
-        int mtime_ref_ns "参考の更新日"
+        int mtime_ref_ms "参考の更新日"
         text camera_make
         text camera_model
         text lens_model
@@ -103,7 +103,7 @@ erDiagram
         real centroid_lon
         int cover_library_file_id FK "代表の写真"
         text rule "4h / 5km など"
-        text computed_revision
+        int computed_revision
     }
     DUPLICATE_LINKS {
         int link_id PK
@@ -225,6 +225,12 @@ erDiagram
 - サムネイルの実体は、ファイル(正本は `data/` の `thumbs/`、ライブラリにコピー)。台帳には、`library_files.thumb_rel_path`(`thumbs/` からの相対パス)だけを持つ。
 - 原本の探索(§16-7)のために、同じ `content_id` を持つ `library_files` と `source_files` を、すべて、たどれるようにする。
 
+### 3-7. 更新日は、ミリ秒の整数で持つ(確定)
+
+- `source_files.mtime_ms`・`hash_cache.mtime_ms`・`media_metadata.mtime_ref_ms` は、1970-01-01 UTC からの**ミリ秒の整数**。
+- ファイルの更新日は、小数のミリ秒で返ることがある。保存するときも、キャッシュと照合するときも、**同じ丸め方(小数の部分を切り捨て)**にする。丸め方がずれると、同じファイルなのに、キャッシュが当たらない。この丸めは、`core` の `toMtimeMs` の 1 つだけにする。
+- ナノ秒にしないのは、JavaScript の数値(2^53)で、ナノ秒の更新日を正確に持てないため。
+
 ## 4. 値の一覧
 
 ### 4-1. `source_files.state`
@@ -254,7 +260,7 @@ erDiagram
 | テーブル         | 列                                                  | 用途                                       |
 | :--------------- | :-------------------------------------------------- | :----------------------------------------- |
 | `contents`       | `hash`(ユニーク)                                    | 重複判定                                   |
-| `hash_cache`     | (`volume_id`, `rel_path`, `size_bytes`, `mtime_ns`) | キャッシュの検索                           |
+| `hash_cache`     | (`volume_id`, `rel_path`, `size_bytes`, `mtime_ms`) | キャッシュの検索                           |
 | `library_files`  | `rel_path`(ユニーク)                                | 衝突判定                                   |
 | `library_files`  | `album_event_id`                                    | できごとの写真の一覧                       |
 | `album_events`   | `start_at`                                          | できごとの並び(新しい順)                   |
@@ -269,3 +275,12 @@ erDiagram
 - 書き込みはまとめてコミットする(`specification.md` §17-6)。
 - スナップショットは、ライブラリの `.file-seiri/` に保存する。閲覧専用ビューアは、これを読み取り専用で開く。
 - 台帳に個人情報(パス・GPS・撮影日時)が入るため、git にコミットしてはならない(`specification.md` §8-1)。
+
+## 7. SQLite での型
+
+- ID は `INTEGER PRIMARY KEY`。真偽は 0 / 1 の `INTEGER`(`CHECK` で制限する)。
+- 実行・記録の時刻(`*_at`)は、UTC の ISO 8601 の `TEXT`。撮影日時(`taken_at`・`album_events.start_at`・`end_at`)は、`core` の `formatTakenAt` の形式の `TEXT`。
+- `state`・`kind`・`bucket`・`level`・`date_precision`・`date_source`・`status`・`media_kind`・`method` は、`CHECK` で値を制限する。`errors.code` は、制限しない(コードを足すたびに移行が要るため。値は `core` の型で守る)。
+- 全テーブルを `STRICT` にし、外部キーを強制する。
+- スキーマの版は、`PRAGMA user_version` と `meta`(`schema_version`)の両方に持つ。移行は、番号つきの SQL で、台帳を書き込み用に開くときに、自動で適用する。
+- `meta` のキー: `library_id`(ライブラリの目印ファイルと同じ ID)、`schema_version`、`revision`(実行のたびに増える整数)。
