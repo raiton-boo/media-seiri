@@ -99,5 +99,4 @@ Google フォトの Takeout で書き出した ZIP には、写真ごとに `.js
 
 ## 11. 未決
 
-- Takeout の json のファイル名の形式(仮)。実際の ZIP を、サンプルで確認する。
-- 展開サイズの上限の値(仮)。
+詳細は、[open-items.md](../open-items.md) を見る(未決・仮は、そこに集めている)。
