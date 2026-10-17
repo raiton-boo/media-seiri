@@ -2,19 +2,15 @@
 node_modules/
 
 # --- ビルドの成果物
-# Next.js の開発用キャッシュ
 .next/
-# Next.js の静的書き出し(output: "export")の出力先
 out/
-# 単体の実行ファイル(bun build --compile)の出力先
 dist/
 
 # --- 自動生成するファイル
-# 静的書き出しのファイル一覧(scripts/gen-assets.ts が作る。毎回作り直すため、コミットしない)
 poc/viewer-embed/src/assets.ts
+next-env.d.ts
 
 # --- 本ツールの作業用データ
-# 作業用の台帳・サムネイル・ログ・一時領域(写真や台帳を、リポジトリに入れない)
 data/
 
 # --- 環境変数・機密
