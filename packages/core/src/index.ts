@@ -6,4 +6,6 @@ export const describePackage = (packageName: string): string =>
   `${PROJECT_NAME}/${packageName}`;
 
 export * from './date/index.ts';
+export * from './errors/index.ts';
+export * from './group/index.ts';
 export * from './naming/index.ts';
