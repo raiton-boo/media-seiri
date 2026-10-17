@@ -170,6 +170,7 @@ flowchart TD
 ```
 
 - 各手順の成否は、すべて `repair_attempts` に残す。
+- 修復を試みない場合(dry-run、ツールが使えない、試行の上限を超えた)は、`REPAIR_FAILED` ではなく `CORRUPTED` を記録する(修復は未実施)。元のバイトの扱い(`BYTES` の分岐)は、同じ。
 - 修復で直った場合でも、日付が取れなければ `_unknown/修復後も日付なし/` に置く。
 
 ## 6. CLI と Web の同期
