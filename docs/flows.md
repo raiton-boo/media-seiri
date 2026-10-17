@@ -131,8 +131,8 @@ flowchart TD
     NODATE -->|はい| INV["invalid"]
     NODATE -->|いいえ| NONE["none"]
     PREC --> P{"精度"}
-    P -->|full| B1["YYYY/MM/<br/>YYYY.MM.DD_HH-MM-SS"]
-    P -->|date| B2["YYYY/MM/_時刻不明/<br/>YYYY.MM.DD"]
+    P -->|full| B1["YYYY/MM/<br/>YYYY.MM.DD_HH-MM-SS_元の名前"]
+    P -->|date| B2["YYYY/MM/_時刻不明/<br/>YYYY.MM.DD_元の名前"]
     P -->|month| B3["YYYY/MM/_日付不明/<br/>YYYY.MM_元の名前"]
     P -->|year| B4["YYYY/_月日不明/<br/>YYYY_元の名前"]
     INV --> B6["_unknown/日付が不正/<br/>元の名前"]

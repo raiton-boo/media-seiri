@@ -17,7 +17,6 @@
 | 日付メタデータの順序       | DateTimeOriginal → DateTimeDigitized → CreateDate(仮)                                                           | [仕様書 §3](specification.md)                                                   | 実データ                       |
 | タイムゾーン               | 撮影地のオフセットの扱い                                                                                        | [仕様書 §3-2](specification.md)、[date-resolution](features/date-resolution.md) | 実データ(海外の写真はほぼない) |
 | ファイル名のパターン       | ファイル名から日付を取るパターンの一覧(仮)。年が 2 桁の形は、実データで確認して追加済み                         | [date-resolution](features/date-resolution.md)                                  | PoC                            |
-| 長すぎる名前・使えない文字 | 出力名の扱い(仮)                                                                                                | [ingest](features/ingest.md)                                                    | 実装時                         |
 | 並列処理の構成             | ファイル単位か、ドライブ単位か。複数ファイルを重ねる並列の効果は未測定(全件のコピー + 検証は、約 55 分の見込み) | [仕様書 §17](specification.md)、[ingest](features/ingest.md)                    | PoC                            |
 
 ## 2. 重複・ハッシュ・複数ソース
