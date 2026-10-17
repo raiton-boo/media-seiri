@@ -373,18 +373,23 @@ export const runIngest = async (
       '本実行(コピー)は、まだ実装していません。--dry-run を付けて、結果を確認してください。'
     );
   }
+  // 保存先の検査を、先に行う(使えないドライブには、ライブラリを作らない)
+  const destinationRoot = resolve(options.destination);
+  if (!existsSync(destinationRoot)) {
+    throw new CliError(`保存先がありません: ${destinationRoot}`);
+  }
+  const destinationVolume = context.resolveVolume(destinationRoot);
+  const problems = checkDestinationVolume(destinationVolume);
+  if (problems.length > 0) {
+    for (const problem of problems)
+      context.stderr(`エラー(${problem.code}): ${problem.message}`);
+    return EXIT_CODES.failed;
+  }
   const library = await openLibraryForIngest(context, options.destination, {
     restoreSnapshot: options.restoreSnapshot,
   });
   const metadataReader = createMetadataReader();
   try {
-    const destinationVolume = context.resolveVolume(library.root);
-    const problems = checkDestinationVolume(destinationVolume);
-    if (problems.length > 0) {
-      for (const problem of problems)
-        context.stderr(`エラー(${problem.code}): ${problem.message}`);
-      return EXIT_CODES.failed;
-    }
     let worst: ExitCode = EXIT_CODES.ok;
     for (const source of options.sources) {
       const code = await ingestSource(
