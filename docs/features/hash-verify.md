@@ -92,5 +92,4 @@ file-seiri verify [--library <パス>] [--sample <割合>]
 
 ## 10. 未決
 
-- ハッシュのアルゴリズム [H-05]: SHA-256 に決定。
-- `verify --sample` の抜き取り方(仮)。
+詳細は、[open-items.md](../open-items.md) を見る(未決・仮は、そこに集めている)。

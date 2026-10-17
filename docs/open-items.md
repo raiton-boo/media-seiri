@@ -1,0 +1,81 @@
+# 未決・仮の一覧
+
+決まっていないこと(**未決**)と、暫定で置いていること(**仮**)を、**ここだけ**に集める。
+各文書の「未決」の章は、この文書へのリンクだけにした。解決したら、この表から消し、正本(仕様書など)の「仮」の印も外す。
+
+- 正本は、仕様書(`specification.md`)。ここは、「何が、まだ決まっていないか」の一覧であり、決定の内容は書かない。
+- 「いつ決めるか」の凡例: **PoC** = 試作で確認 / **実データ** = 実際のデータで調整 / **実装時** = 実装の段階で決める / **随時** = 使いながら
+
+## 1. 取り込み・日付
+
+| 項目 | 内容 | 正本 | いつ |
+| :--- | :--- | :--- | :--- |
+| 拡張子の一覧 | m2t、webm、mpg、mpeg、raw などの最終リスト | [仕様書 §1-1](specification.md) | PoC |
+| `*.photoslibrary` の扱い | 取り込み対象にしない(仮) | [仕様書 §1](specification.md) | 随時 |
+| ファイル名の NFC 化 | macOS と Windows の間の差を避けるため(仮) | [仕様書 §2](specification.md) | PoC |
+| 動画の接尾辞 | `-video-paired` など、一覧は設定で追加(仮) | [仕様書 §2](specification.md) | 実データ |
+| 日付メタデータの順序 | DateTimeOriginal → DateTimeDigitized → CreateDate(仮) | [仕様書 §3](specification.md) | 実データ |
+| タイムゾーン | 撮影地のオフセットの扱い | [仕様書 §3-2](specification.md)、[date-resolution](features/date-resolution.md) | 実データ(海外の写真はほぼない) |
+| ファイル名のパターン | ファイル名から日付を取るパターンの一覧(仮) | [date-resolution](features/date-resolution.md) | PoC |
+| 長すぎる名前・使えない文字 | 出力名の扱い(仮) | [ingest](features/ingest.md) | 実装時 |
+| 並列処理の構成 | ファイル単位か、ドライブ単位か | [仕様書 §17](specification.md)、[ingest](features/ingest.md) | PoC |
+
+## 2. 重複・ハッシュ・複数ソース
+
+| 項目 | 内容 | 正本 | いつ |
+| :--- | :--- | :--- | :--- |
+| 採用側の選び方 | 並列処理のとき、先に確定した 1 件を採用(仮) | [仕様書 §5](specification.md)、[dedupe](features/dedupe.md) | 実装時 |
+| 再実行の判定 | 「ボリューム+相対パス+サイズ+mtime」で処理済みを判定(仮) | [仕様書 §8](specification.md)、[multi-source](features/multi-source.md) | 実装時 |
+| 中断後の再開 | 再開の単位と、状態の持ち方(仮) | [仕様書 §8](specification.md)、[multi-source](features/multi-source.md) | 実装時 |
+| `verify --sample` | 抜き取り方(仮) | [hash-verify](features/hash-verify.md) | 実装時 |
+| 排他制御 | 2 つ目の実行は「終了」か「待機」か。ハートビートの時間(60 秒、仮) | [仕様書 §12](specification.md) | 実装時 |
+| 変更通知 | CLI と Web の間は、まずポーリング(仮) | [tech-selection](tech-selection.md) | PoC |
+
+## 3. 容量・ZIP・修復
+
+| 項目 | 内容 | 正本 | いつ |
+| :--- | :--- | :--- | :--- |
+| 必要容量の余裕分 | `max(5%, 10GB)`(仮) | [仕様書 §9](specification.md) | 実データ |
+| 展開サイズの上限 | ZIP の展開サイズの値(仮) | [仕様書 §10-1](specification.md)、[zip-handling](features/zip-handling.md) | 実データ |
+| Takeout の json | ファイル名の形式。実際の ZIP をサンプルで確認 | [zip-handling](features/zip-handling.md) | 実データ |
+| 修復の手順 | 動画の再構築 → メタデータの再書込み → 切れた画像の救出(仮)。使うツールは技術選定で | [仕様書 §10-3](specification.md)、[repair](features/repair.md) | PoC |
+| 「一部のみ救出」 | 扱いと、試行の上限(時間・回数)(仮) | [repair](features/repair.md) | 実装時 |
+
+## 4. CLI・ログ・dry-run・統計・地図
+
+| 項目 | 内容 | 正本 | いつ |
+| :--- | :--- | :--- | :--- |
+| ログ | ファイルに残す場合の保存場所・保存期間(仮) | [cli-logging](features/cli-logging.md) | 実装時 |
+| コマンド名・終了コード | 細部(仮) | [cli-logging](features/cli-logging.md) | 実装時 |
+| ライブ表示 | レイアウト。端末で試して決める | [cli-logging](features/cli-logging.md) | PoC(Ink) |
+| dry-run のレポート | CSV / JSON の形式と項目(仮) | [dry-run](features/dry-run.md) | 実装時 |
+| 保存先が書き込めない場合 | dry-run で止めるか、警告にとどめるか(仮) | [dry-run](features/dry-run.md) | 実装時 |
+| RAW+JPEG の数え方 | 統計での数え方(仮) | [statistics](features/statistics.md) | 実装時 |
+| カメラのメーカー名 | 正規化の規則(仮) | [statistics](features/statistics.md) | 実データ |
+| 集計結果の保持 | 方法(技術選定のあとで) | [statistics](features/statistics.md) | 実装時 |
+| 地図の期間指定 | 指定の方法(仮) | [map](features/map.md) | 実装時 |
+| 地図のタイル | 表示の確認 | [tech-selection §10](tech-selection.md) | PoC |
+
+## 5. アルバム・Web・デザイン
+
+| 項目 | 内容 | 正本 | いつ |
+| :--- | :--- | :--- | :--- |
+| 机の枚数・できごとの区切り | 既定 12 枚、4 時間・5km。値を調整 | [album](features/album.md)、[仕様書 §16](specification.md) | 実データ |
+| 代表の写真 | GPS 優先、なければ先頭(仮) | [仕様書 §16-6](specification.md) | 実データ |
+| サムネイル | 大きさ・画像形式・作り方(HEIC は変換、RAW は埋め込み、動画は代表の 1 コマ。仮) | [仕様書 §16](specification.md) | PoC |
+| デザインの値 | 色・余白・部品をそろえる。トークンは仮 | [design](design.md) | 実装時 |
+| ビューアの対応 OS | macOS / Windows。Linux はスコープ外(仮) | [web-viewer](features/web-viewer.md) | 随時 |
+| 画面の部品 | 自作 + Tailwind(仮) | [tech-selection](tech-selection.md) | 実装時 |
+| 画面の遷移・レイアウト | ワイヤーフレームで確認 | [web-viewer](features/web-viewer.md) | 随時 |
+
+## 6. 設計全体
+
+| 項目 | 内容 | 正本 | いつ |
+| :--- | :--- | :--- | :--- |
+| インデックス | 台帳のインデックスの設計(仮) | [er §5](er.md) | 実装時 |
+| 試作(PoC)の項目 | `F_NOCACHE`、Windows の exe、速度、Ink、ExifTool のまとめ実行、タイル、Next.js の静的書き出し | [tech-selection §10](tech-selection.md) | PoC |
+| 別の HDD | 接続されたら、中身を調べる | — | 接続時 |
+
+## 7. 要件の状態
+
+要件定義(`requirements.md`)の「仮」の行は、すべて**確定**にした。細部の仮は、上の表で管理する。

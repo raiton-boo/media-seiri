@@ -91,5 +91,4 @@ file-seiri ingest ... --dry-run --report <ファイル>
 
 ## 9. 未決
 
-- レポート(CSV / JSON)の形式と項目(仮)。
-- 保存先が書き込めない場合に、dry-run で止めるか、警告にとどめるか(仮)。
+詳細は、[open-items.md](../open-items.md) を見る(未決・仮は、そこに集めている)。

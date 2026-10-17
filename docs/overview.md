@@ -8,7 +8,7 @@
 地図・統計・重複確認などを Web 画面で閲覧できる。
 
 - 完全ローカルで動作する(取り込み処理・データ保管・Web 画面とも、外部サービスへデータを送らない)
-- 整理は **コピー専用**。元データは触らず、バックアップとして残す
+- 整理は **コピー専用**。元のファイルは触らず、バックアップとして残す
 - 単発の大掃除(2TB 前後、1万枚以上)が主用途。継続利用は将来の余地として残す
 
 ## 2. 全体像
@@ -55,11 +55,14 @@ flowchart LR
 
 | ファイル                 | 内容                                           |
 | :----------------------- | :--------------------------------------------- |
+| `docs/README.md`         | 文書の索引・読む順番                           |
 | `docs/overview.md`       | 本書                                           |
 | `docs/requirements.md`   | 要件定義                                       |
-| `docs/specification.md`  | 仕様書(命名規則、日付優先順位、ライブラリなど) |
-| `docs/features/*.md`     | 機能別ドキュメント ※予定                       |
-| `docs/er.md`             | ER 図(Mermaid) ※予定                           |
-| `docs/flows.md`          | 処理フロー(Mermaid) ※予定                      |
-| `docs/tech-selection.md` | 技術選定(要件確定後に実施) ※予定               |
+| `docs/specification.md`  | 仕様書(命名規則、日付優先順位、ライブラリなど。**正本**) |
+| `docs/design.md`         | デザイン方針(トークン・配色・部品)             |
+| `docs/open-items.md`     | 未決・仮の一覧                                 |
+| `docs/features/*.md`     | 機能別ドキュメント                             |
+| `docs/er.md`             | ER 図(Mermaid)                                 |
+| `docs/flows.md`          | 処理フロー(Mermaid)                            |
+| `docs/tech-selection.md` | 技術選定                                       |
 | `docs/rules/`            | 開発ルール                                     |
