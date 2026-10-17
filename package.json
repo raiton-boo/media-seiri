@@ -1,0 +1,17 @@
+{
+  "name": "file-seiri",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "check": "biome check .",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun test packages"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "typescript": "^7.0.2"
+  }
+}
