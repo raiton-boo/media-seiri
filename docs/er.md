@@ -169,20 +169,20 @@ erDiagram
 
 | テーブル          | 役割                                                                                               | 対応する要件         |
 | :---------------- | :------------------------------------------------------------------------------------------------- | :------------------- |
-| `meta`            | スキーマ版、ライブラリ ID、台帳のリビジョン番号を持つ(§8-2)                                        | M-05, M-08           |
-| `volumes`         | ソースの外付け・内蔵ストレージ。名前ではなく、固有 ID で識別する                                   | V-02                 |
-| `runs`            | 実行ごとの記録。dry-run は `is_dry_run = 1` で区別する                                             | M-03, X-03           |
-| `source_files`    | 実行ごとに検出したソース側のファイル。ZIP の中身は、親の ZIP を `container_id` で指す              | T-03, T-04           |
-| `contents`        | ハッシュで識別する「内容」。同じハッシュは 1 行だけ                                                | P-01                 |
-| `hash_cache`      | ハッシュのキャッシュ。キーは(ボリューム, 相対パス, サイズ, mtime)                                  | H-02, H-03           |
-| `media_metadata`  | 内容ごとの、撮影日時・日付の精度・カメラ・GPS など                                                 | I-02, D-_, G-_, S-\* |
-| `file_groups`     | RAW+JPEG などの同名グループ。出力名の語幹を共有する                                                | I-05                 |
-| `library_files`   | ライブラリに保存したファイル。台帳のパスはすべて相対パス                                           | M-06                 |
-| `album_events`    | アルバムの単位「できごと」。取り込みの最後に、時刻の空きと場所から計算して保存する。Web は読むだけ | A-04                 |
-| `duplicate_links` | 重複の「スキップ側」と「採用側」の対応                                                             | P-02, P-03           |
-| `repair_attempts` | 修復の試行の記録(手順・成否・出力先)                                                               | R-02〜R-04           |
-| `errors`          | エラー一覧の元になる記録                                                                           | L-04                 |
-| `events`          | 逐次ログの元になるイベント。CLI の表示も Web の実行状況も、ここから作る                            | L-01, L-03           |
+| `meta`            | スキーマ版、ライブラリ ID、台帳のリビジョン番号を持つ(§8-2)                                        | [ライブラリの目印ファイル](requirements.md#m-05)、[スナップショットの保存](requirements.md#m-08)           |
+| `volumes`         | ソースの外付け・内蔵ストレージ。名前ではなく、固有 ID で識別する                                   | [ボリューム ID で識別](requirements.md#v-02)                 |
+| `runs`            | 実行ごとの記録。dry-run は `is_dry_run = 1` で区別する                                             | [実行 ID](requirements.md#m-03)、[dry-run を Web で確認](requirements.md#x-03)           |
+| `source_files`    | 実行ごとに検出したソース側のファイル。ZIP の中身は、親の ZIP を `container_id` で指す              | [ZIP 内のファイル](requirements.md#t-03)、[ZIP の入れ子](requirements.md#t-04)           |
+| `contents`        | ハッシュで識別する「内容」。同じハッシュは 1 行だけ                                                | [完全一致だけを重複とする](requirements.md#p-01)                 |
+| `hash_cache`      | ハッシュのキャッシュ。キーは(ボリューム, 相対パス, サイズ, mtime)                                  | [ハッシュのキャッシュ](requirements.md#h-02)、[キャッシュを使わない再計算](requirements.md#h-03)           |
+| `media_metadata`  | 内容ごとの、撮影日時・日付の精度・カメラ・GPS など                                                 | [メタデータの取得](requirements.md#i-02), D-_, G-_, S-\* |
+| `file_groups`     | RAW+JPEG などの同名グループ。出力名の語幹を共有する                                                | [RAW と JPEG のペア](requirements.md#i-05)                 |
+| `library_files`   | ライブラリに保存したファイル。台帳のパスはすべて相対パス                                           | [相対パスで記録](requirements.md#m-06)                 |
+| `album_events`    | アルバムの単位「できごと」。取り込みの最後に、時刻の空きと場所から計算して保存する。Web は読むだけ | [できごとの自動まとめ](requirements.md#a-04)                 |
+| `duplicate_links` | 重複の「スキップ側」と「採用側」の対応                                                             | [重複の自動スキップ](requirements.md#p-02)、[採用とスキップの比較画面](requirements.md#p-03)           |
+| `repair_attempts` | 修復の試行の記録(手順・成否・出力先)                                                               | [自動修復](requirements.md#r-02)〜[修復の 3 つの手順](requirements.md#r-04)           |
+| `errors`          | エラー一覧の元になる記録                                                                           | [各一覧の Web 閲覧](requirements.md#l-04)                 |
+| `events`          | 逐次ログの元になるイベント。CLI の表示も Web の実行状況も、ここから作る                            | [CLI の逐次表示](requirements.md#l-01)、[実行状況の Web 表示](requirements.md#l-03)           |
 | `locks`           | ライブラリへの書き込みの排他制御(§12)                                                              |                      |
 
 ## 3. 設計のポイント
@@ -196,8 +196,8 @@ erDiagram
 ### 3-2. 日付フォールバックは、専用テーブルを持たない(確定)
 
 - `media_metadata.date_source` が `exif` / `video` 以外のものが、フォールバック。
-- 取得元の種別での絞り込み [D-05] は、`date_source` の条件で行う。
-- 日付の精度での絞り込み [A-07] は、`date_precision` の条件で行う。
+- 取得元の種別での絞り込み ([フォールバック一覧の絞り込み](requirements.md#d-05)) は、`date_source` の条件で行う。
+- 日付の精度での絞り込み ([絞り込み](requirements.md#a-07)) は、`date_precision` の条件で行う。
 - `date_reason` に、取得できなかった理由を持たせる。
 
 ### 3-3. dry-run の扱い(確定)
@@ -211,7 +211,7 @@ erDiagram
 - ソース側: (`volume_id`, `rel_path`)。マウント先の絶対パスは持たない。
 - ライブラリ側: ライブラリの根からの相対パス。
 - ZIP の中身: 親の `source_files`(`container_id`)と、ZIP 内のパス(`entry_path`)で表す。
-- これにより、ドライブ文字やマウント先が変わっても、台帳をそのまま使える [W-04]。
+- これにより、ドライブ文字やマウント先が変わっても、台帳をそのまま使える ([ドライブ文字が変わっても動く](requirements.md#w-04))。
 
 ### 3-5. 重複の記録(確定)
 
