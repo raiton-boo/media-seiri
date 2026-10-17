@@ -40,18 +40,26 @@
 | Takeout の json | ファイル名の形式。実際の ZIP をサンプルで確認 | [zip-handling](features/zip-handling.md) | 実データ |
 | 修復の手順 | 動画の再構築 → メタデータの再書込み → 切れた画像の救出(仮)。使うツールは技術選定で | [仕様書 §10-3](specification.md)、[repair](features/repair.md) | PoC |
 | 「一部のみ救出」 | 扱いと、試行の上限(時間・回数)(仮) | [repair](features/repair.md) | 実装時 |
+| 破損のエラーコード | 修復に失敗したとき、`CORRUPTED` と `REPAIR_FAILED` のどちらを記録するか(仕様書 §14 の説明が重なっている。**未決**) | [仕様書 §14](specification.md)、[repair](features/repair.md) | 実装時 |
+| 修復の再実行 | 前回の結果があれば再試行せず、`--retry-repair` で再試行(仮) | [repair](features/repair.md) | 実装時 |
+| ZIP の文字コード | 判定が曖昧なときは cp932 を優先(仮) | [zip-handling](features/zip-handling.md) | 実データ |
 
 ## 4. CLI・ログ・dry-run・統計・地図
 
 | 項目 | 内容 | 正本 | いつ |
 | :--- | :--- | :--- | :--- |
 | ログ | ファイルに残す場合の保存場所・保存期間(仮) | [cli-logging](features/cli-logging.md) | 実装時 |
+| 起動時のロゴ | ASCII のロゴ・バナーを表示する(仮) | [cli-logging](features/cli-logging.md) | PoC(Ink) |
 | コマンド名・終了コード | 細部(仮) | [cli-logging](features/cli-logging.md) | 実装時 |
 | ライブ表示 | レイアウト。端末で試して決める | [cli-logging](features/cli-logging.md) | PoC(Ink) |
 | dry-run のレポート | CSV / JSON の形式と項目(仮) | [dry-run](features/dry-run.md) | 実装時 |
 | 保存先が書き込めない場合 | dry-run で止めるか、警告にとどめるか(仮) | [dry-run](features/dry-run.md) | 実装時 |
+| dry-run の修復 | 修復は実行せず、「修復の対象」の件数だけ報告(仮) | [dry-run](features/dry-run.md) | 実装時 |
+| dry-run で保存先が未接続 | 容量の見積りだけ省き、ほかの結果は出す(仮) | [dry-run](features/dry-run.md) | 実装時 |
 | RAW+JPEG の数え方 | 統計での数え方(仮) | [statistics](features/statistics.md) | 実装時 |
 | カメラのメーカー名 | 正規化の規則(仮) | [statistics](features/statistics.md) | 実データ |
+| 統計の月別の表示 | 年を選ぶか、全期間を連続して表示するか(仮) | [statistics](features/statistics.md) | 実装時 |
+| 統計の絞り込み | 種別・ソース(実行)で絞り込む(仮) | [statistics](features/statistics.md) | 実装時 |
 | 集計結果の保持 | 方法(技術選定のあとで) | [statistics](features/statistics.md) | 実装時 |
 | 地図の期間指定 | 指定の方法(仮) | [map](features/map.md) | 実装時 |
 | 地図のタイル | 表示の確認 | [tech-selection §10](tech-selection.md) | PoC |
