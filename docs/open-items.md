@@ -8,16 +8,16 @@
 
 ## 1. 取り込み・日付
 
-| 項目                       | 内容                                                  | 正本                                                                            | いつ                           |
-| :------------------------- | :---------------------------------------------------- | :------------------------------------------------------------------------------ | :----------------------------- |
-| 拡張子の一覧               | m2t、webm、mpg、mpeg、raw などの最終リスト            | [仕様書 §1-1](specification.md)                                                 | PoC                            |
-| `*.photoslibrary` の扱い   | 取り込み対象にしない(仮)                              | [仕様書 §1](specification.md)                                                   | 随時                           |
-| ファイル名の NFC 化        | macOS と Windows の間の差を避けるため(仮)             | [仕様書 §2](specification.md)                                                   | PoC                            |
-| 動画の接尾辞               | `-video-paired` など、一覧は設定で追加(仮)            | [仕様書 §2](specification.md)                                                   | 実データ                       |
-| 日付メタデータの順序       | DateTimeOriginal → DateTimeDigitized → CreateDate(仮) | [仕様書 §3](specification.md)                                                   | 実データ                       |
-| タイムゾーン               | 撮影地のオフセットの扱い                              | [仕様書 §3-2](specification.md)、[date-resolution](features/date-resolution.md) | 実データ(海外の写真はほぼない) |
-| ファイル名のパターン       | ファイル名から日付を取るパターンの一覧(仮)。年が 2 桁の形は、実データで確認して追加済み | [date-resolution](features/date-resolution.md)                                  | PoC                            |
-| 長すぎる名前・使えない文字 | 出力名の扱い(仮)                                      | [ingest](features/ingest.md)                                                    | 実装時                         |
+| 項目                       | 内容                                                                                                            | 正本                                                                            | いつ                           |
+| :------------------------- | :-------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------ | :----------------------------- |
+| 拡張子の一覧               | m2t、webm、mpg、mpeg、raw などの最終リスト                                                                      | [仕様書 §1-1](specification.md)                                                 | PoC                            |
+| `*.photoslibrary` の扱い   | 取り込み対象にしない(仮)                                                                                        | [仕様書 §1](specification.md)                                                   | 随時                           |
+| ファイル名の NFC 化        | macOS と Windows の間の差を避けるため(仮)                                                                       | [仕様書 §2](specification.md)                                                   | PoC                            |
+| 動画の接尾辞               | `-video-paired` など、一覧は設定で追加(仮)                                                                      | [仕様書 §2](specification.md)                                                   | 実データ                       |
+| 日付メタデータの順序       | DateTimeOriginal → DateTimeDigitized → CreateDate(仮)                                                           | [仕様書 §3](specification.md)                                                   | 実データ                       |
+| タイムゾーン               | 撮影地のオフセットの扱い                                                                                        | [仕様書 §3-2](specification.md)、[date-resolution](features/date-resolution.md) | 実データ(海外の写真はほぼない) |
+| ファイル名のパターン       | ファイル名から日付を取るパターンの一覧(仮)。年が 2 桁の形は、実データで確認して追加済み                         | [date-resolution](features/date-resolution.md)                                  | PoC                            |
+| 長すぎる名前・使えない文字 | 出力名の扱い(仮)                                                                                                | [ingest](features/ingest.md)                                                    | 実装時                         |
 | 並列処理の構成             | ファイル単位か、ドライブ単位か。複数ファイルを重ねる並列の効果は未測定(全件のコピー + 検証は、約 55 分の見込み) | [仕様書 §17](specification.md)、[ingest](features/ingest.md)                    | PoC                            |
 
 ## 2. 重複・ハッシュ・複数ソース
@@ -46,23 +46,24 @@
 
 ## 4. CLI・ログ・dry-run・統計・地図
 
-| 項目                     | 内容                                             | 正本                                    | いつ     |
-| :----------------------- | :----------------------------------------------- | :-------------------------------------- | :------- |
-| ログ                     | ファイルに残す場合の保存場所・保存期間(仮)       | [cli-logging](features/cli-logging.md)  | 実装時   |
-| 起動時のロゴ             | ASCII のロゴ・バナーを表示する(仮)               | [cli-logging](features/cli-logging.md)  | PoC(Ink) |
-| コマンド名・終了コード   | 細部(仮)                                         | [cli-logging](features/cli-logging.md)  | 実装時   |
-| ライブ表示               | レイアウト。端末で試して決める                   | [cli-logging](features/cli-logging.md)  | PoC(Ink) |
-| dry-run のレポート       | CSV / JSON の形式と項目(仮)                      | [dry-run](features/dry-run.md)          | 実装時   |
-| 保存先が書き込めない場合 | dry-run で止めるか、警告にとどめるか(仮)         | [dry-run](features/dry-run.md)          | 実装時   |
-| dry-run の修復           | 修復は実行せず、「修復の対象」の件数だけ報告(仮) | [dry-run](features/dry-run.md)          | 実装時   |
-| dry-run で保存先が未接続 | 容量の見積りだけ省き、ほかの結果は出す(仮)       | [dry-run](features/dry-run.md)          | 実装時   |
-| RAW+JPEG の数え方        | 統計での数え方(仮)                               | [statistics](features/statistics.md)    | 実装時   |
-| カメラのメーカー名       | 正規化の規則(仮)                                 | [statistics](features/statistics.md)    | 実データ |
-| 統計の月別の表示         | 年を選ぶか、全期間を連続して表示するか(仮)       | [statistics](features/statistics.md)    | 実装時   |
-| 統計の絞り込み           | 種別・ソース(実行)で絞り込む(仮)                 | [statistics](features/statistics.md)    | 実装時   |
-| 集計結果の保持           | 方法(技術選定のあとで)                           | [statistics](features/statistics.md)    | 実装時   |
-| 地図の期間指定           | 指定の方法(仮)                                   | [map](features/map.md)                  | 実装時   |
-| 地図のタイル             | 表示の確認                                       | [tech-selection §10](tech-selection.md) | PoC      |
+| 項目                     | 内容                                                                      | 正本                                    | いつ     |
+| :----------------------- | :------------------------------------------------------------------------ | :-------------------------------------- | :------- |
+| ログ                     | ファイルに残す場合の保存場所・保存期間(仮)                                | [cli-logging](features/cli-logging.md)  | 実装時   |
+| コマンド名・終了コード   | 細部(仮)                                                                  | [cli-logging](features/cli-logging.md)  | 実装時   |
+| ライブ表示の負荷         | 描画で、1 コアの約 4〜5 割(30fps、全パネル)。本実装で、更新の間引きを検討 | [cli-logging](features/cli-logging.md)  | 実装時   |
+| 速度のグラフの元の値     | PoC は模擬。本実装で、コピーしたバイト数を 0.5 秒ごとに数える             | [cli-logging](features/cli-logging.md)  | 実装時   |
+| `w` キー(Web を開く)     | PoC では案内の表示だけ。本実装で、結果の画面を開く                        | [cli-logging](features/cli-logging.md)  | 実装時   |
+| dry-run のレポート       | CSV / JSON の形式と項目(仮)                                               | [dry-run](features/dry-run.md)          | 実装時   |
+| 保存先が書き込めない場合 | dry-run で止めるか、警告にとどめるか(仮)                                  | [dry-run](features/dry-run.md)          | 実装時   |
+| dry-run の修復           | 修復は実行せず、「修復の対象」の件数だけ報告(仮)                          | [dry-run](features/dry-run.md)          | 実装時   |
+| dry-run で保存先が未接続 | 容量の見積りだけ省き、ほかの結果は出す(仮)                                | [dry-run](features/dry-run.md)          | 実装時   |
+| RAW+JPEG の数え方        | 統計での数え方(仮)                                                        | [statistics](features/statistics.md)    | 実装時   |
+| カメラのメーカー名       | 正規化の規則(仮)                                                          | [statistics](features/statistics.md)    | 実データ |
+| 統計の月別の表示         | 年を選ぶか、全期間を連続して表示するか(仮)                                | [statistics](features/statistics.md)    | 実装時   |
+| 統計の絞り込み           | 種別・ソース(実行)で絞り込む(仮)                                          | [statistics](features/statistics.md)    | 実装時   |
+| 集計結果の保持           | 方法(技術選定のあとで)                                                    | [statistics](features/statistics.md)    | 実装時   |
+| 地図の期間指定           | 指定の方法(仮)                                                            | [map](features/map.md)                  | 実装時   |
+| 地図のタイル             | 表示の確認                                                                | [tech-selection §10](tech-selection.md) | PoC      |
 
 ## 5. アルバム・Web・デザイン
 
@@ -79,11 +80,11 @@
 
 ## 6. 設計全体
 
-| 項目            | 内容                                                                                                                            | 正本                                    | いつ   |
-| :-------------- | :------------------------------------------------------------------------------------------------------------------------------ | :-------------------------------------- | :----- |
-| インデックス    | 台帳のインデックスの設計(仮)                                                                                                    | [er §5](er.md)                          | 実装時 |
-| 試作(PoC)の項目 | Ink のライブ表示(それ以外は完了: 静的書き出し・タイル・日付とファイル名・ExifTool・`F_NOCACHE`・速度。Windows の実機での確認は、システム完成後の受け入れ確認) | [tech-selection §10](tech-selection.md) | PoC    |
-| 別の HDD        | 接続されたら、中身を調べる                                                                                                      | —                                       | 接続時 |
+| 項目            | 内容                                                                                                                                                              | 正本                                    | いつ   |
+| :-------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------- | :----- |
+| インデックス    | 台帳のインデックスの設計(仮)                                                                                                                                      | [er §5](er.md)                          | 実装時 |
+| 試作(PoC)の項目 | すべて完了(静的書き出し・タイル・日付とファイル名・ExifTool・`F_NOCACHE`・速度・Ink のライブ表示)。残るのは、Windows の実機での確認(システム完成後の受け入れ確認) | [tech-selection §10](tech-selection.md) | PoC    |
+| 別の HDD        | 接続されたら、中身を調べる                                                                                                                                        | —                                       | 接続時 |
 
 ## 7. 要件の状態
 

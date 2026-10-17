@@ -529,11 +529,11 @@ export const BtopView = ({
             {showStorage ? (
               <>
                 <Text color={text}>
-                  PhotoLib 空き{' '}
+                  空き{' '}
                   {formatGigabytes(
                     DESTINATION_CAPACITY_BYTES - snapshot.bytesProcessed
                   )}{' '}
-                  · .part 1 · ._ 削除 {formatNumber(stageCounts.copy)}
+                  · .part 1 · ._削除 {formatNumber(stageCounts.copy)}
                 </Text>
                 <Text>
                   <Text color={paint('matrix')}>
