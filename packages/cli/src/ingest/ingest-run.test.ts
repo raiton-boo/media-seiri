@@ -451,6 +451,40 @@ describe('ingest(本実行): 失敗', () => {
   });
 });
 
+describe('ingest(本実行): exFAT の付属ファイル(._)', () => {
+  test('exFAT の保存先では、実行の最後に、フォルダ・目印・スナップショットの付属ファイルも掃除する', async () => {
+    const world = await newWorld({ destVolume: { fsType: 'exfat' } });
+    await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);
+    // macOS が作る付属ファイルの再現(目印・管理用フォルダ)。実行の最後に、消える
+    writeFileSync(join(world.library, '._.file-seiri-library.json'), 'x');
+    writeFileSync(join(world.library, '._.file-seiri'), 'x');
+    await ingest(world, [], {
+      ingestHooks: {
+        afterFileCopied: () => {
+          // 作ったフォルダの付属ファイル
+          writeFileSync(join(world.library, '2024', '._03'), 'x');
+          writeFileSync(join(world.library, '._2024'), 'x');
+        },
+      },
+    });
+    const all = readdirSync(world.library, { recursive: true }).map(String);
+    expect(
+      all.filter((name) => name.split('/').pop()?.startsWith('._'))
+    ).toEqual([]);
+    expect(libraryFiles(world)).toEqual([A]);
+  });
+
+  test('APFS の保存先では、付属ファイルを掃除しない(作られないため)', async () => {
+    const world = await newWorld({ destVolume: { fsType: 'apfs' } });
+    await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);
+    writeFileSync(join(world.library, '._.file-seiri-library.json'), 'x');
+    await ingest(world);
+    expect(existsSync(join(world.library, '._.file-seiri-library.json'))).toBe(
+      true
+    );
+  });
+});
+
 describe('ingest(本実行): ロック', () => {
   const setLock = (world: World, holder: string, heartbeatAt: Date): void => {
     const ledger = openWorldLedger(world);

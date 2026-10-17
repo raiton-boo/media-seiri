@@ -8,7 +8,11 @@ import {
 } from '@file-seiri/ledger';
 import { CliError } from '../cli-error.ts';
 import type { CommandContext } from '../context.ts';
-import { cleanupPartFiles } from '../copy/index.ts';
+import {
+  cleanupAppleDouble,
+  cleanupPartFiles,
+  usesAppleDouble,
+} from '../copy/index.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { createMetadataReader } from '../metadata/index.ts';
 import {
@@ -134,6 +138,20 @@ export const runIngest = async (
     return worst;
   } finally {
     stopHeartbeat();
+    // exFAT・FAT の保存先に、macOS が作った付属ファイル(`._名前`)を、掃除する(仕様書 §7-4)。
+    // スナップショットの保存のあとに、行う。ロックを持っているうちに行う(書き込みの一部のため)
+    if (lock && !lock.isLost() && usesAppleDouble(destinationVolume.fsType)) {
+      try {
+        const swept = cleanupAppleDouble(library.root);
+        for (const path of swept.failed) {
+          context.stderr(`警告: 付属ファイルを削除できませんでした: ${path}`);
+        }
+      } catch (error) {
+        context.stderr(
+          `警告: 付属ファイルを掃除できませんでした: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
     lock?.release();
     await metadataReader.close();
     library.ledger.close();

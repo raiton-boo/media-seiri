@@ -17,6 +17,7 @@ import {
   CopyError,
   copyVerified,
   DestinationExistsError,
+  usesAppleDouble,
 } from '../copy/index.ts';
 import { SourceChangedError } from '../hash/index.ts';
 import type { VolumeInfo } from '../volume/index.ts';
@@ -28,8 +29,6 @@ import type { CopyResult, IngestSummary, StopReason } from './summary.ts';
 
 /** コピーの進みを、表示する間隔(ファイル数) */
 const PROGRESS_INTERVAL = 50;
-/** macOS が、書いたファイルごとに付属ファイル(`._名前`)を作る形式(仕様書 §7-4) */
-const APPLE_DOUBLE_FILESYSTEMS = new Set(['exfat', 'fat32', 'fat16', 'fat']);
 
 /** テストで、処理の途中に、割り込むための差し込み口 */
 export type IngestHooks = {
@@ -112,9 +111,7 @@ export const executeCopies = async (
     stopReason: undefined,
   };
   summary.copy = result;
-  const removeAppleDouble = APPLE_DOUBLE_FILESYSTEMS.has(
-    destinationVolume.fsType
-  );
+  const removeAppleDouble = usesAppleDouble(destinationVolume.fsType);
 
   // コピーの順: スキャンの順(グループは、最初のメンバーの位置)。1 グループずつ、続けて
   const order: number[] = [];
