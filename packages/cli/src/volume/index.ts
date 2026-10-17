@@ -1,3 +1,4 @@
+export { isListedVolume, listMountedVolumes } from './list.ts';
 export { recordVolume } from './record.ts';
 export {
   type CommandRunner,
