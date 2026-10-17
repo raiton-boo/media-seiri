@@ -8,10 +8,11 @@ import {
   snapshotPathOf,
 } from '@file-seiri/ledger';
 import { CliError } from '../cli-error.ts';
+import { libraryInit } from '../commands/library-init.ts';
 import { ledgerPathFor } from '../config/paths.ts';
 import { readConfig, registerLibrary } from '../config/registry.ts';
 import type { CommandContext } from '../context.ts';
-import { readMarker } from '../library/marker.ts';
+import { type LibraryMarker, readMarker } from '../library/marker.ts';
 
 export type OpenedLibrary = {
   root: string;
@@ -30,8 +31,37 @@ const SNAPSHOT_NEWER_HELP =
   '置き換えるなら、--restore-snapshot を付けて、もう一度実行してください(いまの台帳は、別名で残します)。';
 
 /**
+ * 保存先に目印がないとき(仕様書 §9-2): 端末なら、ライブラリを作るか確認し、はいなら `library init` と同じ処理で作る。
+ * 端末でなければ、案内して止める(質問できないため)。
+ */
+const createLibraryAfterConfirm = async (
+  context: CommandContext,
+  root: string
+): Promise<LibraryMarker> => {
+  const guide =
+    '`file-seiri library init <保存先のパス>` で、ライブラリを作ってください。';
+  if (!context.isInteractive) {
+    throw new CliError(
+      `保存先は、ライブラリではありません(目印がありません): ${root}\n${guide}`
+    );
+  }
+  context.stdout(
+    `保存先は、ライブラリではありません(目印がありません): ${root}`
+  );
+  if (!(await context.confirm('ここに、ライブラリを作りますか'))) {
+    throw new CliError(
+      `中止しました(ライブラリは、作っていません)。\n${guide}`
+    );
+  }
+  libraryInit(context, root);
+  const created = readMarker(root);
+  if (!created) throw new CliError(`ライブラリを作れませんでした: ${root}`);
+  return created;
+};
+
+/**
  * ライブラリを、取り込みのために開く。
- * 1. 目印(`.file-seiri-library.json`)から、ライブラリ ID を得る(なければ、`library init` を案内する)
+ * 1. 目印(`.file-seiri-library.json`)から、ライブラリ ID を得る(なければ、作るか確認する)
  * 2. 作業用の台帳と、スナップショットのリビジョンを比べる(仕様書 §8-2)
  *    - 作業用の台帳がない(`data/` を失った)→ スナップショットから復元する(失うものがないため、確認なし)
  *    - スナップショットのほうが新しい → 端末なら質問する。そうでなければ停止する。自動では上書きしない
@@ -45,13 +75,8 @@ export const openLibraryForIngest = async (
 ): Promise<OpenedLibrary> => {
   const root = resolve(destination);
   if (!existsSync(root)) throw new CliError(`保存先がありません: ${root}`);
-  const marker = readMarker(root);
-  if (!marker) {
-    throw new CliError(
-      `保存先は、ライブラリではありません(目印がありません): ${root}\n` +
-        '`file-seiri library init <保存先のパス>` で、作ってください。'
-    );
-  }
+  const marker =
+    readMarker(root) ?? (await createLibraryAfterConfirm(context, root));
   const libraryId = marker.libraryId;
   const workingPath = ledgerPathFor(context.dataDir, libraryId);
   const snapshotPath = snapshotPathOf(root);

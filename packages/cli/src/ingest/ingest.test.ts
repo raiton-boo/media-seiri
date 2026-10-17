@@ -601,7 +601,7 @@ describe('ingest: 準備と保存先の検査', () => {
     ).toBe(EXIT_CODES.failed);
   });
 
-  test('保存先に目印がなければ、library init を案内して 2', async () => {
+  test('保存先に目印がなく、端末でなければ、library init を案内して 2(何も作らない)', async () => {
     const world = await newWorld();
     mkdirSync(join(world.destDrive, 'Plain'));
     const result = await runIn(world, [
@@ -613,6 +613,68 @@ describe('ingest: 準備と保存先の検査', () => {
     ]);
     expect(result.code).toBe(EXIT_CODES.failed);
     expect(result.stderr.join('\n')).toContain('library init');
+    expect(readdirSync(join(world.destDrive, 'Plain'))).toEqual([]);
+  });
+
+  test('保存先に目印がなく、端末なら、作るか質問する: はい → 作って続ける / いいえ → 中止(2)', async () => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);
+    const plain = join(world.destDrive, 'Plain');
+    mkdirSync(plain);
+    const questions: string[] = [];
+    const yes = await runIn(
+      world,
+      ['ingest', join(world.srcRoot, 'DCIM'), '--dest', plain, '--dry-run'],
+      {
+        isInteractive: true,
+        newLibraryId: () => 'lib-2',
+        confirm: async (question) => {
+          questions.push(question);
+          return true;
+        },
+      }
+    );
+    expect(yes.code).toBe(EXIT_CODES.ok);
+    expect(questions).toEqual(['ここに、ライブラリを作りますか']);
+    expect(existsSync(join(plain, '.file-seiri-library.json'))).toBe(true);
+    expect(text(yes)).toContain('ライブラリを作りました');
+    expect(text(yes)).toMatch(/コピー予定[^\n]*: 1 ファイル/);
+
+    const other = join(world.destDrive, 'Other');
+    mkdirSync(other);
+    const no = await runIn(
+      world,
+      ['ingest', join(world.srcRoot, 'DCIM'), '--dest', other, '--dry-run'],
+      {
+        isInteractive: true,
+        confirm: async () => false,
+      }
+    );
+    expect(no.code).toBe(EXIT_CODES.failed);
+    expect(no.stderr.join('\n')).toContain('中止');
+    expect(readdirSync(other)).toEqual([]);
+  });
+
+  test('使えないドライブ(NTFS)には、質問せず、ライブラリも作らない', async () => {
+    const world = await newWorld({ destVolume: { fsType: 'ntfs' } });
+    const plain = join(world.destDrive, 'Plain');
+    mkdirSync(plain);
+    let asked = false;
+    const result = await runIn(
+      world,
+      ['ingest', join(world.srcRoot, 'DCIM'), '--dest', plain, '--dry-run'],
+      {
+        isInteractive: true,
+        confirm: async () => {
+          asked = true;
+          return true;
+        },
+      }
+    );
+    expect(result.code).toBe(EXIT_CODES.failed);
+    expect(result.stderr.join('\n')).toContain('DEST_FORMAT_UNSUPPORTED');
+    expect(asked).toBe(false);
+    expect(readdirSync(plain)).toEqual([]);
   });
 
   test('ソースのフォルダがなければ 2。ソースと保存先が同じボリュームなら 2', async () => {
