@@ -193,3 +193,15 @@ export const findProcessedSourceFile = (
     .get(key.volumeId, key.relPath, key.sizeBytes, toMtimeMs(key.mtimeMs));
   return found ? getSourceFile(db, found.id) : undefined;
 };
+
+/** 同じ実行の中の、ソースのファイル(ZIP の中身を除く)。再開のとき、記録済みの行を探すのに使う */
+export const findSourceFileInRun = (
+  db: Database,
+  key: { runId: number; volumeId: number; relPath: string }
+): SourceFileRecord | undefined =>
+  db
+    .query<SourceFileRecord, [number, number, string]>(
+      `SELECT ${COLUMNS} FROM source_files
+       WHERE run_id = ? AND volume_id = ? AND rel_path = ? AND container_id IS NULL`
+    )
+    .get(key.runId, key.volumeId, key.relPath) ?? undefined;

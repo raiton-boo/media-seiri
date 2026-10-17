@@ -87,3 +87,35 @@ export const listUnfinishedRuns = (
     )
     .all(sourceVolumeId)
     .map(toRun);
+
+/**
+ * 中断した実行を、再開する(同じ実行 ID を続ける)。状態を `running` に戻し、終了時刻を消す。
+ * 本実行(dry-run でない)の、`interrupted` か `running` だけが対象。それ以外は、エラー。
+ */
+export const resumeRun = (db: Database, runId: number): void => {
+  const result = db
+    .query(
+      `UPDATE runs SET status = 'running', finished_at = NULL
+       WHERE run_id = ? AND is_dry_run = 0 AND status IN ('interrupted', 'running')`
+    )
+    .run(runId);
+  if (result.changes === 0) {
+    throw new Error(`再開できる実行ではありません: ${runId}`);
+  }
+};
+
+/**
+ * 実行中のまま残っている本実行(dry-run でない)を、すべて `interrupted` にする。
+ * ロックが途絶えて引き継いだとき、前の実行は、異常終了したものとして扱う(仕様書 §12)。中断にした実行の ID を返す。
+ */
+export const interruptRunningRuns = (
+  db: Database,
+  finishedAt: Date
+): number[] =>
+  db
+    .query<{ runId: number }, [string]>(
+      `UPDATE runs SET status = 'interrupted', finished_at = ?
+       WHERE status = 'running' AND is_dry_run = 0 RETURNING run_id AS runId`
+    )
+    .all(formatTimestamp(finishedAt))
+    .map((row) => row.runId);

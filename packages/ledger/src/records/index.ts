@@ -62,16 +62,19 @@ export {
 export {
   finishRun,
   getRun,
+  interruptRunningRuns,
   listUnfinishedRuns,
   type Run,
   type RunFinish,
   type RunInput,
   type RunStatus,
+  resumeRun,
   startRun,
 } from './runs.ts';
 export {
   countSourceFilesByState,
   findProcessedSourceFile,
+  findSourceFileInRun,
   getSourceFile,
   insertSourceFile,
   listSourceFiles,

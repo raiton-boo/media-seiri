@@ -10,14 +10,19 @@ import {
 } from '@file-seiri/ledger';
 import type { FileAnalysis } from './analyze.ts';
 import type { IngestPlan } from './plan.ts';
+import type { WriteTransaction } from './transaction.ts';
 
 /** まとめてコミットする件数(仕様書 §17-6) */
 const COMMIT_BATCH_SIZE = 500;
 
 export type RecordEnvironment = {
   db: Database;
+  /** 書き込みの入口(本実行では、ロックの保持者を確かめるトランザクション) */
+  write: WriteTransaction;
   runId: number;
   now: () => Date;
+  /** true なら、この実行の中の重複を、その場で `duplicate` にする。false(本実行)は、採用側のコピーのあとに決める */
+  isDryRun: boolean;
 };
 
 /**
@@ -30,7 +35,7 @@ export const recordPlan = (
   analyses: readonly FileAnalysis[],
   plan: IngestPlan
 ): void => {
-  const { db, runId, now } = environment;
+  const { db, runId, now, isDryRun } = environment;
   const failureByRelPath = new Map(
     plan.failures.map((failure) => [failure.relPath, failure.detail])
   );
@@ -141,8 +146,8 @@ export const recordPlan = (
             'PLAN_DUPLICATE',
             `${file.relPath}(ライブラリに、同じ内容がある)`
           );
-        } else {
-          // この実行の中の重複。採用側は、まだライブラリにないため、対応(duplicate_links)は、コピーのあとに記録する
+        } else if (isDryRun) {
+          // この実行の中の重複。採用側は、まだライブラリにないため、対応(duplicate_links)は、記録できない
           setSourceFileState(
             db,
             sourceFileId,
@@ -153,6 +158,14 @@ export const recordPlan = (
             'INFO',
             'PLAN_DUPLICATE',
             `${file.relPath}(この実行の ${filePlan.adoptedPlannedRelPath} と同じ内容)`
+          );
+        } else {
+          // 本実行: 採用側のコピーが終わるまで、決めない(失敗したら、この重複も、取り込めていないため)。`analyzed` のまま残す
+          setSourceFileState(db, sourceFileId, 'analyzed');
+          event(
+            'INFO',
+            'PLAN_DUPLICATE',
+            `${file.relPath}(この実行の ${filePlan.adoptedPlannedRelPath} と同じ内容。採用側のコピーのあとで、記録する)`
           );
         }
         return;
@@ -171,7 +184,7 @@ export const recordPlan = (
   };
 
   for (let start = 0; start < analyses.length; start += COMMIT_BATCH_SIZE) {
-    db.transaction(() => {
+    environment.write(() => {
       for (
         let index = start;
         index < Math.min(start + COMMIT_BATCH_SIZE, analyses.length);
@@ -179,6 +192,6 @@ export const recordPlan = (
       ) {
         recordOne(analyses[index] as FileAnalysis, index);
       }
-    })();
+    });
   }
 };

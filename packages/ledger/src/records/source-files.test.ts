@@ -10,6 +10,7 @@ import { finishRun } from './runs.ts';
 import {
   countSourceFilesByState,
   findProcessedSourceFile,
+  findSourceFileInRun,
   getSourceFile,
   insertSourceFile,
   listSourceFiles,
@@ -213,5 +214,45 @@ describe('findProcessedSourceFile(再実行で、処理済みを探す)', () => 
     expect(findProcessedSourceFile(db, key(first.volumeId))?.runId).toBe(
       first.runId
     );
+  });
+});
+
+describe('findSourceFileInRun', () => {
+  test('同じ実行の、同じパスの行を探す(別の実行・ZIP の中身・別のパスは、見つからない)', () => {
+    const db = openDb();
+    const first = seedRun(db);
+    const id = seedSourceFile(db, first);
+    const key = {
+      runId: first.runId,
+      volumeId: first.volumeId,
+      relPath: 'DCIM/IMG_0001.JPG',
+    };
+    expect(findSourceFileInRun(db, key)?.sourceFileId).toBe(id);
+    expect(
+      findSourceFileInRun(db, { ...key, relPath: 'DCIM/none.jpg' })
+    ).toBeUndefined();
+    expect(
+      findSourceFileInRun(db, { ...key, runId: key.runId + 1 })
+    ).toBeUndefined();
+
+    const zip = seedSourceFile(db, first, {
+      relPath: 'a.zip',
+      ext: 'zip',
+      kind: 'sidecar',
+    });
+    insertSourceFile(db, {
+      ...first,
+      relPath: 'a.zip',
+      containerId: zip,
+      entryPath: 'x.jpg',
+      zipDepth: 1,
+      sizeBytes: 1,
+      mtimeMs: 0,
+      kind: 'photo',
+      ext: 'jpg',
+    });
+    expect(
+      findSourceFileInRun(db, { ...key, relPath: 'a.zip' })?.sourceFileId
+    ).toBe(zip);
   });
 });
