@@ -23,20 +23,20 @@ const setup = (): { dataDir: string; drive: string } => {
 };
 
 describe('使い方', () => {
-  test('--help は、説明を出して、0', () => {
+  test('--help は、説明を出して、0', async () => {
     const { dataDir } = setup();
-    const result = runCli(['--help'], { dataDir });
+    const result = await runCli(['--help'], { dataDir });
     expect(result.code).toBe(EXIT_CODES.ok);
     expect(result.stdout.join('\n')).toContain('library init');
   });
 
-  test('コマンドがなければ、説明を出して、2', () => {
-    const result = runCli([], { dataDir: setup().dataDir });
+  test('コマンドがなければ、説明を出して、2', async () => {
+    const result = await runCli([], { dataDir: setup().dataDir });
     expect(result.code).toBe(EXIT_CODES.failed);
     expect(result.stdout.join('\n')).toContain('使い方');
   });
 
-  test('知らないコマンド・オプションは、2(エラーの表示つき)', () => {
+  test('知らないコマンド・オプションは、2(エラーの表示つき)', async () => {
     const { dataDir } = setup();
     for (const argv of [
       ['nothing'],
@@ -44,16 +44,16 @@ describe('使い方', () => {
       ['library', 'init', 'a', 'b'],
       ['library', 'init', '--bogus'],
     ]) {
-      const result = runCli(argv, { dataDir });
+      const result = await runCli(argv, { dataDir });
       expect(result.code).toBe(EXIT_CODES.failed);
       expect(result.stderr.join('\n')).toContain('エラー');
     }
   });
 
-  test('環境変数でも、data/ の場所を指定できる', () => {
+  test('環境変数でも、data/ の場所を指定できる', async () => {
     const { dataDir, drive } = setup();
     const stdout: string[] = [];
-    const code = run(['library', 'init', join(drive, 'Pictures')], {
+    const code = await run(['library', 'init', join(drive, 'Pictures')], {
       env: { FILE_SEIRI_DATA_DIR: dataDir },
       stdout: (text) => stdout.push(text),
       stderr: () => {},
@@ -66,10 +66,10 @@ describe('使い方', () => {
 });
 
 describe('library init', () => {
-  test('目印・台帳・設定ができる(保存先のフォルダも作る)', () => {
+  test('目印・台帳・設定ができる(保存先のフォルダも作る)', async () => {
     const { dataDir, drive } = setup();
     const root = join(drive, 'Pictures');
-    const result = runCli(['library', 'init', root], { dataDir });
+    const result = await runCli(['library', 'init', root], { dataDir });
     expect(result.code).toBe(EXIT_CODES.ok);
     expect(result.stdout.join('\n')).toContain('lib-1');
 
@@ -91,9 +91,9 @@ describe('library init', () => {
     ledger.close();
   });
 
-  test('台帳のスキーマの版が、目印に入る', () => {
+  test('台帳のスキーマの版が、目印に入る', async () => {
     const { dataDir, drive } = setup();
-    runCli(['library', 'init', drive], { dataDir });
+    await runCli(['library', 'init', drive], { dataDir });
     const ledger = openLedger(ledgerPathFor(dataDir, 'lib-1'), {
       mode: 'readonly',
     });
@@ -104,14 +104,14 @@ describe('library init', () => {
     expect(readMarker(drive)?.schemaVersion).toBe(version);
   });
 
-  test('相対パスは、実行した場所からの、絶対パスにして記録する', () => {
+  test('相対パスは、実行した場所からの、絶対パスにして記録する', async () => {
     const { dataDir, drive } = setup();
     const previous = process.cwd();
     process.chdir(drive);
     try {
-      expect(runCli(['library', 'init', 'rel'], { dataDir }).code).toBe(
-        EXIT_CODES.ok
-      );
+      expect(
+        (await await runCli(['library', 'init', 'rel'], { dataDir })).code
+      ).toBe(EXIT_CODES.ok);
     } finally {
       process.chdir(previous);
     }
@@ -120,16 +120,18 @@ describe('library init', () => {
     expect(root.startsWith('/')).toBe(true);
   });
 
-  test('パスがなければ、2', () => {
-    const result = runCli(['library', 'init'], { dataDir: setup().dataDir });
+  test('パスがなければ、2', async () => {
+    const result = await runCli(['library', 'init'], {
+      dataDir: setup().dataDir,
+    });
     expect(result.code).toBe(EXIT_CODES.failed);
     expect(result.stderr.join('\n')).toContain('使い方');
   });
 
-  test('すでにライブラリなら、2。目印も台帳も、増やさない', () => {
+  test('すでにライブラリなら、2。目印も台帳も、増やさない', async () => {
     const { dataDir, drive } = setup();
-    runCli(['library', 'init', drive], { dataDir });
-    const second = runCli(['library', 'init', drive], {
+    await runCli(['library', 'init', drive], { dataDir });
+    const second = await runCli(['library', 'init', drive], {
       dataDir,
       newLibraryId: () => 'lib-2',
     });
@@ -140,12 +142,12 @@ describe('library init', () => {
     expect(Object.keys(readConfig(dataDir).libraries)).toEqual(['lib-1']);
   });
 
-  test('2 つ目の別のライブラリを作ると、設定に両方が並ぶ', () => {
+  test('2 つ目の別のライブラリを作ると、設定に両方が並ぶ', async () => {
     const { dataDir, drive } = setup();
     const other = makeTempDir();
     cleanups.push(other.cleanup);
-    runCli(['library', 'init', drive], { dataDir });
-    runCli(['library', 'init', other.dir], {
+    await runCli(['library', 'init', drive], { dataDir });
+    await runCli(['library', 'init', other.dir], {
       dataDir,
       newLibraryId: () => 'lib-2',
     });
@@ -155,7 +157,7 @@ describe('library init', () => {
     ]);
   });
 
-  test('作業用の領域と重なる場所は、2(中・同じ・外側)', () => {
+  test('作業用の領域と重なる場所は、2(中・同じ・外側)', async () => {
     const { dataDir } = setup();
     mkdirSync(dataDir, { recursive: true });
     for (const target of [
@@ -163,36 +165,36 @@ describe('library init', () => {
       join(dataDir, 'inner'),
       join(dataDir, '..'),
     ]) {
-      const result = runCli(['library', 'init', target], { dataDir });
+      const result = await runCli(['library', 'init', target], { dataDir });
       expect(result.code).toBe(EXIT_CODES.failed);
       expect(result.stderr.join('\n')).toContain('重なる');
     }
     expect(existsSync(join(dataDir, 'libraries'))).toBe(false);
   });
 
-  test('フォルダでないパスは、2', () => {
+  test('フォルダでないパスは、2', async () => {
     const { dataDir, drive } = setup();
     const file = join(drive, 'file.txt');
     writeFileSync(file, 'x');
-    expect(runCli(['library', 'init', file], { dataDir }).code).toBe(
-      EXIT_CODES.failed
-    );
+    expect(
+      (await await runCli(['library', 'init', file], { dataDir })).code
+    ).toBe(EXIT_CODES.failed);
   });
 
-  test('目印が壊れているフォルダは、2(上書きしない)', () => {
+  test('目印が壊れているフォルダは、2(上書きしない)', async () => {
     const { dataDir, drive } = setup();
     writeFileSync(markerPathOf(drive), 'broken');
-    const result = runCli(['library', 'init', drive], { dataDir });
+    const result = await runCli(['library', 'init', drive], { dataDir });
     expect(result.code).toBe(EXIT_CODES.failed);
     expect(result.stderr.join('\n')).toContain('目印');
   });
 
-  test('設定が壊れていて、失敗したら、作ったものをすべて取り消す(保存先のフォルダも)', () => {
+  test('設定が壊れていて、失敗したら、作ったものをすべて取り消す(保存先のフォルダも)', async () => {
     const { dataDir, drive } = setup();
     mkdirSync(dataDir, { recursive: true });
     writeFileSync(configPathFor(dataDir), 'broken');
     const root = join(drive, 'new', 'Pictures');
-    const result = runCli(['library', 'init', root], { dataDir });
+    const result = await runCli(['library', 'init', root], { dataDir });
     expect(result.code).toBe(EXIT_CODES.failed);
     expect(existsSync(markerPathOf(root))).toBe(false);
     expect(existsSync(join(drive, 'new'))).toBe(true);
@@ -202,22 +204,22 @@ describe('library init', () => {
     expect(Bun.file(configPathFor(dataDir)).size).toBe(6);
   });
 
-  test('すでにあったフォルダは、失敗しても、消さない(中身も残る)', () => {
+  test('すでにあったフォルダは、失敗しても、消さない(中身も残る)', async () => {
     const { dataDir, drive } = setup();
     mkdirSync(dataDir, { recursive: true });
     writeFileSync(configPathFor(dataDir), 'broken');
     writeFileSync(join(drive, 'keep.txt'), 'x');
-    expect(runCli(['library', 'init', drive], { dataDir }).code).toBe(
-      EXIT_CODES.failed
-    );
+    expect(
+      (await await runCli(['library', 'init', drive], { dataDir })).code
+    ).toBe(EXIT_CODES.failed);
     expect(existsSync(join(drive, 'keep.txt'))).toBe(true);
     expect(existsSync(markerPathOf(drive))).toBe(false);
     expect(existsSync(join(drive, '.file-seiri'))).toBe(false);
   });
 
-  test('作った台帳は、書き込み用に開き直せる', () => {
+  test('作った台帳は、書き込み用に開き直せる', async () => {
     const { dataDir, drive } = setup();
-    runCli(['library', 'init', drive], { dataDir });
+    await runCli(['library', 'init', drive], { dataDir });
     const ledger = openLedger(ledgerPathFor(dataDir, 'lib-1'), {
       libraryId: 'lib-1',
     });

@@ -14,14 +14,14 @@ export const makeTempDir = (): { dir: string; cleanup: () => void } => {
 export type RunResult = { code: number; stdout: string[]; stderr: string[] };
 
 /** コマンドを実行して、終了コードと出力を集める */
-export const runCli = (
+export const runCli = async (
   argv: string[],
   options: {
     dataDir: string;
     env?: Record<string, string | undefined>;
     newLibraryId?: () => string;
   }
-): RunResult => {
+): Promise<RunResult> => {
   const stdout: string[] = [];
   const stderr: string[] = [];
   const environment: RunEnvironment = {
@@ -31,6 +31,6 @@ export const runCli = (
     now: () => FIXED_NOW,
     newLibraryId: options.newLibraryId ?? (() => 'lib-1'),
   };
-  const code = run(['--data-dir', options.dataDir, ...argv], environment);
+  const code = await run(['--data-dir', options.dataDir, ...argv], environment);
   return { code, stdout, stderr };
 };

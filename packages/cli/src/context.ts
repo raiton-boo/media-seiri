@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { VolumeInfo } from './volume/index.ts';
 
 /** コマンドが使う、外の世界との境目。テストでは、差し替える */
 export type CommandContext = {
@@ -11,6 +12,14 @@ export type CommandContext = {
   now: () => Date;
   /** 新しいライブラリ ID */
   newLibraryId: () => string;
+  /** パスが属するボリュームを調べる(テストでは、差し替える) */
+  resolveVolume: (path: string) => VolumeInfo;
+  /** 本機のタイムゾーン(IANA の名前)。動画の UTC を、この時刻に変換する */
+  timeZone: string;
+  /** 端末で動いていて、利用者に質問できるか */
+  isInteractive: boolean;
+  /** 「はい / いいえ」を質問する。`isInteractive` のときだけ呼ぶ */
+  confirm: (question: string) => Promise<boolean>;
 };
 
 export const newLibraryId = (): string => randomUUID();
