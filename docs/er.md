@@ -238,6 +238,10 @@ erDiagram
 `scanned` → `analyzed` → `planned` → `done` の流れ。分岐は、`duplicate`(重複でスキップ)、`error`(エラー)、`ignored`(対象外)。
 状態遷移は `specification.md` §4-3 に従う。
 
+### 4-1-2. `source_files.kind`
+
+`photo` / `raw` / `video` / `sidecar`。`core` の `FileKind` の `xmp` が、`sidecar` にあたる。Takeout の `json` と、対象外(`unsupported`)は、行を作らず、件数だけを数える。
+
 ### 4-2. `library_files.bucket`(置き場所の区分)
 
 | 値                        | 置き場所                     |
@@ -261,7 +265,7 @@ erDiagram
 | :--------------- | :-------------------------------------------------- | :----------------------------------------- |
 | `contents`       | `hash`(ユニーク)                                    | 重複判定                                   |
 | `hash_cache`     | (`volume_id`, `rel_path`, `size_bytes`, `mtime_ms`) | キャッシュの検索                           |
-| `library_files`  | `rel_path`(ユニーク)                                | 衝突判定                                   |
+| `library_files`  | `rel_path`(ユニーク。大文字小文字を区別しない索引も、別に持つ) | 衝突判定(exFAT などは、大文字小文字を区別しない) |
 | `library_files`  | `album_event_id`                                    | できごとの写真の一覧                       |
 | `album_events`   | `start_at`                                          | できごとの並び(新しい順)                   |
 | `media_metadata` | `taken_at`、`date_precision`、`date_source`         | アルバム・統計・フォールバック一覧         |

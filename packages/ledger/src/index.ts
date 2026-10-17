@@ -20,3 +20,4 @@ export {
   MIGRATIONS,
   type Migration,
 } from './migrations/index.ts';
+export * from './records/index.ts';

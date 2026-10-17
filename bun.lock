@@ -20,6 +20,9 @@
     },
     "packages/ledger": {
       "name": "@file-seiri/ledger",
+      "dependencies": {
+        "@file-seiri/core": "workspace:*",
+      },
     },
     "packages/viewer": {
       "name": "@file-seiri/viewer",
