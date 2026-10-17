@@ -1,4 +1,12 @@
 export {
+  type AlbumEvent,
+  type AlbumEventInput,
+  countAlbumEvents,
+  getAlbumEvent,
+  listAlbumEvents,
+  replaceAlbumEvents,
+} from './album-events.ts';
+export {
   type Content,
   findContentByHash,
   getContent,
@@ -33,6 +41,7 @@ export {
   type LibraryFileInput,
   type LibraryFileRecord,
   libraryPathExists,
+  listLibraryFilesByAlbumEvent,
   listLibraryFilesByContent,
   listLibraryFilesByGroup,
 } from './library-files.ts';
@@ -43,6 +52,13 @@ export {
   type MediaMetadataInput,
   upsertMediaMetadata,
 } from './media-metadata.ts';
+export {
+  listRepairAttempts,
+  listRepairAttemptsByRun,
+  type RepairAttempt,
+  type RepairMethod,
+  recordRepairAttempt,
+} from './repair-attempts.ts';
 export {
   finishRun,
   getRun,

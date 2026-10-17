@@ -112,3 +112,17 @@ export const listLibraryFilesByGroup = (
     )
     .all(groupId)
     .map(toRecord);
+
+/** できごとに属する写真。撮影日時の順(同じなら、登録の順) */
+export const listLibraryFilesByAlbumEvent = (
+  db: Database,
+  albumEventId: number
+): LibraryFileRecord[] =>
+  db
+    .query<LibraryFileRow, [number]>(
+      `SELECT ${COLUMNS} FROM library_files WHERE album_event_id = ?
+       ORDER BY (SELECT taken_at FROM media_metadata AS m WHERE m.content_id = library_files.content_id),
+         library_file_id`
+    )
+    .all(albumEventId)
+    .map(toRecord);
