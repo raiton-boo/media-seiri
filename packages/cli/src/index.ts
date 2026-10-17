@@ -1,4 +1,5 @@
 export { CliError } from './cli-error.ts';
+export * from './copy/index.ts';
 export * from './dedupe/index.ts';
 export { EXIT_CODES, type ExitCode } from './exit-codes.ts';
 export * from './hash/index.ts';
