@@ -13,6 +13,7 @@
       "name": "@file-seiri/cli",
       "dependencies": {
         "@file-seiri/core": "workspace:*",
+        "@file-seiri/ledger": "workspace:*",
       },
     },
     "packages/core": {

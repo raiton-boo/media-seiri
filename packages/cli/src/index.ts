@@ -1,4 +1,3 @@
-import { describePackage } from '@file-seiri/core';
-
-/** このパッケージの説明。core の関数を呼べること(ワークスペースのつながり)を確かめるための、最小の例 */
-export const describeSelf = (): string => describePackage('cli');
+export { CliError } from './cli-error.ts';
+export { EXIT_CODES, type ExitCode } from './exit-codes.ts';
+export { type RunEnvironment, run } from './run.ts';
