@@ -1,0 +1,30 @@
+# --- 依存パッケージ
+node_modules/
+
+# --- ビルドの成果物
+.next/
+out/
+dist/
+
+# --- 自動生成するファイル
+poc/viewer-embed/src/assets.ts
+next-env.d.ts
+
+# --- 本ツールの作業用データ
+data/
+
+# --- 環境変数・機密
+.env
+.env.*
+
+# --- ログ・一時ファイル
+*.log
+*.tmp
+
+# --- OS
+.DS_Store
+Thumbs.db
+
+# --- エディタ
+.vscode/
+.idea/
