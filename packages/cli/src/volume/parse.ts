@@ -27,6 +27,35 @@ export const parseDf = (output: string): DfResult => {
   };
 };
 
+/** `df -Pk` の出力の、ディスクのデバイス(`/dev/disk…`)の行を、すべて解析する(ヘッダーと、仮想のものは、除く) */
+export const parseDfAll = (output: string): DfResult[] =>
+  output
+    .trim()
+    .split('\n')
+    .slice(1)
+    .flatMap((line) => {
+      const match = line.match(
+        /^(\/dev\/disk\S*)\s+(\d+)\s+(\d+)\s+(\d+)\s+\d+%\s+(.+)$/
+      );
+      if (!match) return [];
+      const [
+        ,
+        deviceNode = '',
+        total = '0',
+        ,
+        available = '0',
+        mountPoint = '',
+      ] = match;
+      return [
+        {
+          deviceNode,
+          totalBytes: Number(total) * BYTES_PER_KIB,
+          freeBytes: Number(available) * BYTES_PER_KIB,
+          mountPoint,
+        },
+      ];
+    });
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 

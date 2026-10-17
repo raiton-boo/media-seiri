@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
 import { systemTimeZone } from '@file-seiri/core';
 import { CliError } from './cli-error.ts';
+import { drivesCommand } from './commands/drives.ts';
 import { ingestCommand } from './commands/ingest.ts';
 import { libraryInit } from './commands/library-init.ts';
 import { resolveDataDir } from './config/paths.ts';
@@ -8,6 +9,7 @@ import { type CommandContext, newLibraryId } from './context.ts';
 import { EXIT_CODES, type ExitCode } from './exit-codes.ts';
 import { askYesNo } from './prompt.ts';
 import {
+  listMountedVolumes,
   resolveVolume as resolveRealVolume,
   type VolumeInfo,
 } from './volume/index.ts';
@@ -16,6 +18,7 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
 
 コマンド:
   library init <保存先のパス>   ライブラリを作る(目印・台帳・設定)
+  drives                        接続中のドライブの一覧(名前・容量・空き・形式・種類・状態・ライブラリ)
   ingest <ソース...> --dest <ライブラリの根>
                                 ソースを取り込む(--dry-run: コピーせず、結果だけ)
 
@@ -36,6 +39,7 @@ export type RunEnvironment = {
   now?: () => Date;
   newLibraryId?: () => string;
   resolveVolume?: (path: string) => VolumeInfo;
+  listVolumes?: () => VolumeInfo[];
   timeZone?: string;
   isInteractive?: boolean;
   confirm?: (question: string) => Promise<boolean>;
@@ -79,6 +83,7 @@ export const run = async (
       newLibraryId: environment.newLibraryId ?? newLibraryId,
       resolveVolume:
         environment.resolveVolume ?? ((path) => resolveRealVolume(path)),
+      listVolumes: environment.listVolumes ?? (() => listMountedVolumes()),
       timeZone: environment.timeZone ?? systemTimeZone(),
       isInteractive:
         environment.isInteractive ??
@@ -90,6 +95,9 @@ export const run = async (
     const [command, subcommand, ...rest] = positionals;
     if (command === 'library' && subcommand === 'init' && rest.length <= 1) {
       return libraryInit(context, rest[0]);
+    }
+    if (command === 'drives' && positionals.length === 1) {
+      return drivesCommand(context);
     }
     if (command === 'ingest') {
       return await ingestCommand(context, {

@@ -15,6 +15,8 @@ export type CommandContext = {
   newLibraryId: () => string;
   /** パスが属するボリュームを調べる(テストでは、差し替える) */
   resolveVolume: (path: string) => VolumeInfo;
+  /** 接続中のドライブの一覧(`drives`)。テストでは、差し替える */
+  listVolumes: () => VolumeInfo[];
   /** 本機のタイムゾーン(IANA の名前)。動画の UTC を、この時刻に変換する */
   timeZone: string;
   /** 端末で動いていて、利用者に質問できるか */
