@@ -92,6 +92,18 @@ erDiagram
         int is_repaired
         text thumb_rel_path
         text created_at
+        int album_event_id FK "できごと"
+    }
+    ALBUM_EVENTS {
+        int album_event_id PK
+        text start_at
+        text end_at
+        int file_count
+        real centroid_lat
+        real centroid_lon
+        int cover_library_file_id FK "代表の写真"
+        text rule "4h / 5km など"
+        text computed_revision
     }
     DUPLICATE_LINKS {
         int link_id PK
@@ -145,6 +157,7 @@ erDiagram
     CONTENTS ||--o| MEDIA_METADATA : "メタデータ"
     CONTENTS ||--o{ LIBRARY_FILES : "実体"
     FILE_GROUPS ||--o{ LIBRARY_FILES : "同名グループ"
+    ALBUM_EVENTS ||--o{ LIBRARY_FILES : "含む"
     SOURCE_FILES ||--o{ DUPLICATE_LINKS : "スキップ側"
     LIBRARY_FILES ||--o{ DUPLICATE_LINKS : "採用側"
     SOURCE_FILES ||--o{ REPAIR_ATTEMPTS : "修復"
@@ -154,22 +167,23 @@ erDiagram
 
 ## 2. テーブルの説明
 
-| テーブル          | 役割                                                                                  | 対応する要件         |
-| :---------------- | :------------------------------------------------------------------------------------ | :------------------- |
-| `meta`            | スキーマ版、ライブラリ ID、台帳のリビジョン番号を持つ(§8-2)                           | M-05, M-08           |
-| `volumes`         | ソースの外付け・内蔵ストレージ。名前ではなく、固有 ID で識別する                      | V-02                 |
-| `runs`            | 実行ごとの記録。dry-run は `is_dry_run = 1` で区別する                                | M-03, X-03           |
-| `source_files`    | 実行ごとに検出したソース側のファイル。ZIP の中身は、親の ZIP を `container_id` で指す | T-03, T-04           |
-| `contents`        | ハッシュで識別する「内容」。同じハッシュは 1 行だけ                                   | P-01                 |
-| `hash_cache`      | ハッシュのキャッシュ。キーは(ボリューム, 相対パス, サイズ, mtime)                     | H-02, H-03           |
-| `media_metadata`  | 内容ごとの、撮影日時・日付の精度・カメラ・GPS など                                    | I-02, D-_, G-_, S-\* |
-| `file_groups`     | RAW+JPEG などの同名グループ。出力名の語幹を共有する                                   | I-05                 |
-| `library_files`   | ライブラリに保存したファイル。台帳のパスはすべて相対パス                              | M-06                 |
-| `duplicate_links` | 重複の「スキップ側」と「採用側」の対応                                                | P-02, P-03           |
-| `repair_attempts` | 修復の試行の記録(手順・成否・出力先)                                                  | R-02〜R-04           |
-| `errors`          | エラー一覧の元になる記録                                                              | L-04                 |
-| `events`          | 逐次ログの元になるイベント。CLI の表示も Web の実行状況も、ここから作る               | L-01, L-03           |
-| `locks`           | ライブラリへの書き込みの排他制御(§12)                                                 |                      |
+| テーブル          | 役割                                                                                               | 対応する要件         |
+| :---------------- | :------------------------------------------------------------------------------------------------- | :------------------- |
+| `meta`            | スキーマ版、ライブラリ ID、台帳のリビジョン番号を持つ(§8-2)                                        | M-05, M-08           |
+| `volumes`         | ソースの外付け・内蔵ストレージ。名前ではなく、固有 ID で識別する                                   | V-02                 |
+| `runs`            | 実行ごとの記録。dry-run は `is_dry_run = 1` で区別する                                             | M-03, X-03           |
+| `source_files`    | 実行ごとに検出したソース側のファイル。ZIP の中身は、親の ZIP を `container_id` で指す              | T-03, T-04           |
+| `contents`        | ハッシュで識別する「内容」。同じハッシュは 1 行だけ                                                | P-01                 |
+| `hash_cache`      | ハッシュのキャッシュ。キーは(ボリューム, 相対パス, サイズ, mtime)                                  | H-02, H-03           |
+| `media_metadata`  | 内容ごとの、撮影日時・日付の精度・カメラ・GPS など                                                 | I-02, D-_, G-_, S-\* |
+| `file_groups`     | RAW+JPEG などの同名グループ。出力名の語幹を共有する                                                | I-05                 |
+| `library_files`   | ライブラリに保存したファイル。台帳のパスはすべて相対パス                                           | M-06                 |
+| `album_events`    | アルバムの単位「できごと」。取り込みの最後に、時刻の空きと場所から計算して保存する。Web は読むだけ | A-04                 |
+| `duplicate_links` | 重複の「スキップ側」と「採用側」の対応                                                             | P-02, P-03           |
+| `repair_attempts` | 修復の試行の記録(手順・成否・出力先)                                                               | R-02〜R-04           |
+| `errors`          | エラー一覧の元になる記録                                                                           | L-04                 |
+| `events`          | 逐次ログの元になるイベント。CLI の表示も Web の実行状況も、ここから作る                            | L-01, L-03           |
+| `locks`           | ライブラリへの書き込みの排他制御(§12)                                                              |                      |
 
 ## 3. 設計のポイント
 
@@ -183,7 +197,7 @@ erDiagram
 
 - `media_metadata.date_source` が `exif` / `video` 以外のものが、フォールバック。
 - 取得元の種別での絞り込み [D-05] は、`date_source` の条件で行う。
-- 日付の精度での絞り込み [A-02] は、`date_precision` の条件で行う。
+- 日付の精度での絞り込み [A-07] は、`date_precision` の条件で行う。
 - `date_reason` に、取得できなかった理由を持たせる。
 
 ### 3-3. dry-run の扱い(確定)
@@ -204,6 +218,12 @@ erDiagram
 - `duplicate_links` は、「スキップ側」と「採用側」の対応だけを持つ(自動スキップのみ)。
 - 「別物」判定は作らない(スコープ外)。そのため、判定の状態や、追加コピーのジョブのテーブルは持たない。
 - 将来、「別物」判定を追加する場合は、`duplicate_links` に状態の列と、ジョブのテーブルを追加する。
+
+### 3-6. できごとと、サムネイル(確定)
+
+- `album_events` は、取り込みの最後に、全体を計算し直して、保存する(§16-6)。各 `library_files` は、高々 1 つのできごとに属する(`album_event_id`)。精度が低いもの(`month` 以下)は、NULL。
+- サムネイルの実体は、ファイル(正本は `data/` の `thumbs/`、ライブラリにコピー)。台帳には、`library_files.thumb_rel_path`(`thumbs/` からの相対パス)だけを持つ。
+- 原本の探索(§16-7)のために、同じ `content_id` を持つ `library_files` と `source_files` を、すべて、たどれるようにする。
 
 ## 4. 値の一覧
 
@@ -236,6 +256,8 @@ erDiagram
 | `contents`       | `hash`(ユニーク)                                    | 重複判定                                   |
 | `hash_cache`     | (`volume_id`, `rel_path`, `size_bytes`, `mtime_ns`) | キャッシュの検索                           |
 | `library_files`  | `rel_path`(ユニーク)                                | 衝突判定                                   |
+| `library_files`  | `album_event_id`                                    | できごとの写真の一覧                       |
+| `album_events`   | `start_at`                                          | できごとの並び(新しい順)                   |
 | `media_metadata` | `taken_at`、`date_precision`、`date_source`         | アルバム・統計・フォールバック一覧         |
 | `media_metadata` | `gps_lat`, `gps_lon`                                | 地図                                       |
 | `source_files`   | (`run_id`, `state`)                                 | 実行ごとの一覧                             |
