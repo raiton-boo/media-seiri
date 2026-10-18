@@ -23,6 +23,19 @@ const setup = (): { dataDir: string; drive: string } => {
 };
 
 describe('使い方', () => {
+  test('打ち間違えたコマンド・オプションには、「もしかして」を出す', async () => {
+    const { dataDir } = setup();
+    const command = await runCli(['ingset'], { dataDir });
+    expect(command.code).toBe(EXIT_CODES.failed);
+    expect(command.stderr.join('\n')).toContain('もしかして: ingest');
+
+    const option = await runCli(['ingest', '--dry-rn'], { dataDir });
+    expect(option.stderr.join('\n')).toContain('もしかして: --dry-run');
+
+    const far = await runCli(['zzzzzz'], { dataDir });
+    expect(far.stderr.join('\n')).not.toContain('もしかして');
+  });
+
   test('コマンドごとの --help は、意味・オプション・例を出す', async () => {
     const { dataDir } = setup();
     const result = await runCli(['ingest', '--help'], { dataDir });

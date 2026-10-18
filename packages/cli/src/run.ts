@@ -15,7 +15,12 @@ import { viewerCommand } from './commands/viewer.ts';
 import { resolveDataDir } from './config/paths.ts';
 import { type CommandContext, newLibraryId } from './context.ts';
 import { EXIT_CODES, type ExitCode } from './exit-codes.ts';
-import { findCommandHelp, renderCommandHelp, renderOverview } from './help.ts';
+import {
+  COMMAND_NAMES,
+  findCommandHelp,
+  renderCommandHelp,
+  renderOverview,
+} from './help.ts';
 import {
   createLiveController,
   type LiveController,
@@ -23,12 +28,55 @@ import {
 import { neverPaused, noopProgress } from './live/progress.ts';
 import { askYesNo } from './prompt.ts';
 import { createRepairTools, type RepairTools } from './repair/index.ts';
+import { didYouMean } from './suggest.ts';
 import { createThumbnailMaker, type ThumbnailMaker } from './thumbs/index.ts';
 import {
   listMountedVolumes,
   resolveVolume as resolveRealVolume,
   type VolumeInfo,
 } from './volume/index.ts';
+
+export const PARSE_OPTIONS = {
+  'data-dir': { type: 'string' },
+  dest: { type: 'string' },
+  'dry-run': { type: 'boolean' },
+  plain: { type: 'boolean' },
+  rehash: { type: 'boolean' },
+  'restore-snapshot': { type: 'boolean' },
+  resume: { type: 'boolean' },
+  library: { type: 'string' },
+  run: { type: 'string' },
+  level: { type: 'string' },
+  verbose: { type: 'boolean' },
+  quiet: { type: 'boolean' },
+  tail: { type: 'string' },
+  follow: { type: 'boolean', short: 'f' },
+  sample: { type: 'string' },
+  port: { type: 'string' },
+  snapshot: { type: 'boolean' },
+  yes: { type: 'boolean', short: 'y' },
+  help: { type: 'boolean', short: 'h' },
+  version: { type: 'boolean', short: 'v' },
+} as const;
+
+/** 知らないコマンド。近い名前を、「もしかして」で出す */
+const unknownCommandMessage = (words: readonly string[]): string =>
+  `知らないコマンドです: ${words.join(' ')}\n${didYouMean(words[0] ?? '', COMMAND_NAMES)}使い方は、seiri --help で見られます。`;
+
+/** parseArgs の、使い方の誤り(知らないオプション・値の抜け)を、やさしい日本語にする */
+const usageErrorMessage = (message: string): string => {
+  const unknown = /Unknown option '(-{1,2})([^']*)'/.exec(message);
+  if (unknown) {
+    const typed = unknown[2] ?? '';
+    const names = Object.keys(PARSE_OPTIONS).map((name) => `--${name}`);
+    return `知らないオプションです: ${unknown[1]}${typed}\n${didYouMean(`--${typed.replace(/^-+/, '')}`, names)}使い方は、seiri --help(コマンドごとは、seiri <コマンド> --help)で見られます。`;
+  }
+  const missing = /Option '([^']*)' argument missing/.exec(message);
+  if (missing) {
+    return `オプションに、値がありません: ${(missing[1] ?? '').replace('<value>', '<値>')}\n使い方は、seiri --help で見られます。`;
+  }
+  return `${message}\n使い方は、seiri --help で見られます。`;
+};
 
 export type RunEnvironment = {
   env: Record<string, string | undefined>;
@@ -63,28 +111,7 @@ export const run = async (
   try {
     const { values, positionals } = parseArgs({
       args: [...argv],
-      options: {
-        'data-dir': { type: 'string' },
-        dest: { type: 'string' },
-        'dry-run': { type: 'boolean' },
-        plain: { type: 'boolean' },
-        rehash: { type: 'boolean' },
-        'restore-snapshot': { type: 'boolean' },
-        resume: { type: 'boolean' },
-        library: { type: 'string' },
-        run: { type: 'string' },
-        level: { type: 'string' },
-        verbose: { type: 'boolean' },
-        quiet: { type: 'boolean' },
-        tail: { type: 'string' },
-        follow: { type: 'boolean', short: 'f' },
-        sample: { type: 'string' },
-        port: { type: 'string' },
-        snapshot: { type: 'boolean' },
-        yes: { type: 'boolean', short: 'y' },
-        help: { type: 'boolean', short: 'h' },
-        version: { type: 'boolean', short: 'v' },
-      },
+      options: PARSE_OPTIONS,
       allowPositionals: true,
     });
     if (values.version) {
@@ -101,9 +128,7 @@ export const run = async (
         positionals[0] === 'help' ? positionals.slice(1) : positionals;
       const help = words.length > 0 ? findCommandHelp(words) : undefined;
       if (words.length > 0 && !help) {
-        throw new CliError(
-          `知らないコマンドです: ${words.join(' ')}\n\n${renderOverview(false)}`
-        );
+        throw new CliError(unknownCommandMessage(words));
       }
       environment.stdout(
         help ? renderCommandHelp(help, color) : renderOverview(color)
@@ -202,9 +227,7 @@ export const run = async (
         plain: values.plain ?? false,
       });
     }
-    throw new CliError(
-      `知らないコマンドです: ${positionals.join(' ')}\n\n${renderOverview(false)}`
-    );
+    throw new CliError(unknownCommandMessage(positionals));
   } catch (error) {
     if (error instanceof CliError) {
       environment.stderr(`エラー: ${error.message}`);
@@ -216,9 +239,7 @@ export const run = async (
       'code' in error &&
       String(error.code).startsWith('ERR_PARSE_ARGS')
     ) {
-      environment.stderr(
-        `エラー: ${error.message}\n\n${renderOverview(false)}`
-      );
+      environment.stderr(`エラー: ${usageErrorMessage(error.message)}`);
       return EXIT_CODES.failed;
     }
     throw error;
