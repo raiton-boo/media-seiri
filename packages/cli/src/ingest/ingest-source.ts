@@ -15,6 +15,7 @@ import {
 import { CliError } from '../cli-error.ts';
 import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
+import { exportRunLog } from '../log/export.ts';
 import type { MetadataReader } from '../metadata/index.ts';
 import { collectScan } from '../scan/index.ts';
 import { recordVolume, type VolumeInfo } from '../volume/index.ts';
@@ -189,6 +190,20 @@ export const ingestSource = async (
       });
       log('INFO', 'RUN_END', `${label}を終えました(${status})`);
     });
+    // ログのファイル(実行ごとに 1 つ)。書き出せなくても、台帳には残っているため、警告だけ(要件 L-02)
+    try {
+      exportRunLog({
+        db,
+        dataDir: context.dataDir,
+        libraryId: library.libraryId,
+        runId,
+        timeZone: context.timeZone,
+      });
+    } catch (error) {
+      context.stderr(
+        `警告: ログファイルを書き出せませんでした: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     if (options.dryRun) return { snapshotFailed: false };
     try {
       createSnapshot(library.ledger, library.snapshotPath);

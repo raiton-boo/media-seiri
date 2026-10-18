@@ -159,7 +159,8 @@ export const executeCopies = async (
           recordEvent(db, {
             runId,
             sourceFileId,
-            level: 'INFO',
+            // 書き込みの先行記録は、利用者には、雑音。通常の表示(INFO 以上)には、出さない
+            level: 'DEBUG',
             code: COPY_START,
             message: encodeCopyIntent({
               src: file.relPath,

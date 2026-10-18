@@ -4,6 +4,8 @@ import { CliError } from './cli-error.ts';
 import { drivesCommand } from './commands/drives.ts';
 import { ingestCommand } from './commands/ingest.ts';
 import { libraryInit } from './commands/library-init.ts';
+import { logsCommand } from './commands/logs.ts';
+import { statusCommand } from './commands/status.ts';
 import { verifyCommand } from './commands/verify.ts';
 import { resolveDataDir } from './config/paths.ts';
 import { type CommandContext, newLibraryId } from './context.ts';
@@ -20,6 +22,9 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
 コマンド:
   library init <保存先のパス>   ライブラリを作る(目印・台帳・設定)
   drives                        接続中のドライブの一覧(名前・容量・空き・形式・種類・状態・ライブラリ)
+  logs [--run <ID>] [--level <レベル>] [--tail <N>] [--follow]
+                                実行のログを表示する(既定は、直近の実行・INFO 以上。--verbose / --quiet)
+  status                        ロックの保持者と、直近の実行の状況を表示する
   verify [--library <パス>] [--sample <割合>]
                                 ライブラリの全ファイルを読み直して、台帳と照合する(修復・削除はしない)
   ingest <ソース...> --dest <ライブラリの根>
@@ -29,7 +34,8 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
   --data-dir <パス>   作業用の領域(data/)の場所。環境変数 FILE_SEIRI_DATA_DIR でも指定できる
   --dest <パス>       ingest の保存先(ライブラリの根)
   --dry-run           ingest で、コピーせずに、結果だけを見る
-  --library <パス>    verify の対象のライブラリの根(登録が 1 つだけなら、省ける)
+  --library <パス>    verify・logs・status の対象のライブラリの根(登録が 1 つだけなら、省ける)
+  --run <ID> / --level <レベル> / --tail <N> / -f, --follow / --verbose / --quiet   logs の絞り込み・追いかけ
   --sample <割合>     verify を、抜き取りで行う(例: 0.1、10%)
   --resume            ingest で、中断した実行を、続きから実行する
   -y, --yes           ingest で、コピーの前の確認を、省く
@@ -50,6 +56,8 @@ export type RunEnvironment = {
   confirm?: (question: string) => Promise<boolean>;
   shouldStop?: () => boolean;
   random?: () => number;
+  useColor?: boolean;
+  sleep?: (milliseconds: number) => Promise<void>;
   ingestHooks?: CommandContext['ingestHooks'];
 };
 
@@ -72,6 +80,12 @@ export const run = async (
         'restore-snapshot': { type: 'boolean' },
         resume: { type: 'boolean' },
         library: { type: 'string' },
+        run: { type: 'string' },
+        level: { type: 'string' },
+        verbose: { type: 'boolean' },
+        quiet: { type: 'boolean' },
+        tail: { type: 'string' },
+        follow: { type: 'boolean', short: 'f' },
         sample: { type: 'string' },
         yes: { type: 'boolean', short: 'y' },
         help: { type: 'boolean', short: 'h' },
@@ -99,6 +113,13 @@ export const run = async (
       confirm: environment.confirm ?? askYesNo,
       shouldStop: environment.shouldStop ?? (() => false),
       random: environment.random ?? Math.random,
+      useColor:
+        environment.useColor ??
+        Boolean(process.stdout.isTTY && !environment.env.NO_COLOR),
+      sleep:
+        environment.sleep ??
+        ((milliseconds) =>
+          new Promise((resolve) => setTimeout(resolve, milliseconds))),
       ingestHooks: environment.ingestHooks,
     };
     const [command, subcommand, ...rest] = positionals;
@@ -107,6 +128,20 @@ export const run = async (
     }
     if (command === 'drives' && positionals.length === 1) {
       return drivesCommand(context);
+    }
+    if (command === 'logs' && positionals.length === 1) {
+      return await logsCommand(context, {
+        library: values.library,
+        run: values.run,
+        level: values.level,
+        verbose: values.verbose ?? false,
+        quiet: values.quiet ?? false,
+        tail: values.tail,
+        follow: values.follow ?? false,
+      });
+    }
+    if (command === 'status' && positionals.length === 1) {
+      return statusCommand(context, values.library);
     }
     if (command === 'verify' && positionals.length === 1) {
       return await verifyCommand(context, {

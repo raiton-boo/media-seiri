@@ -127,3 +127,22 @@ export const interruptRunningRuns = (
     )
     .all(formatTimestamp(finishedAt))
     .map((row) => row.runId);
+
+/** いちばん新しい実行(種類・dry-run を問わない)。なければ undefined */
+export const getLatestRun = (db: Database): Run | undefined => {
+  const row = db
+    .query<RunRow, []>(
+      `SELECT ${COLUMNS} FROM runs ORDER BY run_id DESC LIMIT 1`
+    )
+    .get();
+  return row ? toRun(row) : undefined;
+};
+
+/** 新しい順の、実行の一覧 */
+export const listRecentRuns = (db: Database, limit: number): Run[] =>
+  db
+    .query<RunRow, [number]>(
+      `SELECT ${COLUMNS} FROM runs ORDER BY run_id DESC LIMIT ?`
+    )
+    .all(limit)
+    .map(toRun);
