@@ -198,3 +198,10 @@ export type PhotoDetailResponse = {
 
 /** 前後の並び(フィルムストリップ) */
 export type PhotoStripResponse = PhotoStrip & { order: AlbumOrder };
+
+/** スライドショーの写真(表示の順。先頭から一定の枚数まで。`total` が、合う枚数の全部) */
+export type SlideshowResponse = {
+  order: AlbumOrder;
+  total: number;
+  photos: AlbumPhoto[];
+};

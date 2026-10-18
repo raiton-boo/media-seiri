@@ -25,6 +25,7 @@ import type {
   RunsResponse,
   SearchPhotosResponse,
   SearchSuggestResponse,
+  SlideshowResponse,
   ViewerInfo,
 } from '../../src/api-types.ts';
 import { type FilterState, filterParams } from './album-filter';
@@ -332,5 +333,20 @@ export const useAreaLabels = (areas: string[]) =>
       ),
     enabled: areas.length > 0,
     staleTime: Number.POSITIVE_INFINITY,
+    placeholderData: keepPreviousData,
+  });
+
+/** スライドショーの写真(表示の順。先頭から一定の枚数まで) */
+export const useSlideshow = (
+  order: AlbumOrderParam,
+  filter: FilterState,
+  eventId: number | undefined
+) =>
+  useQuery({
+    queryKey: ['album-slideshow', order, filter, eventId],
+    queryFn: () =>
+      fetchJson<SlideshowResponse>(
+        `/api/album/slideshow${queryString({ order, event: eventId, ...filterParams(filter) })}`
+      ),
     placeholderData: keepPreviousData,
   });
