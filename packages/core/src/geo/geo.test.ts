@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  areaBounds,
+  areaCenter,
   areaLabel,
   areaRefsOf,
   cityLabel,
@@ -84,5 +86,20 @@ describe('表示', () => {
     const km = distanceBetweenKm(35.68, 139.77, 34.69, 135.5);
     expect(km).toBeGreaterThan(390);
     expect(km).toBeLessThan(410);
+  });
+});
+
+describe('areaBounds・areaCenter', () => {
+  test('地名: その周り。都道府県・国: 含まれる地名を囲む。知らない指定は、undefined', () => {
+    const sapporo = areaBounds('city:2128295');
+    expect(sapporo?.south).toBeCloseTo(43.017, 2);
+    expect(areaCenter('city:2128295')?.lat).toBeCloseTo(43.067, 2);
+    const tokyo = areaBounds('pref:40');
+    expect(tokyo && tokyo.south < 35.7 && tokyo.north > 35.7).toBe(true);
+    const japan = areaBounds('country:JP');
+    expect(japan && japan.south < 27 && japan.north > 43).toBe(true);
+    expect(areaBounds('country:ZZ')).toBeUndefined();
+    expect(areaBounds('city:0')).toBeUndefined();
+    expect(areaBounds('x')).toBeUndefined();
   });
 });

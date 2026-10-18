@@ -99,7 +99,8 @@ export const parseAlbumFilter = (
   ];
   const eventId = parseId(list('event')[0]);
   const livePhotos = list('live')[0] === '1';
-  const bbox = parseBbox(list('bbox')[0]);
+  // 範囲は、カンマ区切りの 4 つの数なので、カンマで割らず、そのまま渡す
+  const bbox = parseBbox(queries('bbox')?.[0]);
   const names = (queries('name') ?? []).filter(Boolean);
   const places = list('place').flatMap((value) => {
     const [lat, lon] = value.split(':').map(Number);

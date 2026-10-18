@@ -8,11 +8,22 @@ export type Bounds = {
   east: number;
 };
 
-/** 範囲を、URL・API の文字にする(小数点以下 5 桁 = 約 1m) */
-export const boundsToString = (bounds: Bounds): string =>
-  [bounds.south, bounds.west, bounds.north, bounds.east]
+/**
+ * 範囲を、URL・API の文字にする(小数点以下 5 桁 = 約 1m)。
+ * 地図は、縮小すると、地球の外(経度 ±180 度・緯度 ±90 度の外)まで映るため、地球の中に収める(外だと、API が範囲を読めず、絞り込まれない)。
+ */
+export const boundsToString = (bounds: Bounds): string => {
+  const clamp = (value: number, limit: number): number =>
+    Math.min(Math.max(value, -limit), limit);
+  return [
+    clamp(bounds.south, 90),
+    clamp(bounds.west, 180),
+    clamp(bounds.north, 90),
+    clamp(bounds.east, 180),
+  ]
     .map((value) => Number(value.toFixed(5)))
     .join(',');
+};
 
 /** 範囲の文字を読む。読めなければ undefined */
 export const parseBounds = (value: string | undefined): Bounds | undefined => {
@@ -34,6 +45,12 @@ export const padBounds = (bounds: Bounds, ratio: number): Bounds => {
     east: Math.min(180, bounds.east + dLon),
   };
 };
+
+/**
+ * このくらいの枚数までは、円ではなく、写真の小さな札(サムネイル)で出す(1 枚ずつ見えるように。2 枚以上は、重なった札に、枚数の印)。
+ * これより多いときは、件数の円。
+ */
+export const MAX_PHOTO_MARKER_COUNT = 4;
 
 /** まとまりの印の、大きさ(px)。件数が多いほど大きく(対数で、ゆるやかに) */
 export const clusterSize = (count: number): number =>

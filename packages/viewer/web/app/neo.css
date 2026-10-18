@@ -1847,22 +1847,9 @@ img {
 .mk-cluster.g {
   background: var(--g);
 }
-.mk-cluster.sel,
-.mk-pin.sel {
+.mk-cluster.sel {
   outline: 3px solid var(--ink);
   outline-offset: 3px;
-}
-.mk-pin {
-  width: 24px;
-  height: 24px;
-  border: var(--bd);
-  background: var(--o);
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  cursor: pointer;
-  padding: 0;
-  /* ピンの先(左下の角)が位置になるよう、ずらす */
-  margin-bottom: 6px;
 }
 .maplibregl-canvas {
   outline: none;
@@ -1876,4 +1863,71 @@ img {
   flex-direction: column;
   gap: 8px;
   z-index: 4;
+}
+
+/* 地図の、写真の小さな札(サムネイル)。下の先が、位置 */
+.mk-photo {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border: var(--bd);
+  background: var(--paper);
+  box-shadow: var(--shs);
+  padding: 0;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.mk-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.mk-photo::after {
+  /* 下の先(しっぽ) */
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 10px;
+  height: 10px;
+  background: var(--paper);
+  border-right: 3px solid var(--ink);
+  border-bottom: 3px solid var(--ink);
+  transform: translateX(-50%) rotate(45deg);
+}
+.mk-photo.stack::before {
+  /* 重なった札(2 枚以上) */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: var(--bd);
+  background: var(--paper);
+  transform: translate(5px, -5px);
+  z-index: -1;
+}
+.mk-badge {
+  position: absolute;
+  right: -10px;
+  top: -10px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border: 2px solid var(--ink);
+  background: var(--y);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mk-photo.sel {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+.map-popup .grid {
+  max-height: 232px;
+  overflow-y: auto;
 }

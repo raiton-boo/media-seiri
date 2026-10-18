@@ -5,8 +5,14 @@ import { Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { MapConfigResponse } from '../../../src/api-types.ts';
+import { thumbUrl } from '../../lib/api';
 import { formatCount } from '../../lib/format';
-import { type Bounds, clusterSize, clusterTone } from '../../lib/map';
+import {
+  type Bounds,
+  clusterSize,
+  clusterTone,
+  MAX_PHOTO_MARKER_COUNT,
+} from '../../lib/map';
 import { Button } from '../Button';
 
 export type MapView = {
@@ -55,9 +61,23 @@ const currentView = (map: MapLibreMap): MapView => {
 const markerElement = (cluster: MapCluster, selected: boolean): HTMLElement => {
   const element = document.createElement('button');
   element.type = 'button';
-  if (cluster.count === 1) {
-    element.className = `mk-pin${selected ? ' sel' : ''}`;
-    element.setAttribute('aria-label', '1 枚');
+  if (cluster.count <= MAX_PHOTO_MARKER_COUNT) {
+    // 写真の小さな札(サムネイル)。2 枚以上は、後ろに札を重ねて、右上に枚数
+    element.className = `mk-photo${cluster.count > 1 ? ' stack' : ''}${selected ? ' sel' : ''}`;
+    element.setAttribute('aria-label', `${cluster.count} 枚`);
+    if (cluster.thumbRelPath) {
+      const image = document.createElement('img');
+      image.src = thumbUrl(cluster.thumbRelPath);
+      image.alt = '';
+      image.draggable = false;
+      element.append(image);
+    }
+    if (cluster.count > 1) {
+      const badge = document.createElement('span');
+      badge.className = 'mk-badge';
+      badge.textContent = String(cluster.count);
+      element.append(badge);
+    }
   } else {
     const size = clusterSize(cluster.count);
     element.className = `mk-cluster ${clusterTone(cluster.count)}${selected ? ' sel' : ''}`;
@@ -167,8 +187,8 @@ export function MapCanvas({
       });
       return new Marker({
         element,
-        // ピンの先が、位置。円は、中心が位置
-        anchor: cluster.count === 1 ? 'bottom' : 'center',
+        // 札は、下の先が、位置。円は、中心が位置
+        anchor: cluster.count <= MAX_PHOTO_MARKER_COUNT ? 'bottom' : 'center',
       })
         .setLngLat([cluster.lon, cluster.lat])
         .addTo(current);

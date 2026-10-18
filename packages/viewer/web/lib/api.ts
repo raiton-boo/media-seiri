@@ -24,6 +24,7 @@ import type {
   FallbackResponse,
   MapClustersResponse,
   MapConfigResponse,
+  MapPlacesResponse,
   PhotoDetailResponse,
   PhotoStripResponse,
   RunDetailResponse,
@@ -415,5 +416,17 @@ export const useMapClusters = (
         `/api/map/clusters${queryString({ view, zoom: zoom.toFixed(1), ...filterParams(filter) })}`
       ),
     enabled: view !== undefined,
+    placeholderData: keepPreviousData,
+  });
+
+/** 場所(地名)の検索。入力が止まってから(呼ぶ側で間を置く)、入力があるときだけ読む */
+export const useMapPlaces = (text: string) =>
+  useQuery({
+    queryKey: ['map-places', text],
+    queryFn: () =>
+      fetchJson<MapPlacesResponse>(
+        `/api/map/places${queryString({ q: text })}`
+      ),
+    enabled: text.trim() !== '',
     placeholderData: keepPreviousData,
   });

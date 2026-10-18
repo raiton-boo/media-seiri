@@ -17,6 +17,7 @@ import {
   type Bounds,
   boundsToString,
   isSinglePoint,
+  MAX_PHOTO_MARKER_COUNT,
   padBounds,
 } from '../../lib/map';
 import { useAlbumFilterState } from '../../lib/use-album-filter';
@@ -27,6 +28,7 @@ import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
 import { RevealPage } from '../motion/Reveal';
 import { MapCanvas, type MapView as View } from './MapCanvas';
+import { PlaceSearch } from './PlaceSearch';
 
 /** 最初の位置(URL に位置がないとき): 日本の全体。写真の範囲が分かったら、そこへ動かす */
 const DEFAULT_VIEW = { lat: 36, lon: 138, zoom: 4.5 };
@@ -36,7 +38,6 @@ const VIEW_PADDING = 0.1;
 /** これ以上近づいたら、まとまりを押しても、拡大せず、写真を見せる */
 const MAX_FIT_ZOOM = 16;
 const PANEL_PHOTOS = 9;
-const POPUP_PHOTOS = 3;
 
 const urlView = (get: (key: string) => string | undefined) => {
   const center = (get('c') ?? '').split(',').map(Number);
@@ -59,7 +60,13 @@ const clusterBounds = (cluster: MapCluster): Bounds => ({
   east: cluster.maxLon + 1e-6,
 });
 
-/** 地図の範囲の、写真の札(サムネイル 3 枚と、拡大表示へ) */
+/** この場所の、写真の札を出す、最大の枚数(それより多いときは、アルバムで) */
+const POPUP_PHOTOS = 12;
+
+/**
+ * 押した場所の札: その場所の写真を、小さな札(サムネイル)で、まとめて見せる(1 枚でも、複数枚でも)。
+ * 同じ場所に、たくさんあるときは、上の枚数まで見せて、残りは、アルバムの「すべて」で。
+ */
 function PlaceCard({
   cluster,
   filter,
@@ -73,11 +80,12 @@ function PlaceCard({
   const bbox = boundsToString(clusterBounds(cluster));
   const scoped: FilterState = { ...filter, bbox };
   const photos = useSearchPhotos('new', scoped, POPUP_PHOTOS, true);
+  const total = photos.data?.total ?? cluster.count;
   return (
     <div className="card s map-popup">
       <div className="flex items-center justify-between gap-2">
         <div className="mono" style={{ fontSize: 13, fontWeight: 700 }}>
-          この場所 {formatCount(cluster.count)} 枚
+          この場所 {formatCount(total)} 枚
         </div>
         <button
           type="button"
@@ -102,6 +110,7 @@ function PlaceCard({
               filter: scoped,
             })}
             style={{ display: 'block' }}
+            title={photo.takenAt?.slice(0, 16).replace('T', ' ') ?? ''}
           >
             {photo.thumbRelPath ? (
               <img
@@ -113,17 +122,23 @@ function PlaceCard({
           </Link>
         ))}
       </div>
-      <Button
-        variant="y"
-        block
-        href={state.albumHref({
-          view: 'photo',
-          p: cluster.libraryFileId,
-          filter: scoped,
-        })}
-      >
-        拡大表示へ →
-      </Button>
+      {total > POPUP_PHOTOS ? (
+        <Button block href={state.albumHref({ view: 'all', filter: scoped })}>
+          {formatCount(total)} 枚すべてを、アルバムで →
+        </Button>
+      ) : (
+        <Button
+          variant="y"
+          block
+          href={state.albumHref({
+            view: 'photo',
+            p: cluster.libraryFileId,
+            filter: scoped,
+          })}
+        >
+          拡大表示へ →
+        </Button>
+      )}
     </div>
   );
 }
@@ -187,8 +202,9 @@ export function MapView() {
   if (!config.data) return <ListSkeleton />;
 
   const onSelect = (cluster: MapCluster): void => {
+    // 写真の小さな札(少数)・同じ位置・これ以上近づけない: その場所の写真を、札で見せる。多いまとまり(円)は、その範囲へ拡大
     if (
-      cluster.count === 1 ||
+      cluster.count <= MAX_PHOTO_MARKER_COUNT ||
       isSinglePoint(cluster) ||
       (view?.zoom ?? 0) >= MAX_FIT_ZOOM
     ) {
@@ -213,7 +229,12 @@ export function MapView() {
             <div className="kicker">MAP / GPS</div>
             <h1 className="h1">地図</h1>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <PlaceSearch
+              onPick={(place) =>
+                setFit({ bounds: place.bounds, key: (fit?.key ?? 0) + 1 })
+              }
+            />
             <span className="chip g">
               GPS あり {gps ? formatCount(gps.withGps) : '…'}
             </span>
@@ -286,6 +307,12 @@ export function MapView() {
             </div>
             <div className="card flex flex-col gap-3">
               <div className="h2">この範囲の写真</div>
+              <div className="mono" style={{ fontSize: 13 }}>
+                地図に見えている範囲の写真です(
+                {panel.data ? formatCount(panel.data.total) : '…'} 件のうち、
+                {formatCount(panel.data?.photos.length ?? 0)}{' '}
+                枚)。全部ではなく、見えていない場所の写真は、含まれません。
+              </div>
               <div
                 className="grid gap-2"
                 style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}

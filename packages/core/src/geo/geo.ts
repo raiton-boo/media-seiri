@@ -329,3 +329,59 @@ export const searchAreas = (text: string, limit = 8): AreaRef[] => {
     .slice(0, limit)
     .map((item) => item.ref);
 };
+
+/** 範囲(南・西・北・東の度) */
+export type GeoBounds = {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+};
+
+/** 地名ひとつの周りの範囲(地図を、その地名へ動かすときの広さ。約 ±5km) */
+const CITY_RADIUS_DEGREES = 0.05;
+
+/**
+ * 地域の指定の、地図上の範囲。地名は、その周り。都道府県・国は、含まれる地名(同梱のデータ)を囲む範囲。
+ * 知らない指定・地名のない地域は、undefined。
+ */
+export const areaBounds = (ref: AreaRef): GeoBounds | undefined => {
+  const [kind, value = ''] = ref.split(':');
+  if (kind === 'city') {
+    const city = getCity(Number(value));
+    return city
+      ? {
+          south: city.lat - CITY_RADIUS_DEGREES,
+          north: city.lat + CITY_RADIUS_DEGREES,
+          west: city.lon - CITY_RADIUS_DEGREES,
+          east: city.lon + CITY_RADIUS_DEGREES,
+        }
+      : undefined;
+  }
+  if (kind !== 'pref' && kind !== 'country') return undefined;
+  const members = index().cities.filter((city) =>
+    kind === 'pref'
+      ? city.cc === 'JP' && city.admin1 === value
+      : city.cc === value
+  );
+  if (members.length === 0) return undefined;
+  return {
+    south: Math.min(...members.map((city) => city.lat)),
+    north: Math.max(...members.map((city) => city.lat)),
+    west: Math.min(...members.map((city) => city.lon)),
+    east: Math.max(...members.map((city) => city.lon)),
+  };
+};
+
+/** 地域の指定の、中心の座標(地名は、その位置。都道府県・国は、範囲の中心) */
+export const areaCenter = (
+  ref: AreaRef
+): { lat: number; lon: number } | undefined => {
+  const bounds = areaBounds(ref);
+  return bounds
+    ? {
+        lat: (bounds.south + bounds.north) / 2,
+        lon: (bounds.west + bounds.east) / 2,
+      }
+    : undefined;
+};

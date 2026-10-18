@@ -12,6 +12,10 @@ describe('map', () => {
   test('範囲の文字: 往復できる。小数は 5 桁。読めなければ undefined', () => {
     const bounds = { south: 35.123456789, west: 139, north: 36, east: 140.5 };
     expect(boundsToString(bounds)).toBe('35.12346,139,36,140.5');
+    // 縮小して、地球の外まで映ったときは、地球の中に収める
+    expect(
+      boundsToString({ south: -95, west: -200, north: 95, east: 200 })
+    ).toBe('-90,-180,90,180');
     expect(parseBounds('35,139,36,140')).toEqual({
       south: 35,
       west: 139,
