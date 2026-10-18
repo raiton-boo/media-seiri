@@ -37,9 +37,10 @@ import type {
   ViewerInfo,
 } from '../../src/api-types.ts';
 import { type FilterState, filterParams } from './album-filter';
+import { isLiveConnected } from './live-status';
 
 /** API の場所。同じ場所から配信するので、空(相対パス)。開発で、別のポートの API を使うときだけ、指定する */
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '';
 
 export const fetchJson = async <T>(path: string): Promise<T> => {
   const response = await fetch(`${API_BASE}${path}`);
@@ -70,8 +71,11 @@ export const useDashboard = () =>
   useSuspenseQuery({
     queryKey: ['dashboard'],
     queryFn: () => fetchJson<DashboardResponse>('/api/dashboard'),
+    // リアルタイム配信(SSE)につながっていれば、そちらで更新する。つながっていない間だけ、読み直す
     refetchInterval: (query) =>
-      query.state.data?.running ? RUNNING_REFRESH_MS : false,
+      query.state.data?.running && !isLiveConnected()
+        ? RUNNING_REFRESH_MS
+        : false,
   });
 
 /** サムネイルの URL。`thumbRelPath`(`thumbs/` からの相対パス)から作る */

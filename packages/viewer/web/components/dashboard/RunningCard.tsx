@@ -9,6 +9,7 @@ import {
 import { CountUp } from '../motion/CountUp';
 import { GrowBar } from '../motion/GrowBar';
 import { PulseDot } from '../motion/PulseDot';
+import { LiveLog } from './LiveLog';
 
 /**
  * 実行中の取り込みの進み具合(ピンクのカード)。実行中だけ表示する(この Mac の作業用の台帳のとき)。
@@ -84,6 +85,7 @@ export function RunningCard({
         <Counter label="FALLBACK" value={running.dateFallback} />
         <Counter label="ERROR" value={running.errors} />
       </div>
+      <LiveLog />
       <div className="mono muted" style={{ fontSize: 13 }}>
         ※ 実行中だけ表示(この Mac)。他の PC では、最後の snapshot の内容。
       </div>

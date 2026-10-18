@@ -12,6 +12,7 @@ import type {
   DuplicateGroup,
   DuplicateGroupDetail,
   EventDetail,
+  EventRecord,
   EventStack,
   FallbackRow,
   FallbackSource,
@@ -209,6 +210,12 @@ export type PhotoDetailResponse = {
     sourceLabel: string | null;
   };
 };
+
+/** リアルタイム配信(`GET /api/live`、SSE)の `progress`: 実行中の取り込みの進み具合(なければ null) */
+export type LiveProgressMessage = { running: RunningProgress | null };
+
+/** リアルタイム配信の `log`: 新しいログ(INFO 以上。古い順) */
+export type LiveLogMessage = { events: EventRecord[] };
 
 /** 「この日の他の年」: 同じ月日に撮った、ほかの年の写真(新しい年が先。年ごとに、枚数と代表の 1 枚) */
 export type SameDayResponse = {
