@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { Asker } from './ask.ts';
 import type { IngestHooks } from './ingest/copy-stage.ts';
 import type { LiveController } from './live/controller.ts';
 import type { IngestProgress, PauseGate } from './live/progress.ts';
@@ -37,6 +38,8 @@ export type CommandContext = {
   sleep: (milliseconds: number) => Promise<void>;
   /** サムネイルを作るもの(sips・ffmpeg・ExifTool を使う)。使い終わったら、`close` を呼ぶ。テストでは、差し替える */
   thumbnailMaker: () => ThumbnailMaker;
+  /** 選んでもらう・入力してもらう口(対話式)。`isInteractive` のときだけ呼ぶ。テストでは、決まった答えを返すものに、差し替える */
+  ask: Asker;
   /** 取り込みの進み具合を、画面(ライブ表示)に伝える口。画面を使わないときは、何もしない */
   progress: IngestProgress;
   /** 一時停止の関門(ライブ表示の `p` キー)。処理の合間に `wait()` を呼ぶ。画面を使わないときは、いつも通る */
