@@ -6,6 +6,7 @@ import { ExifTool } from 'exiftool-vendored';
 import { ledgerPathFor } from '../config/paths.ts';
 import { type RunEnvironment, run } from '../run.ts';
 import { makeTempDir } from '../test-helpers.ts';
+import type { ThumbnailMaker, ThumbnailRequest } from '../thumbs/maker.ts';
 import type { VolumeInfo } from '../volume/index.ts';
 
 export const FIXTURES = join(import.meta.dir, '../metadata/fixtures');
@@ -77,6 +78,23 @@ export const makeWorld = (
 
 export type CliResult = { code: number; stdout: string[]; stderr: string[] };
 
+/** 外のコマンドを使わない、サムネイルの代役。作った依頼を記録する。`fail` が理由を返したものは、失敗にする */
+export const fakeThumbnailMaker = (
+  fail: (request: ThumbnailRequest) => string | undefined = () => undefined
+): ThumbnailMaker & { requests: ThumbnailRequest[] } => {
+  const requests: ThumbnailRequest[] = [];
+  return {
+    requests,
+    make: async (request) => {
+      requests.push(request);
+      const reason = fail(request);
+      if (reason) throw new Error(reason);
+      writeFileSync(request.outputPath, 'thumb');
+    },
+    close: async () => {},
+  };
+};
+
 /** 世界の中で、コマンドを実行する(ボリュームは、パスから、差し替える) */
 export const runIn = async (
   world: World,
@@ -95,6 +113,7 @@ export const runIn = async (
     isInteractive: false,
     useColor: false,
     sleep: async () => {},
+    thumbnailMaker: () => fakeThumbnailMaker(),
     resolveVolume: (path) =>
       path.startsWith(world.srcRoot) ? world.sourceVolume : world.destVolume,
     ...options,

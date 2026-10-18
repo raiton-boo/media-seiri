@@ -126,3 +126,38 @@ export const listLibraryFilesByAlbumEvent = (
     )
     .all(albumEventId)
     .map(toRecord);
+
+/** サムネイルを作る(確かめる)ための、ライブラリのファイル */
+export type ThumbnailCandidate = {
+  libraryFileId: number;
+  relPath: string;
+  thumbRelPath: string | null;
+  /** 内容のハッシュ(SHA-256 の 16 進)。サムネイルの名前に使う */
+  contentHash: string;
+};
+
+/** ライブラリのファイルすべて(登録の順)と、サムネイルの記録。実在の確認は、呼び出し側が行う */
+export const listThumbnailCandidates = (db: Database): ThumbnailCandidate[] =>
+  db
+    .query<ThumbnailCandidate, []>(
+      `SELECT f.library_file_id AS libraryFileId, f.rel_path AS relPath,
+              f.thumb_rel_path AS thumbRelPath, c.hash AS contentHash
+       FROM library_files AS f JOIN contents AS c ON c.content_id = f.content_id
+       ORDER BY f.library_file_id`
+    )
+    .all();
+
+/** サムネイルの場所(`thumbs/` からの相対パス)を記録する */
+export const setThumbRelPath = (
+  db: Database,
+  libraryFileId: number,
+  thumbRelPath: string
+): void => {
+  const result = db
+    .query(
+      'UPDATE library_files SET thumb_rel_path = ? WHERE library_file_id = ?'
+    )
+    .run(thumbRelPath, libraryFileId);
+  if (result.changes === 0)
+    throw new Error(`ライブラリのファイルがありません: ${libraryFileId}`);
+};

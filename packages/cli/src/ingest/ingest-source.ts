@@ -18,6 +18,7 @@ import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { exportRunLog } from '../log/export.ts';
 import type { MetadataReader } from '../metadata/index.ts';
 import { collectScan } from '../scan/index.ts';
+import { runThumbnailStage } from '../thumbs/index.ts';
 import { recordVolume, type VolumeInfo } from '../volume/index.ts';
 import { type AnalyzeEnvironment, analyzeFile } from './analyze.ts';
 import { mapConcurrent, readConcurrency } from './concurrency.ts';
@@ -365,6 +366,20 @@ export const ingestSource = async (
       : undefined;
     if (summary.copy) printLines(context, formatCopyResult(summary.copy));
     if (reason) return stopped(reason);
+
+    // サムネイル(コピーの最後に、まとめて作る。作れなくても、取り込みは失敗にしない)
+    const thumbnails = await runThumbnailStage({
+      context,
+      library,
+      write,
+      mediaKind: destinationVolume.mediaKind,
+      stopRequested: () => stopRequested() !== undefined,
+      log,
+    });
+    if (thumbnails.stopped) {
+      const thumbReason = stopRequested();
+      if (thumbReason) return stopped(thumbReason);
+    }
 
     const { snapshotFailed } = conclude('completed');
     const code = exitFor();

@@ -3,8 +3,8 @@ import { formatTimestamp } from './time.ts';
 
 export type RunStatus = 'running' | 'completed' | 'interrupted' | 'failed';
 
-/** 実行の種類: 取り込み / ライブラリの再照合(`verify`) */
-export type RunKind = 'ingest' | 'verify';
+/** 実行の種類: 取り込み / ライブラリの再照合(`verify`) / サムネイルの作成(`thumbs`) */
+export type RunKind = 'ingest' | 'verify' | 'thumbs';
 
 export type Run = {
   runId: number;

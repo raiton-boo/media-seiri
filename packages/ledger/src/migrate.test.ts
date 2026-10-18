@@ -31,6 +31,45 @@ describe('移行 0003(実行の種類)', () => {
   });
 });
 
+describe('移行 0004(実行の種類に thumbs)', () => {
+  test('外部キーが有効でも、子の行を残したまま移行でき、thumbs の実行を記録できる', () => {
+    const db = new Database(':memory:', { strict: true });
+    migrate(db, MIGRATIONS.slice(0, 3));
+    db.exec('PRAGMA foreign_keys = ON');
+    db.exec(
+      "INSERT INTO volumes (volume_uuid, last_seen_at) VALUES ('v', '2026-10-18T00:00:00Z')"
+    );
+    db.exec(
+      "INSERT INTO runs (source_volume_id, started_at, kind) VALUES (1, '2026-10-18T00:00:00Z', 'verify')"
+    );
+    db.exec(
+      "INSERT INTO events (run_id, level, code, message, occurred_at) VALUES (1, 'INFO', 'X', 'm', '2026-10-18T00:00:00Z')"
+    );
+    expect(migrate(db)).toBe(MIGRATIONS.length - 3);
+    expect(db.query('SELECT run_id, kind FROM runs').all()).toEqual([
+      { run_id: 1, kind: 'verify' },
+    ]);
+    expect(db.query('SELECT run_id FROM events').all()).toEqual([
+      { run_id: 1 },
+    ]);
+    db.exec(
+      "INSERT INTO runs (source_volume_id, started_at, kind) VALUES (1, '2026-10-18T00:00:00Z', 'thumbs')"
+    );
+    expect(() =>
+      db.exec(
+        "INSERT INTO runs (source_volume_id, started_at, kind) VALUES (1, '2026-10-18T00:00:00Z', 'other')"
+      )
+    ).toThrow();
+    expect(db.query('PRAGMA foreign_key_check').all()).toEqual([]);
+    // 子の外部キーは、新しい runs を指し続ける(存在しない run の events は、入れられない)
+    expect(() =>
+      db.exec(
+        "INSERT INTO events (run_id, level, code, message, occurred_at) VALUES (99, 'INFO', 'X', 'm', '2026-10-18T00:00:00Z')"
+      )
+    ).toThrow();
+  });
+});
+
 describe('migrate', () => {
   test('空の DB に、すべて適用する', () => {
     const db = new Database(':memory:', { strict: true });

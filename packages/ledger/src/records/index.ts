@@ -52,6 +52,9 @@ export {
   listLibraryFilesByAlbumEvent,
   listLibraryFilesByContent,
   listLibraryFilesByGroup,
+  listThumbnailCandidates,
+  setThumbRelPath,
+  type ThumbnailCandidate,
 } from './library-files.ts';
 export {
   getMediaMetadata,
