@@ -12,9 +12,9 @@ import { Button } from '../Button';
 import { FilterChip } from '../FilterChip';
 import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
-import { RevealCards, RevealPage } from '../motion/Reveal';
-import { Pager } from '../Pager';
+import { RevealPage } from '../motion/Reveal';
 import { RUN_KIND_LABELS } from '../RunLabels';
+import { SplitView } from '../SplitView';
 import { CsvButton } from './CsvButton';
 import { ErrorDetail } from './ErrorDetail';
 
@@ -44,15 +44,12 @@ export function ErrorsView() {
   if (isPending) return <ListSkeleton />;
 
   const totalCodes = data.codes.reduce((sum, item) => sum + item.count, 0);
-  const selectedId = Number(url.get('sel')) || undefined;
-  const selected =
-    data.items.find((item) => item.errorId === selectedId) ?? data.items[0];
   // 絞り込みを変えたら、ページと選択は、最初に戻す
   const filterTo = (updates: Record<string, string | undefined>) =>
     url.set({ offset: undefined, sel: undefined, ...updates });
 
   return (
-    <RevealPage className="page">
+    <RevealPage className="page split-page">
       <div
         className="flex flex-wrap items-end justify-between gap-6"
         data-motion="title"
@@ -115,54 +112,44 @@ export function ErrorsView() {
           <div className="h2">エラーは、ありません</div>
         </div>
       ) : (
-        <div
-          className="grid items-start gap-6"
-          style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
-        >
-          <div className="flex flex-col gap-4">
-            <RevealCards className="flex flex-col gap-3">
-              <div className="listhead errhead" aria-hidden="true">
-                <span>コード</span>
-                <span>ファイル</span>
-                <span>実行 / 日時</span>
-              </div>
-              {data.items.map((item) => (
-                <div key={item.errorId} data-motion="card">
-                  <Button
-                    block
-                    selected={item.errorId === selected?.errorId}
-                    className="errcard"
-                    onClick={() => url.set({ sel: String(item.errorId) })}
-                  >
-                    <span className="chip r">{item.code}</span>
-                    <span
-                      className="mono errcard-path"
-                      title={describeSource(item.source)}
-                    >
-                      {shortenSource(item.source)}
-                    </span>
-                    <span className="mono errcard-side">
-                      <span>#{item.runId}</span>
-                      <span>{formatDateTimeSeconds(item.occurredAt)}</span>
-                    </span>
-                  </Button>
-                </div>
-              ))}
-            </RevealCards>
-            <Pager
-              total={data.total}
-              limit={data.limit}
-              offset={data.offset}
-              onChange={(next) =>
-                url.set({
-                  offset: next === 0 ? undefined : String(next),
-                  sel: undefined,
-                })
-              }
-            />
-          </div>
-          {selected ? <ErrorDetail id={selected.errorId} /> : null}
-        </div>
+        <SplitView
+          items={data.items}
+          idOf={(item) => item.errorId}
+          selectedParam={url.get('sel')}
+          total={data.total}
+          limit={data.limit}
+          offset={data.offset}
+          columns="7fr 5fr"
+          noun="エラー"
+          header={
+            <div className="listhead errhead" aria-hidden="true">
+              <span>コード</span>
+              <span>ファイル</span>
+              <span>実行 / 日時</span>
+            </div>
+          }
+          renderItem={(item, active, select) => (
+            <Button
+              block
+              selected={active}
+              className="errcard"
+              onClick={select}
+            >
+              <span className="chip r">{item.code}</span>
+              <span
+                className="mono errcard-path"
+                title={describeSource(item.source)}
+              >
+                {shortenSource(item.source)}
+              </span>
+              <span className="mono errcard-side">
+                <span>#{item.runId}</span>
+                <span>{formatDateTimeSeconds(item.occurredAt)}</span>
+              </span>
+            </Button>
+          )}
+          detail={(item) => <ErrorDetail id={item.errorId} />}
+        />
       )}
     </RevealPage>
   );
