@@ -65,7 +65,7 @@ function Dashboard() {
           <div className="kicker">PERIOD</div>
           <div className="num m" style={{ paddingTop: 12 }}>
             {period
-              ? `${formatPeriodEnd(period.from)} → ${formatPeriodEnd(period.to)}`
+              ? `${formatPeriodEnd(period.from)} ~ ${formatPeriodEnd(period.to)}`
               : '—'}
           </div>
           <div className="mono" style={{ fontSize: 12 }}>

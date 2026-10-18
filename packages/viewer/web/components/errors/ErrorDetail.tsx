@@ -81,7 +81,7 @@ export function ErrorDetail({ id }: { id: number }) {
               {attempts.map((attempt, index) => (
                 <div
                   key={attempt.attemptId}
-                  className="card s flex justify-between"
+                  className="card s flex items-center justify-between"
                 >
                   <span className="mono" style={{ fontSize: 12 }}>
                     {index + 1} {METHOD_LABELS[attempt.method]}

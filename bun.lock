@@ -32,10 +32,8 @@
       "dependencies": {
         "@file-seiri/core": "workspace:*",
         "@file-seiri/ledger": "workspace:*",
-        "@gsap/react": "^2.1.2",
         "@tailwindcss/postcss": "^4.3.3",
         "@tanstack/react-query": "^5.104.4",
-        "gsap": "^3.15.0",
         "hono": "^4.13.13",
         "next": "^16.4.2",
         "react": "^19.3.1",
@@ -61,8 +59,6 @@
     "@file-seiri/ledger": ["@file-seiri/ledger@workspace:packages/ledger"],
 
     "@file-seiri/viewer": ["@file-seiri/viewer@workspace:packages/viewer"],
-
-    "@gsap/react": ["@gsap/react@2.1.2", "", { "peerDependencies": { "gsap": "^3.12.5", "react": ">=17" } }, "sha512-JqliybO1837UcgH2hVOM4VO+38APk3ECNrsuSM4MuXp+rbf+/2IG2K1YJiqfTcXQHH7XlA0m3ykniFYstfq0Iw=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 
@@ -257,8 +253,6 @@
     "exiftool-vendored.pl": ["exiftool-vendored.pl@13.59.3", "", { "os": "!win32", "bin": { "exiftool": "bin/exiftool" } }, "sha512-QmYq2JKCXRK9Uo3E3nHb0gQ6Xce2HK7wPtrHF5r+IYWyiM5WkOhiT3BesLI9lvJvPAbzjqFxQlrjXv+/cuSX/Q=="],
 
     "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
-
-    "gsap": ["gsap@3.15.0", "", {}, "sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A=="],
 
     "he": ["he@1.2.0", "", { "bin": { "he": "bin/he" } }, "sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw=="],
 

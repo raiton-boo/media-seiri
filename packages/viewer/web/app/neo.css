@@ -123,14 +123,14 @@ a {
 .muted {
   opacity: 0.65;
 }
+/* 影は、押せるもの(.btn)だけに付ける。カード・表は、影を付けず、線と色面で構造を作る(arcana-members の原則)。
+   カードとボタンが同じに見えると、押せるか分からないため。ワイヤーフレームは、カードにも影があった */
 .card {
   background: var(--paper);
   border: var(--bd);
-  box-shadow: var(--sh);
   padding: 20px;
 }
 .card.s {
-  box-shadow: var(--shs);
   padding: 14px;
 }
 .card.y {
@@ -159,9 +159,9 @@ a {
   background: var(--bg);
 }
 /* ボタン(押せる面を持つもの): 2 層。外側 .btn = 当たり判定と影(動かない)、内側 .face = 見た目の面。
-   ホバーで、影の 1/4 だけ浮き、押すと、影の位置まで沈む。無効は、影を消して、灰色の平らな面にする。
-   (arcana-members の挙動に合わせた。影を本体の box-shadow にすると、押した瞬間に当たり判定ごと動き、端で連打するとちらつくため)
-   動きは、components/Button.tsx の GSAP が付ける。GSAP が使えない・「視差効果を減らす」のときは、CSS の transition だけで同じ動きをする */
+   ホバーで、影の 1/4 だけ浮き、押すと、影の位置まで沈む(0.1 秒)。押せないときは、影の大きさ(--sh)を 0 にして、影を消し、灰色の平らな面にする。
+   arcana-members のボタン(components/ui/button)の挙動に合わせた。影を本体の box-shadow にすると、押した瞬間に当たり判定ごと動き、
+   端で連打するとちらつくため、面だけを動かす。動きは CSS だけ(GSAP は、文字の入れ替えなど、別の動きに使う) */
 .btn {
   position: relative;
   display: inline-block;
@@ -188,7 +188,8 @@ a {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 0.6em;
   padding: 10px 18px;
   border: var(--bd);
   background: var(--btn-bg);
@@ -196,6 +197,15 @@ a {
   font-weight: 900;
   font-size: 14px;
   line-height: 1.6;
+  transition:
+    transform 0.1s,
+    background-color 0.1s;
+}
+.btn:hover .face {
+  transform: translate(calc(var(--sh) * -0.25), calc(var(--sh) * -0.25));
+}
+.btn:active .face {
+  transform: translate(var(--sh), var(--sh));
 }
 .btn.y {
   --btn-bg: var(--y);
@@ -207,16 +217,28 @@ a {
 .btn.lg {
   --sh: 6px;
 }
-.btn:not([data-gsap]) .face {
-  transition:
-    transform 0.12s ease,
-    background-color 0.12s ease;
+.btn.t-r {
+  --btn-bg: var(--r);
+  --btn-fg: var(--paper);
 }
-.btn:not([data-gsap]):hover .face {
-  transform: translate(calc(var(--sh) * -0.25), calc(var(--sh) * -0.25));
+.btn.t-o {
+  --btn-bg: var(--o);
 }
-.btn:not([data-gsap]):active .face {
-  transform: translate(var(--sh), var(--sh));
+.btn.t-l {
+  --btn-bg: var(--l);
+}
+.btn.t-b {
+  --btn-bg: var(--b);
+}
+.btn.block {
+  display: block;
+  width: 100%;
+}
+.btn.block .face {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 18px;
 }
 .btn:focus-visible {
   outline: 0;
@@ -225,25 +247,30 @@ a {
   outline: 3px solid var(--b);
   outline-offset: 3px;
 }
-.btn:disabled,
-.btn[aria-disabled="true"] {
+.btn:disabled {
   cursor: not-allowed;
+  --sh: 0px;
 }
-.btn.busy {
+.btn.loading:disabled {
   cursor: progress;
 }
-.btn:disabled::before,
-.btn[aria-disabled="true"]::before {
+.btn:disabled::before {
   display: none;
 }
-.btn:disabled .face,
-.btn[aria-disabled="true"] .face {
+.btn:disabled .face {
   background: #c9c9c9;
   color: #6a6a6a;
-  transform: none;
+}
+.btn .spin {
+  animation: btn-spin 0.8s linear infinite;
+}
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .btn:not([data-gsap]) .face {
+  .btn .face {
     transition: none;
   }
 }
@@ -387,7 +414,6 @@ a {
   border-collapse: collapse;
   background: var(--paper);
   border: var(--bd);
-  box-shadow: var(--sh);
 }
 .tbl th {
   background: var(--ink);
@@ -1018,4 +1044,11 @@ select.sel {
 }
 .tbl th {
   white-space: nowrap;
+}
+/* 選べる行(クリックで詳細が変わる表)は、ホバーで薄い黄にして、押せることを示す */
+.tbl tr:has(.rowbtn):hover td {
+  background: var(--y2);
+}
+.tbl tr.hl:has(.rowbtn):hover td {
+  background: var(--y);
 }
