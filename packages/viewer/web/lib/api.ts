@@ -5,8 +5,11 @@ import {
 } from '@tanstack/react-query';
 import type {
   DashboardResponse,
+  DupeDetailResponse,
+  DupesResponse,
   ErrorDetailResponse,
   ErrorsResponse,
+  FallbackResponse,
   RunDetailResponse,
   RunsResponse,
   ViewerInfo,
@@ -93,5 +96,38 @@ export const useRunDetail = (id: number | undefined) =>
   useQuery({
     queryKey: ['run', id],
     queryFn: () => fetchJson<RunDetailResponse>(`/api/runs/${id}`),
+    enabled: id !== undefined,
+  });
+
+export const useFallback = (params: {
+  source?: string;
+  precision?: string;
+  volume?: string;
+  run?: string;
+  offset: number;
+}) =>
+  useQuery({
+    queryKey: ['fallback', params],
+    queryFn: () =>
+      fetchJson<FallbackResponse>(`/api/fallback${queryString(params)}`),
+    placeholderData: keepPreviousData,
+  });
+
+export const useDupes = (params: {
+  volume?: string;
+  run?: string;
+  q?: string;
+  offset: number;
+}) =>
+  useQuery({
+    queryKey: ['dupes', params],
+    queryFn: () => fetchJson<DupesResponse>(`/api/dupes${queryString(params)}`),
+    placeholderData: keepPreviousData,
+  });
+
+export const useDupeDetail = (id: number | undefined) =>
+  useQuery({
+    queryKey: ['dupe', id],
+    queryFn: () => fetchJson<DupeDetailResponse>(`/api/dupes/${id}`),
     enabled: id !== undefined,
   });

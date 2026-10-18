@@ -1231,3 +1231,41 @@ select.sel {
 .listhead > :last-child {
   text-align: right;
 }
+
+/* 赤いカード(エラー・日付なし)。文字は黒(コントラスト比 6.3) */
+.card.r {
+  background: var(--r);
+}
+
+/* 重複のグループ(ボタンカード): 採用 1 / スキップ N、採用側のファイル名、ハッシュ */
+.btn.block.dupecard .face {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 2px;
+  padding: 12px 16px;
+}
+.dupecard-count {
+  font-size: 13px;
+  font-weight: 400;
+}
+.dupecard-name {
+  display: block;
+  max-width: 100%;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn.block.dupecard .face {
+  min-width: 0;
+}
+.btn.block.dupecard .face > * {
+  max-width: 100%;
+}
+.dupecard-hash {
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.75;
+}

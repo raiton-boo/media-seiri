@@ -1,5 +1,10 @@
-import { ComingSoon } from '../../components/ComingSoon';
+import { AppShell } from '../../components/AppShell';
+import { FallbackLoader } from '../../components/fallback/FallbackLoader';
 
-export default function Page() {
-  return <ComingSoon kicker="DATE FALLBACK" title="日付フォールバック" />;
+export default function FallbackPage() {
+  return (
+    <AppShell>
+      <FallbackLoader />
+    </AppShell>
+  );
 }

@@ -1,4 +1,5 @@
 import type { Database } from 'bun:sqlite';
+import { likePrefix } from './like.ts';
 import type { SourceFileKind } from './source-files.ts';
 
 /** エラー一覧の絞り込み */
@@ -46,9 +47,6 @@ type Row = {
   thumbRelPath: string | null;
 };
 
-const likePattern = (prefix: string): string =>
-  `${prefix.replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
-
 const whereOf = (
   filter: ErrorFilter
 ): { sql: string; params: (string | number)[] } => {
@@ -63,7 +61,7 @@ const whereOf = (
   if (filter.code !== undefined) {
     if (filter.code.endsWith('*')) {
       conditions.push("e.code LIKE ? ESCAPE '\\'");
-      params.push(likePattern(filter.code.slice(0, -1)));
+      params.push(likePrefix(filter.code.slice(0, -1)));
     } else {
       conditions.push('e.code = ?');
       params.push(filter.code);

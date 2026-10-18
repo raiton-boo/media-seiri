@@ -138,3 +138,30 @@ export const formatShortDateTime = (iso: string): string => {
   if (Number.isNaN(date.getTime())) return iso;
   return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
+
+/** ソース側のファイルの場所 */
+export type SourceLocation = {
+  volumeLabel: string | null;
+  relPath: string;
+  entryPath: string | null;
+};
+
+/** 場所の文字列(`ドライブ名/パス`。ZIP の中身なら、` ! 中のパス`)。`short` なら、長いパスを省く(`shortenPath`) */
+export const describeLocation = (
+  location: SourceLocation | null,
+  short: boolean
+): string => {
+  if (!location) return '(ファイルなし)';
+  const path = location.entryPath
+    ? `${location.relPath} ! ${location.entryPath}`
+    : location.relPath;
+  return `${location.volumeLabel ?? ''}/${short ? shortenPath(path) : path}`;
+};
+
+/** ハッシュの短い表示(`9f2c…a41b`) */
+export const shortHash = (hash: string): string =>
+  hash.length <= 9 ? hash : `${hash.slice(0, 4)}…${hash.slice(-4)}`;
+
+/** パスの、最後の名前(ファイル名) */
+export const baseName = (path: string): string =>
+  path.split('/').filter(Boolean).pop() ?? path;
