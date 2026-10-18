@@ -1,4 +1,6 @@
+import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { isStandalone } from '../embedded/registry.ts';
 
 /** `data/` の場所を決める環境変数(仕様書 §8-1) */
 export const DATA_DIR_ENV = 'FILE_SEIRI_DATA_DIR';
@@ -6,13 +8,26 @@ export const DATA_DIR_ENV = 'FILE_SEIRI_DATA_DIR';
 /** 既定の `data/`: リポジトリの根(このファイルの、3 つ上)の `data/` */
 const DEFAULT_DATA_DIR = resolve(import.meta.dir, '../../../../data');
 
+/**
+ * 単一の実行ファイルの既定の `data/`(実行ファイルの置き場所は、書き込めるとは限らないため)。
+ * macOS: `~/Library/Application Support/file-seiri`。それ以外: `~/.local/share/file-seiri`
+ */
+const standaloneDataDir = (): string =>
+  process.platform === 'darwin'
+    ? join(homedir(), 'Library', 'Application Support', 'file-seiri')
+    : join(
+        process.env.XDG_DATA_HOME ?? join(homedir(), '.local', 'share'),
+        'file-seiri'
+      );
+
 /** `--data-dir` の指定 → 環境変数 → 既定、の順で決める */
 export const resolveDataDir = (
   option: string | undefined,
   env: Record<string, string | undefined>
 ): string => {
   const chosen = option ?? env[DATA_DIR_ENV];
-  return chosen ? resolve(chosen) : DEFAULT_DATA_DIR;
+  if (chosen) return resolve(chosen);
+  return isStandalone() ? standaloneDataDir() : DEFAULT_DATA_DIR;
 };
 
 /** ライブラリごとの、作業用のフォルダ(`data/libraries/<ID>/`) */

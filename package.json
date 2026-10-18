@@ -9,7 +9,8 @@
     "seiri": "bun packages/cli/src/main.ts",
     "check": "biome check .",
     "typecheck": "bun run --filter '*' typecheck",
-    "test": "bun test packages"
+    "test": "bun test packages",
+    "build:binary": "bun scripts/build-binary.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.3",

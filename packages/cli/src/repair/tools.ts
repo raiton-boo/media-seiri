@@ -1,5 +1,6 @@
 import { copyFileSync, rmSync, statSync } from 'node:fs';
-import { ExifTool } from 'exiftool-vendored';
+import type { ExifTool } from 'exiftool-vendored';
+import { createExifTool } from '../exiftool.ts';
 
 /** 検査・修復の対象の区分 */
 export type RepairKind = 'photo' | 'raw' | 'video';
@@ -94,7 +95,7 @@ const messageOf = (error: unknown): string =>
 export const createRepairTools = (): RepairTools => {
   let exiftool: ExifTool | undefined;
   const exif = (): ExifTool => {
-    exiftool ??= new ExifTool({ maxProcs: 1 });
+    exiftool ??= createExifTool({ maxProcs: 1 });
     return exiftool;
   };
 

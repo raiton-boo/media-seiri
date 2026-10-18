@@ -1,4 +1,5 @@
-import { ExifTool, type Tags } from 'exiftool-vendored';
+import type { Tags } from 'exiftool-vendored';
+import { createExifTool } from '../exiftool.ts';
 import { type ExtractedMetadata, extractMetadata } from './tags.ts';
 
 export type MetadataReadResult =
@@ -30,7 +31,7 @@ const messageOf = (error: unknown): string =>
 export const createMetadataReader = (
   options: MetadataReaderOptions = {}
 ): MetadataReader => {
-  const exiftool = new ExifTool({
+  const exiftool = createExifTool({
     ...(options.maxProcs === undefined ? {} : { maxProcs: options.maxProcs }),
     ...(options.taskTimeoutMillis === undefined
       ? {}
