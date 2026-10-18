@@ -9,33 +9,38 @@ import {
 } from '../../lib/format';
 import { RevealDetail } from '../motion/Reveal';
 
-/** サムネイル(なければ、ファイル名の札だけ) */
+/** サムネイル(なければ、ファイル名の札だけ)。`skipped` なら、グレーにして、斜めの線を引く */
 function Picture({
   thumbRelPath,
   label,
+  skipped = false,
 }: {
   thumbRelPath: string | null;
   label: string;
+  skipped?: boolean;
 }) {
   return (
-    <div className="ph c1" style={{ aspectRatio: '16/10' }}>
-      {thumbRelPath ? (
-        <img
-          src={thumbUrl(thumbRelPath)}
-          alt={label}
-          loading="lazy"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-          }}
-        />
-      ) : null}
-      <div className="lb">
-        {thumbRelPath ? label : `${label} — サムネイルなし`}
+    <div className={skipped ? 'cmp-pic is-skipped' : 'cmp-pic'}>
+      <div className="ph c1" style={{ aspectRatio: '16/10' }}>
+        {thumbRelPath ? (
+          <img
+            src={thumbUrl(thumbRelPath)}
+            alt={label}
+            loading="lazy"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+            }}
+          />
+        ) : null}
+        <div className="lb">
+          {thumbRelPath ? label : `${label} — サムネイルなし`}
+        </div>
       </div>
+      {skipped ? <div className="cmp-cross" aria-hidden="true" /> : null}
     </div>
   );
 }
@@ -69,8 +74,12 @@ export function DupeDetail({ id }: { id: number }) {
           ハッシュ一致 / 1 バイトも違わない
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="card flex flex-col gap-3" data-motion="detail-item">
+      <div className="cmp-grid">
+        <div
+          className="card cmp-card cmp-adopted flex flex-col gap-3"
+          data-motion="detail-item"
+        >
+          <span className="cmp-stamp cmp-stamp-ok">✓ 採用</span>
           <span className="chip on" style={{ alignSelf: 'flex-start' }}>
             採用 / ADOPTED
           </span>
@@ -94,13 +103,25 @@ export function DupeDetail({ id }: { id: number }) {
             取り込み run #{adopted.runId}
           </div>
         </div>
-        <div className="card flex flex-col gap-3" data-motion="detail-item">
+        <div className="cmp-mid" aria-hidden="true">
+          <span className="cmp-arrow">◀</span>
+          <span className="cmp-eq">＝</span>
+          <span className="chip g">ハッシュ一致</span>
+        </div>
+        <div
+          className="card cmp-card cmp-skipped flex flex-col gap-3"
+          data-motion="detail-item"
+        >
+          <span className="cmp-stamp cmp-stamp-no">
+            ✗ スキップ ×{skipped.length}
+          </span>
           <span className="chip" style={{ alignSelf: 'flex-start' }}>
-            スキップ / SKIPPED ×{skipped.length}
+            スキップ / SKIPPED
           </span>
           <Picture
             thumbRelPath={adopted.thumbRelPath}
             label={first ? baseName(first.relPath) : '—'}
+            skipped
           />
           <div
             className="mono"
@@ -116,6 +137,8 @@ export function DupeDetail({ id }: { id: number }) {
               : '—'}
             <br />
             スキップ run #{first?.runId ?? '—'}
+            <br />
+            <b>→ ライブラリへは、コピーしていない</b>
           </div>
         </div>
       </div>

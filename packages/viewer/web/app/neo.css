@@ -1269,3 +1269,109 @@ select.sel {
   font-weight: 400;
   opacity: 0.75;
 }
+
+/* 重複比較: 採用側とスキップ側を、線とスタンプで見分ける(採用 ◀ 同じ内容 ＝ スキップ) */
+.cmp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px minmax(0, 1fr);
+  align-items: stretch;
+}
+.cmp-card {
+  position: relative;
+}
+.cmp-adopted {
+  border-width: 5px;
+}
+.cmp-skipped {
+  border-style: dashed;
+  box-shadow: none;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(13, 13, 13, 0.1) 0 8px,
+    transparent 8px 16px
+  );
+}
+.cmp-skipped > :not(.cmp-stamp) {
+  opacity: 0.9;
+}
+/* つなぎ: 左右の線の上に、矢印・＝・札を重ねる */
+.cmp-mid {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.cmp-mid::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 6px;
+  background: var(--ink);
+}
+.cmp-mid > * {
+  position: relative;
+}
+.cmp-arrow {
+  padding: 0 10px;
+  border: var(--bd);
+  background: var(--paper);
+  font-family: var(--disp);
+  font-size: 26px;
+  line-height: 1.3;
+}
+.cmp-eq {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: var(--bd);
+  background: var(--y);
+  box-shadow: var(--shs);
+  font-family: var(--disp);
+  font-size: 44px;
+  line-height: 1;
+}
+/* スタンプ */
+.cmp-stamp {
+  position: absolute;
+  top: 12px;
+  right: -8px;
+  z-index: 3;
+  padding: 4px 14px;
+  border: var(--bd);
+  box-shadow: var(--shs);
+  font-family: var(--disp);
+  font-size: 20px;
+  line-height: 1.3;
+  transform: rotate(4deg);
+}
+.cmp-stamp-ok {
+  background: var(--g);
+}
+.cmp-stamp-no {
+  background: var(--paper);
+}
+/* スキップ側のサムネイル: グレーにして、斜めの線を引く */
+.cmp-pic {
+  position: relative;
+}
+.cmp-pic.is-skipped img {
+  filter: grayscale(1);
+}
+.cmp-cross {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 3px),
+    var(--ink) calc(50% - 3px) calc(50% + 3px),
+    transparent calc(50% + 3px)
+  );
+}
