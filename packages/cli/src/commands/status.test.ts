@@ -82,6 +82,25 @@ describe('status', () => {
     expect(detail).not.toContain('ファイル:'); // 直近は検査(ソースのファイルを持たない)
   });
 
+  test('サムネイルの作成(thumbs)の実行は、「サムネイル」と表示する(取り込みと間違えない)', async () => {
+    const world = await newLibrary();
+    await addPhoto(world, 'DCIM/a.jpg', {
+      DateTimeOriginal: '2024:03:05 10:20:30',
+    });
+    await runIn(world, [
+      'ingest',
+      join(world.srcRoot, 'DCIM'),
+      '--dest',
+      world.library,
+      '--yes',
+    ]);
+    await runIn(world, ['thumbs', '--library', world.library]);
+    const out = text(await runIn(world, ['status']));
+    expect(out).toContain('直近の実行: #2 サムネイル  完了');
+    expect(out).toContain('#1 取り込み  完了');
+    expect(out).not.toContain('#2 取り込み');
+  });
+
   test('直近が取り込みなら、ファイルの状態別の数・エラーを表示する', async () => {
     const world = await newLibrary();
     await addPhoto(world, 'DCIM/a.jpg', {

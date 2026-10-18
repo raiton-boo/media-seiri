@@ -22,13 +22,14 @@ const STATUS_LABELS: Record<Run['status'], string> = {
   failed: '失敗',
 };
 
-/** 実行の種類の表示: 取り込み / 取り込み(dry-run) / 検査 */
-export const describeRunKind = (run: Pick<Run, 'kind' | 'isDryRun'>): string =>
-  run.kind === 'verify'
-    ? '検査'
-    : run.isDryRun
-      ? '取り込み(dry-run)'
-      : '取り込み';
+/** 実行の種類の表示: 取り込み / 取り込み(dry-run) / 検査 / サムネイル */
+export const describeRunKind = (
+  run: Pick<Run, 'kind' | 'isDryRun'>
+): string => {
+  if (run.kind === 'verify') return '検査';
+  if (run.kind === 'thumbs') return 'サムネイル';
+  return run.isDryRun ? '取り込み(dry-run)' : '取り込み';
+};
 
 const RECENT_RUNS = 5;
 
