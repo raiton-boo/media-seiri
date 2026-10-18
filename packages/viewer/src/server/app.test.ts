@@ -85,7 +85,20 @@ describe('API', () => {
       },
       source: 'snapshot',
       asOf: '2026-10-18T00:00:00.000Z',
+      libraryConnected: true,
     });
+  });
+
+  test('ライブラリのドライブが外れていれば、libraryConnected は false', async () => {
+    const source = makeSource();
+    const app = createViewerApp({
+      ...source,
+      libraryRoot: `${source.libraryRoot}-gone`,
+    });
+    const body = (await (await get(app, '/api/info')).json()) as {
+      libraryConnected: boolean;
+    };
+    expect(body.libraryConnected).toBe(false);
   });
 
   test('知らない API は 404', async () => {

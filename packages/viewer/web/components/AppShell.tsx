@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useViewerInfo } from '../lib/api';
 import { formatDateTime } from '../lib/format';
+import { Button } from './Button';
 
 /** 上のナビ。すべての画面が、ここでつながっている(design.md §5) */
 export const NAV_ITEMS = [
@@ -51,6 +52,40 @@ function LibraryChip() {
   );
 }
 
+/**
+ * 状態の帯(上のナビの下): ドライブが外れているときは、注意(オレンジ。「再確認」つき)。スナップショットを見ているときは、そのことを伝える(青)。
+ * サムネイルの一覧は、ドライブが外れていても、見られる。
+ */
+function NoticeBands() {
+  const { data, refetch, isFetching } = useViewerInfo();
+  if (!data) return null;
+  const disconnected = !data.libraryConnected;
+  const snapshot = data.source === 'snapshot';
+  if (!disconnected && !snapshot) return null;
+  return (
+    <div className="bands">
+      {disconnected ? (
+        <div className="card o band" role="status">
+          <b>
+            「{data.library.name}」のドライブを接続してください(原本を開くため)
+          </b>
+          <Button loading={isFetching} onClick={() => void refetch()}>
+            再確認
+          </Button>
+        </div>
+      ) : null}
+      {snapshot ? (
+        <div className="card l band">
+          <span>
+            <b>最後の snapshot の内容です({formatDateTime(data.asOf)})。</b>{' '}
+            新しい取り込みは、この Mac で行います。
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   return (
@@ -71,6 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <LibraryChip />
       </div>
+      <NoticeBands />
       {children}
     </div>
   );

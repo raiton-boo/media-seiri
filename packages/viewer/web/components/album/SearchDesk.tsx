@@ -1,8 +1,10 @@
 import type { SearchPhotosResponse } from '../../../src/api-types.ts';
 import { formatClip } from '../../lib/album';
 import { useAlbumHref } from '../../lib/album-context';
+import type { FilterState } from '../../lib/album-filter';
 import { formatCount } from '../../lib/format';
 import { RevealDesk } from '../motion/Reveal';
+import { EmptyResult } from './EmptyResult';
 import { Polaroid, photoCaption } from './Polaroid';
 
 /**
@@ -11,18 +13,18 @@ import { Polaroid, photoCaption } from './Polaroid';
  */
 export function SearchDesk({
   data,
+  filter,
+  onChange,
   onMore,
 }: {
   data: SearchPhotosResponse;
+  filter: FilterState;
+  onChange: (next: FilterState) => void;
   onMore: () => void;
 }) {
   const albumHref = useAlbumHref();
   if (data.total === 0) {
-    return (
-      <div className="card">
-        <div className="h2">条件に合う写真は、ありません</div>
-      </div>
-    );
+    return <EmptyResult filter={filter} onChange={onChange} />;
   }
   const shown = data.photos.length;
   return (

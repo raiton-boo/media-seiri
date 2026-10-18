@@ -111,3 +111,49 @@ export const countSearch = (filter: FilterState): number =>
 /** 絞り込みか検索の、どれかの条件が、あるか */
 export const isFiltered = (filter: FilterState): boolean =>
   countFilter(filter) + countSearch(filter) > 0;
+
+/**
+ * 条件を 1 つ外す(いちばん後ろの条件から)。「条件を 1 つずつ外す」で、結果が出るところまで戻るために使う。
+ * 順序: 絞り込み(種別・カメラ・GPS・年・精度・取得元・ソース・ライブフォト)のあとに、検索(日付・名前・場所・地域)。
+ * 複数の値を持つ項目は、後ろの値から 1 つずつ。条件がなければ、そのまま。
+ */
+export const removeLastCondition = (filter: FilterState): FilterState => {
+  const lists = [
+    'kinds',
+    'cameras',
+    'years',
+    'precisions',
+    'sources',
+    'volumes',
+    'dates',
+    'names',
+    'places',
+    'areas',
+  ] as const;
+  // 後ろにあるものから探す(gps・live は、絞り込みの並びの途中・最後に入る)
+  const order: (ListField | 'gps' | 'live')[] = [
+    'kinds',
+    'cameras',
+    'gps',
+    'years',
+    'precisions',
+    'sources',
+    'volumes',
+    'live',
+    'dates',
+    'names',
+    'places',
+    'areas',
+  ];
+  for (const key of [...order].reverse()) {
+    if (key === 'gps' || key === 'live') {
+      if (filter[key]) return { ...filter, [key]: undefined };
+    } else if (
+      (lists as readonly string[]).includes(key) &&
+      filter[key].length > 0
+    ) {
+      return { ...filter, [key]: filter[key].slice(0, -1) };
+    }
+  }
+  return filter;
+};

@@ -203,3 +203,35 @@ export const listAutoAlbums = (db: Database): AutoAlbum[] => {
   add('undated', '日付なし', { precisions: ['none', 'invalid'] });
   return albums;
 };
+
+/** 日付が不明なものの区分(精度ごと)と、枚数 */
+export type DateGap = {
+  key: 'time' | 'day' | 'monthday' | 'none';
+  label: string;
+  /** この区分に入る、日付の精度(「すべて」を、この条件で開く) */
+  precisions: string[];
+  count: number;
+};
+
+const DATE_GAPS: Omit<DateGap, 'count'>[] = [
+  { key: 'time', label: '時刻不明', precisions: ['date'] },
+  { key: 'day', label: '日不明', precisions: ['month'] },
+  { key: 'monthday', label: '月日不明', precisions: ['year'] },
+  { key: 'none', label: '日付なし', precisions: ['none', 'invalid'] },
+];
+
+/** 日付が不明なものの、区分ごとの枚数(0 の区分は、出さない) */
+export const listDateGaps = (db: Database): DateGap[] => {
+  const counts = new Map(
+    db
+      .query<{ precision: string; n: number }, []>(
+        `SELECT m.date_precision AS precision, count(*) AS n ${FILES} GROUP BY m.date_precision`
+      )
+      .all()
+      .map((row) => [row.precision, row.n])
+  );
+  return DATE_GAPS.map((gap) => ({
+    ...gap,
+    count: gap.precisions.reduce((sum, p) => sum + (counts.get(p) ?? 0), 0),
+  })).filter((gap) => gap.count > 0);
+};

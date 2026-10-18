@@ -10,6 +10,7 @@ import {
   listAutoAlbums,
   listCalendarDays,
   listCalendarYears,
+  listDateGaps,
   listEventStacks,
   listFilteredPhotos,
   listFilterOptions,
@@ -231,6 +232,7 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
       eventTotal: countAlbumEvents(db),
       events: listLatestEvents(db, 'new', limit),
       albums: listAutoAlbums(db),
+      dateGaps: listDateGaps(db),
     };
     return context.json(body);
   });

@@ -1735,3 +1735,22 @@ img {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* 状態の帯(ドライブ未接続・スナップショット) */
+.bands {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 16px 40px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.band {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  box-shadow: var(--shs);
+}

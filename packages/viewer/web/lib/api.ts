@@ -45,10 +45,16 @@ export const fetchJson = async <T>(path: string): Promise<T> => {
 };
 
 /** 上のナビのチップが使う。読み込み中でも、画面を止めない */
+/** ドライブが外れているとき、接続を確かめ直す間隔(ミリ秒) */
+const DRIVE_RECHECK_MS = 10_000;
+
 export const useViewerInfo = () =>
   useQuery({
     queryKey: ['info'],
     queryFn: () => fetchJson<ViewerInfo>('/api/info'),
+    // ドライブが外れている間は、接続されたかを、ときどき確かめる(「再確認」を押さなくても、帯が消える)
+    refetchInterval: (query) =>
+      query.state.data?.libraryConnected === false ? DRIVE_RECHECK_MS : false,
   });
 
 /** 実行中の取り込みがあれば、この間隔(ミリ秒)で、読み直す */

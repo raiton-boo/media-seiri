@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { listAlbumSections, listSectionPhotos } from './album-all.ts';
-import { listAutoAlbums, listLatestEvents } from './album-auto.ts';
+import {
+  listAutoAlbums,
+  listDateGaps,
+  listLatestEvents,
+} from './album-auto.ts';
 import { listMonthSummaries, listYearCounts } from './album-browse.ts';
 import {
   getDaySummary,
@@ -658,5 +662,21 @@ describe('自動アルバム', () => {
     );
     // サムネイルがなければ、代表なし
     expect(events[0]?.cover).toBeNull();
+  });
+});
+
+describe('listDateGaps(日付が不明なもの)', () => {
+  test('精度ごとに数える。none と invalid は、「日付なし」にまとめる。0 の区分は、出さない', () => {
+    const ctx = build(SPECS);
+    expect(listDateGaps(ctx.db)).toEqual([
+      { key: 'time', label: '時刻不明', precisions: ['date'], count: 1 },
+      { key: 'monthday', label: '月日不明', precisions: ['year'], count: 1 },
+      {
+        key: 'none',
+        label: '日付なし',
+        precisions: ['none', 'invalid'],
+        count: 1,
+      },
+    ]);
   });
 });

@@ -47,6 +47,8 @@ export const createViewerApp = (source: ViewerSource): Hono => {
     library: source.library,
     source: source.source,
     asOf: source.asOf().toISOString(),
+    // 外れているときは、台帳の置き場の確認が失敗するだけなので、存在で見る
+    libraryConnected: existsSync(source.libraryRoot),
   });
 
   app.get('/api/info', (context) => context.json(info()));
