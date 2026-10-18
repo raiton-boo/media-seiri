@@ -6,7 +6,7 @@ import { RUN_KIND_LABELS, RunStatusChip } from '../RunLabels';
 /** 最近の実行の表。検査・サムネイルの作成も、実行として並ぶ(ソースの欄に、種類を出す) */
 export function RecentRuns({ runs }: { runs: RunSummary[] }) {
   return (
-    <div className="card">
+    <div className="card" data-motion="block">
       <div className="mb-3.5 flex items-center justify-between">
         <div className="h2">最近の実行</div>
         <Button href="/runs" variant="y">

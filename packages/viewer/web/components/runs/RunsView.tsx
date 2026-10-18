@@ -6,6 +6,8 @@ import { useUrlState } from '../../lib/query-state';
 import { Button } from '../Button';
 import { FilterChip } from '../FilterChip';
 import { ListSkeleton } from '../ListSkeleton';
+import { LoadError } from '../motion/LoadError';
+import { RevealCards, RevealPage } from '../motion/Reveal';
 import { Pager } from '../Pager';
 import { RUN_KIND_LABELS, RunStatusChip } from '../RunLabels';
 import { RunDetailCard } from './RunDetailCard';
@@ -27,7 +29,7 @@ export function RunsView() {
   if (isError) {
     return (
       <div className="page">
-        <div className="note">実行履歴を読み込めませんでした。</div>
+        <LoadError>実行履歴を読み込めませんでした。</LoadError>
       </div>
     );
   }
@@ -38,8 +40,11 @@ export function RunsView() {
     data.items.find((run) => run.runId === selectedId) ?? data.items[0];
 
   return (
-    <div className="page">
-      <div className="flex flex-wrap items-end justify-between gap-6">
+    <RevealPage className="page">
+      <div
+        className="flex flex-wrap items-end justify-between gap-6"
+        data-motion="title"
+      >
         <div>
           <div className="kicker">RUN HISTORY</div>
           <h1 className="h1">実行履歴</h1>
@@ -73,46 +78,50 @@ export function RunsView() {
           style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
         >
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-4">
+            <RevealCards
+              key={`${filter}|${offset}`}
+              className="flex flex-col gap-4"
+            >
               <div className="listhead runhead" aria-hidden="true">
                 <span>実行</span>
                 <span>ソース / 採用・重複・フォールバック・エラー</span>
                 <span>状態 / 開始</span>
               </div>
               {data.items.map((run) => (
-                <Button
-                  key={run.runId}
-                  block
-                  selected={run.runId === selected?.runId}
-                  className="runcard"
-                  onClick={() => url.set({ sel: String(run.runId) })}
-                >
-                  <span className="runcard-id">#{run.runId}</span>
-                  <span className="runcard-main">
-                    <span className="runcard-source">
-                      {run.kind === 'ingest' ? null : (
-                        <span className="chip">
-                          {RUN_KIND_LABELS[run.kind]}
-                        </span>
-                      )}
-                      {run.sourceLabel ?? '—'}
+                <div key={run.runId} data-motion="card">
+                  <Button
+                    block
+                    selected={run.runId === selected?.runId}
+                    className="runcard"
+                    onClick={() => url.set({ sel: String(run.runId) })}
+                  >
+                    <span className="runcard-id">#{run.runId}</span>
+                    <span className="runcard-main">
+                      <span className="runcard-source">
+                        {run.kind === 'ingest' ? null : (
+                          <span className="chip">
+                            {RUN_KIND_LABELS[run.kind]}
+                          </span>
+                        )}
+                        {run.sourceLabel ?? '—'}
+                      </span>
+                      <span className="mono runcard-counts">
+                        採用 {formatCount(run.adopted)} / 重複{' '}
+                        {formatCount(run.duplicates)} / フォールバック{' '}
+                        {formatCount(run.dateFallback)} / エラー{' '}
+                        {formatCount(run.errors)}
+                      </span>
                     </span>
-                    <span className="mono runcard-counts">
-                      採用 {formatCount(run.adopted)} / 重複{' '}
-                      {formatCount(run.duplicates)} / フォールバック{' '}
-                      {formatCount(run.dateFallback)} / エラー{' '}
-                      {formatCount(run.errors)}
+                    <span className="runcard-side">
+                      <RunStatusChip run={run} />
+                      <span className="mono">
+                        {formatShortDateTime(run.startedAt)}
+                      </span>
                     </span>
-                  </span>
-                  <span className="runcard-side">
-                    <RunStatusChip run={run} />
-                    <span className="mono">
-                      {formatShortDateTime(run.startedAt)}
-                    </span>
-                  </span>
-                </Button>
+                  </Button>
+                </div>
               ))}
-            </div>
+            </RevealCards>
             <Pager
               total={data.total}
               limit={data.limit}
@@ -128,6 +137,6 @@ export function RunsView() {
           {selected ? <RunDetailCard id={selected.runId} /> : null}
         </div>
       )}
-    </div>
+    </RevealPage>
   );
 }

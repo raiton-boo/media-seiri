@@ -6,6 +6,9 @@ import {
   formatDateTime,
   formatDuration,
 } from '../../lib/format';
+import { CountUp } from '../motion/CountUp';
+import { GrowBar } from '../motion/GrowBar';
+import { PulseDot } from '../motion/PulseDot';
 
 /**
  * 実行中の取り込みの進み具合(ピンクのカード)。実行中だけ表示する(この Mac の作業用の台帳のとき)。
@@ -43,7 +46,7 @@ export function RunningCard({
           <div className="h2">{running.sourceLabel ?? '取り込み'}</div>
         </div>
         <div className="chip ink on">
-          <span className="dot r" />
+          <PulseDot />
           LIVE
         </div>
       </div>
@@ -54,7 +57,7 @@ export function RunningCard({
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <i style={{ width: `${pace.percent}%` }} />
+        <GrowBar percent={pace.percent} />
       </div>
       <div
         className="flex justify-between"
@@ -94,7 +97,9 @@ function Counter({ label, value }: { label: string; value: number }) {
       <div className="mono" style={{ fontSize: 12 }}>
         {label}
       </div>
-      <div className="num m">{formatCount(value)}</div>
+      <div className="num m">
+        <CountUp value={value} />
+      </div>
     </div>
   );
 }

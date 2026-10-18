@@ -10,6 +10,8 @@ import {
   formatPeriodEnd,
   splitBytes,
 } from '../../lib/format';
+import { CountUp } from '../motion/CountUp';
+import { RevealPage } from '../motion/Reveal';
 import { Attention } from './Attention';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { RecentRuns } from './RecentRuns';
@@ -24,8 +26,11 @@ function Dashboard() {
   const idPrefix = `${library.id.slice(0, 4)}…`;
 
   return (
-    <div className="page">
-      <div className="flex flex-wrap items-end justify-between gap-6">
+    <RevealPage className="page">
+      <div
+        className="flex flex-wrap items-end justify-between gap-6"
+        data-motion="title"
+      >
         <div>
           <div className="kicker">LIBRARY / DASHBOARD</div>
           <h1 className="h1">ダッシュボード</h1>
@@ -41,15 +46,17 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-4 gap-6">
-        <div className="card y">
+        <div className="card y" data-motion="block">
           <div className="kicker">FILES</div>
-          <div className="num">{formatCount(files.total)}</div>
+          <div className="num">
+            <CountUp value={files.total} />
+          </div>
           <div className="mono" style={{ fontSize: 13 }}>
             写真 {formatCount(files.photos)} / 動画 {formatCount(files.videos)}{' '}
             / RAW {formatCount(files.raws)}
           </div>
         </div>
-        <div className="card">
+        <div className="card" data-motion="block">
           <div className="kicker">SIZE</div>
           <div className="num">
             {size.value}
@@ -61,7 +68,7 @@ function Dashboard() {
               : 'ドライブの容量: 未接続'}
           </div>
         </div>
-        <div className="card b">
+        <div className="card b" data-motion="block">
           <div className="kicker">PERIOD</div>
           <div className="num m" style={{ paddingTop: 12 }}>
             {period
@@ -72,9 +79,11 @@ function Dashboard() {
             日付が取れた範囲
           </div>
         </div>
-        <div className="card g flex flex-col gap-2">
+        <div className="card g flex flex-col gap-2" data-motion="block">
           <div className="kicker">GPS</div>
-          <div className="num">{formatCount(gps.with)}</div>
+          <div className="num">
+            <CountUp value={gps.with} />
+          </div>
           <div className="mono" style={{ fontSize: 13 }}>
             付き {formatCount(gps.with)} / なし {formatCount(gps.without)}
           </div>
@@ -87,13 +96,14 @@ function Dashboard() {
       <div
         className="grid gap-8"
         style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
+        data-motion="block"
       >
         <RunningCard running={running} lastRun={runs[0] ?? null} />
         <Attention attention={summary.attention} />
       </div>
 
       <RecentRuns runs={runs} />
-    </div>
+    </RevealPage>
   );
 }
 

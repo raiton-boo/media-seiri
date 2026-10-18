@@ -1,6 +1,6 @@
 import type { DashboardSummary } from '@file-seiri/ledger';
-import { formatCount } from '../../lib/format';
 import { Button } from '../Button';
+import { CountUp } from '../motion/CountUp';
 
 type Item = {
   href: string;
@@ -43,7 +43,9 @@ export function Attention({
       {items.map((item) => (
         <Button key={item.label} href={item.href} tone={item.tone} block>
           <span className="blabel">{item.label} →</span>
-          <span className="num m">{formatCount(item.count)}</span>
+          <span className="num m">
+            <CountUp value={item.count} />
+          </span>
         </Button>
       ))}
     </div>

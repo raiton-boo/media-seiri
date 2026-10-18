@@ -3,6 +3,7 @@
 import type { RepairAttempt } from '@file-seiri/ledger';
 import { thumbUrl, useErrorDetail } from '../../lib/api';
 import { formatDateTimeSeconds } from '../../lib/format';
+import { RevealDetail } from '../motion/Reveal';
 import { describeSource } from './ErrorsView';
 
 const METHOD_LABELS: Record<RepairAttempt['method'], string> = {
@@ -28,7 +29,7 @@ export function ErrorDetail({ id }: { id: number }) {
   const { error, attempts } = data;
   const fileName = error.source?.relPath.split('/').pop() ?? '';
   return (
-    <div className="card flex flex-col gap-4">
+    <RevealDetail className="card flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="h2">詳細</h2>
         <span className="chip r">{error.code}</span>
@@ -82,6 +83,7 @@ export function ErrorDetail({ id }: { id: number }) {
                 <div
                   key={attempt.attemptId}
                   className="card s flex items-center justify-between"
+                  data-motion="detail-item"
                 >
                   <span className="mono" style={{ fontSize: 13 }}>
                     {index + 1} {METHOD_LABELS[attempt.method]}
@@ -95,6 +97,6 @@ export function ErrorDetail({ id }: { id: number }) {
           )}
         </>
       ) : null}
-    </div>
+    </RevealDetail>
   );
 }

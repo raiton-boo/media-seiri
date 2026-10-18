@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Tick } from './motion/Tick';
 
 /**
  * 絞り込みの札。選んでいるものは、黒く塗って「✓」を付ける(色だけでなく、印でも分かるように)。
@@ -24,7 +25,7 @@ export function FilterChip({
       aria-pressed={selected}
       onClick={onClick}
     >
-      {selected ? <span className="tick">✓</span> : null}
+      {selected ? <Tick /> : null}
       {children}
     </button>
   );
