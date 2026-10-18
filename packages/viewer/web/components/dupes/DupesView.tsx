@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useDupes } from '../../lib/api';
 import { baseName, formatCount, shortHash } from '../../lib/format';
 import { useUrlState } from '../../lib/query-state';
@@ -23,6 +24,37 @@ export function DupesView() {
   const q = url.get('q');
   const offset = Number(url.get('offset')) || 0;
   const { data, isPending, isError } = useDupes({ volume, run, q, offset });
+  const listRef = useRef<HTMLDivElement>(null);
+  // 前へ・次へ(ボタンとキーで、同じ動き)。キーの受け口は、最新の動きを呼ぶ
+  const goRef = useRef<(delta: number) => void>(() => {});
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+        return;
+      if (event.key === 'ArrowLeft' || event.key === 'k') goRef.current(-1);
+      else if (event.key === 'ArrowRight' || event.key === 'j')
+        goRef.current(1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  // 最初に開いたとき、比較の部分が、画面いっぱいになるよう、そこまで動かす(以後は、画面に固定される)
+  const arrived = useRef(false);
+  const ready = Boolean(data && data.total > 0);
+  useEffect(() => {
+    if (!ready || arrived.current) return;
+    arrived.current = true;
+    document.querySelector('.dupes-split')?.scrollIntoView({ block: 'start' });
+  }, [ready]);
+  // 選んだものが、左の一覧の見える範囲に入るように、一覧だけを、動かす
+  const selectedKey = url.get('sel');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 選択・ページが変わったときだけ、動かす
+  useEffect(() => {
+    listRef.current
+      ?.querySelector('[data-active]')
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [selectedKey, offset, data]);
 
   if (isError) {
     return (
@@ -33,16 +65,36 @@ export function DupesView() {
   }
   if (isPending) return <ListSkeleton />;
 
-  const selectedId = Number(url.get('sel')) || undefined;
+  const selectedParam = url.get('sel');
+  const selectedId = Number(selectedParam) || undefined;
+  // 前のページから、「前へ」で戻ってきたときは、そのページの最後(`sel=last`)
   const selected =
     data.items.find((group) => group.adoptedLibraryFileId === selectedId) ??
+    (selectedParam === 'last' ? data.items.at(-1) : undefined) ??
     data.items[0];
+  const index = selected ? data.items.indexOf(selected) : -1;
+  // 全体の中の、何件目か(ページをまたいで、続けて数える)
+  const position = data.offset + index + 1;
+  goRef.current = (delta: number) => {
+    const target = data.items[index + delta];
+    if (target) {
+      url.set({ sel: String(target.adoptedLibraryFileId) });
+    } else if (delta > 0 && data.offset + data.limit < data.total) {
+      url.set({ offset: String(data.offset + data.limit), sel: undefined });
+    } else if (delta < 0 && data.offset > 0) {
+      const previous = Math.max(0, data.offset - data.limit);
+      url.set({
+        offset: previous === 0 ? undefined : String(previous),
+        sel: 'last',
+      });
+    }
+  };
   // 絞り込みを変えたら、ページと選択は、最初に戻す
   const filterTo = (updates: Record<string, string | undefined>) =>
     url.set({ offset: undefined, sel: undefined, ...updates });
 
   return (
-    <RevealPage className="page">
+    <RevealPage className="page dupes-page">
       <div
         className="flex flex-wrap items-end justify-between gap-6"
         data-motion="title"
@@ -114,54 +166,90 @@ export function DupesView() {
           <div className="h2">重複は、ありません</div>
         </div>
       ) : (
-        <div
-          className="grid items-start gap-6"
-          style={{ gridTemplateColumns: 'minmax(0,4fr) minmax(0,8fr)' }}
-        >
-          <div className="flex flex-col gap-4">
-            <RevealCards className="flex flex-col gap-4">
-              {data.items.map((group) => (
-                <div key={group.adoptedLibraryFileId} data-motion="card">
-                  <Button
-                    block
-                    selected={
+        <div className="dupes-split">
+          <div className="dupes-list">
+            <div className="dupes-items" ref={listRef}>
+              <RevealCards className="flex flex-col gap-4">
+                {data.items.map((group) => (
+                  <div
+                    key={group.adoptedLibraryFileId}
+                    data-motion="card"
+                    data-active={
                       group.adoptedLibraryFileId ===
                       selected?.adoptedLibraryFileId
-                    }
-                    className="dupecard"
-                    onClick={() =>
-                      url.set({ sel: String(group.adoptedLibraryFileId) })
+                        ? ''
+                        : undefined
                     }
                   >
-                    <span className="mono dupecard-count">
-                      採用 1 / スキップ {formatCount(group.skippedCount)}
-                    </span>
-                    <span
-                      className="mono dupecard-name"
-                      title={group.adoptedRelPath}
+                    <Button
+                      block
+                      selected={
+                        group.adoptedLibraryFileId ===
+                        selected?.adoptedLibraryFileId
+                      }
+                      className="dupecard"
+                      onClick={() =>
+                        url.set({ sel: String(group.adoptedLibraryFileId) })
+                      }
                     >
-                      {baseName(group.adoptedRelPath)}
-                    </span>
-                    <span className="mono dupecard-hash">
-                      sha256: {shortHash(group.contentHash)}
-                    </span>
-                  </Button>
-                </div>
-              ))}
-            </RevealCards>
-            <Pager
-              total={data.total}
-              limit={data.limit}
-              offset={data.offset}
-              onChange={(next) =>
-                url.set({
-                  offset: next === 0 ? undefined : String(next),
-                  sel: undefined,
-                })
-              }
-            />
+                      <span className="mono dupecard-count">
+                        採用 1 / スキップ {formatCount(group.skippedCount)}
+                      </span>
+                      <span
+                        className="mono dupecard-name"
+                        title={group.adoptedRelPath}
+                      >
+                        {baseName(group.adoptedRelPath)}
+                      </span>
+                      <span className="mono dupecard-hash">
+                        sha256: {shortHash(group.contentHash)}
+                      </span>
+                    </Button>
+                  </div>
+                ))}
+              </RevealCards>
+            </div>
+            <div className="dupes-pager">
+              <Pager
+                total={data.total}
+                limit={data.limit}
+                offset={data.offset}
+                onChange={(next) =>
+                  url.set({
+                    offset: next === 0 ? undefined : String(next),
+                    sel: undefined,
+                  })
+                }
+              />
+            </div>
           </div>
-          {selected ? <DupeDetail id={selected.adoptedLibraryFileId} /> : null}
+          <div className="dupes-detail">
+            <div className="dupes-nav">
+              <Button
+                className="dupes-nav-btn"
+                disabled={position <= 1}
+                onClick={() => goRef.current(-1)}
+              >
+                ← 前の重複
+              </Button>
+              <span className="mono dupes-nav-pos">
+                {formatCount(position)} / {formatCount(data.total)} 件目
+                <br />
+                <span style={{ fontSize: 12 }}>← → キーでも、動けます</span>
+              </span>
+              <Button
+                variant="y"
+                className="dupes-nav-btn"
+                disabled={position >= data.total}
+                onClick={() => goRef.current(1)}
+              >
+                次の重複 →
+              </Button>
+            </div>
+            {selected ? (
+              <DupeDetail id={selected.adoptedLibraryFileId} />
+            ) : null}
+          </div>
         </div>
       )}
       <div className="note">

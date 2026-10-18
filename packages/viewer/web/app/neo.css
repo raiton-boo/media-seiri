@@ -2040,3 +2040,76 @@ img {
   min-height: 120px;
   width: 100%;
 }
+
+/* 重複比較: 画面に固定して、左の一覧だけを、スクロールにする(選ぶたびに、下まで動かさなくてよい) */
+.dupes-split {
+  position: sticky;
+  top: 8px;
+  height: calc(100dvh - 24px);
+  min-height: 480px;
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  gap: 24px;
+}
+.dupes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.dupes-items {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* 影が切れないように、余白を取る */
+  padding: 4px 10px 10px 4px;
+}
+.dupes-pager {
+  flex: none;
+  padding: 0 10px 4px 4px;
+}
+.dupes-detail {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 10px 10px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* 前へ・次へ: 詳細の上に、貼り付いて、大きく */
+.dupes-nav {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--shs);
+}
+.dupes-nav-pos {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.dupes-nav .btn .face,
+.dupes-nav-btn .face {
+  min-height: 56px;
+  min-width: 150px;
+  font-size: 18px;
+  padding: 0 22px;
+}
+@media (max-width: 960px) {
+  .dupes-split {
+    position: static;
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dupes-items,
+  .dupes-detail {
+    overflow: visible;
+  }
+}

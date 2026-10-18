@@ -15,6 +15,7 @@ import {
   listFilteredPhotos,
   listFilterOptions,
   listLatestEvents,
+  listLooseMonthPhotos,
   listMonthSummaries,
   listOnThisDay,
   listSectionPhotos,
@@ -167,6 +168,7 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
       total,
       events: stacks.filter((stack) => stack.fileCount >= SMALL_EVENT_FILES),
       small: stacks.filter((stack) => stack.fileCount < SMALL_EVENT_FILES),
+      loose: listLooseMonthPhotos(db, year, month, order, filterOf(context)),
     };
     return context.json(body);
   });

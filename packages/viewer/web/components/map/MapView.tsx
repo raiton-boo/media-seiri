@@ -24,7 +24,7 @@ import { formatPhotoDate } from '../../lib/photo';
 import { useAlbumFilterState } from '../../lib/use-album-filter';
 import { FilterBar } from '../album/FilterBar';
 import { FilterDrawer } from '../album/FilterDrawer';
-import { NoThumb } from '../album/NoThumb';
+import { PhotoImage } from '../album/PhotoImage';
 import { Button } from '../Button';
 import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
@@ -125,16 +125,11 @@ function PlaceCard({
       {current ? (
         <>
           <div className="map-preview">
-            {current.thumbRelPath ? (
-              <img
-                key={current.libraryFileId}
-                draggable={false}
-                src={thumbUrl(current.thumbRelPath)}
-                alt={name}
-              />
-            ) : (
-              <NoThumb relPath={current.relPath} name={name} />
-            )}
+            <PhotoImage
+              key={current.libraryFileId}
+              photo={current}
+              alt={name}
+            />
             {list.length > 1 ? (
               <>
                 <button
@@ -183,7 +178,9 @@ function PlaceCard({
                       src={thumbUrl(photo.thumbRelPath)}
                       alt=""
                     />
-                  ) : null}
+                  ) : (
+                    <span className="mono">{position + 1}</span>
+                  )}
                 </button>
               ))}
             </div>

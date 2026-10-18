@@ -176,3 +176,55 @@ describe('/api/album', () => {
     expect((await get(app, '/api/album/memories')).status).toBe(400);
   });
 });
+
+describe('GET /api/album/month: できごとに入らない写真', () => {
+  test('日付が月までしか分からない写真だけの月でも、写真が出る(できごとは、空)', async () => {
+    const source = makeSource();
+    const { db } = source.ledger;
+    const volume = upsertVolume(db, { volumeUuid: 'v', seenAt: NOW });
+    const runId = startRun(db, {
+      sourceVolumeId: volume.volumeId,
+      isDryRun: false,
+      startedAt: NOW,
+    });
+    const add = (n: number, takenAt: string, precision: string): void => {
+      const { content } = getOrCreateContent(db, {
+        hash: String(n).padStart(64, 'e'),
+        sizeBytes: 1,
+      });
+      db.query(
+        `INSERT INTO media_metadata (content_id, taken_at, date_precision, date_source, width, height)
+         VALUES (?, ?, ?, 'filename', 1200, 800)`
+      ).run(content.contentId, takenAt, precision);
+      insertLibraryFile(db, {
+        contentId: content.contentId,
+        groupId: insertFileGroup(db, { stem: `m${n}`, bucket: 'md_unknown' }),
+        runId,
+        relPath: `2009/05/m${n}.jpg`,
+        bucket: 'md_unknown',
+        thumbRelPath: `${String(n).padStart(2, '0')}/t${n}.jpg`,
+        createdAt: NOW,
+      });
+    };
+    add(1, '2009-05', 'month');
+    add(2, '2009-05', 'month');
+    add(3, '2009-06-01', 'date');
+    const body = (await (
+      await get(createViewerApp(source), '/api/album/month?y=2009&m=5')
+    ).json()) as AlbumMonthResponse;
+    expect(body.total).toBe(2);
+    expect(body.events).toEqual([]);
+    expect(body.small).toEqual([]);
+    expect(body.loose.count).toBe(2);
+    // 既定は、新しい順(同じ日時なら、あとのものが先)
+    expect(body.loose.photos.map((photo) => photo.relPath)).toEqual([
+      '2009/05/m2.jpg',
+      '2009/05/m1.jpg',
+    ]);
+    // 別の月の写真は、混ざらない
+    const june = (await (
+      await get(createViewerApp(source), '/api/album/month?y=2009&m=6')
+    ).json()) as AlbumMonthResponse;
+    expect(june.loose.count).toBe(1);
+  });
+});

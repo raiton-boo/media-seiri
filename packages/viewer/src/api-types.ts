@@ -18,6 +18,7 @@ import type {
   FallbackSource,
   FilterOptions,
   LibraryStats,
+  LooseMonthPhotos,
   MapCluster,
   MediaKind,
   MonthSummary,
@@ -138,6 +139,8 @@ export type AlbumMonthResponse = {
   events: EventStack[];
   /** 小さなできごと(3 枚未満)。まとめて、あとで見せる */
   small: EventStack[];
+  /** できごとに入らない写真(日付が月までしか分からないものなど)。`count` が全部の枚数、`photos` は先頭から一部 */
+  loose: LooseMonthPhotos;
 };
 
 export type AlbumEventResponse = EventDetail & {

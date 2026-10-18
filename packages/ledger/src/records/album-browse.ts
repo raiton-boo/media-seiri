@@ -191,6 +191,41 @@ export const listEventStacks = (
   }));
 };
 
+/** できごとに入らない写真(日付が月までしか分からないものなど。できごとは、日まで分かる写真から作るため) */
+export type LooseMonthPhotos = { count: number; photos: AlbumPhoto[] };
+
+/**
+ * ある月の、できごとに入らない写真。月の机は、できごとの束だけを置くため、これを足さないと、
+ * 「月までしか分からない写真」だけの月が、空に見える。`limit` 枚まで(撮影日時の順)。
+ */
+export const listLooseMonthPhotos = (
+  db: Database,
+  year: number,
+  month: number,
+  order: AlbumOrder,
+  filter: AlbumFilter = {},
+  limit = 60
+): LooseMonthPhotos => {
+  const narrow = albumFilterSql(filter);
+  const prefix = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
+  const where = `WHERE m.taken_at LIKE ? || '%' AND length(m.taken_at) >= 7 AND f.album_event_id IS NULL
+     AND lower(f.rel_path) NOT LIKE '%.xmp'${narrow.sql}`;
+  const count =
+    db
+      .query<{ n: number }, (string | number)[]>(
+        `SELECT count(*) AS n ${FILES} ${where}`
+      )
+      .get(prefix, ...narrow.params)?.n ?? 0;
+  const photos = db
+    .query<PhotoRow, (string | number)[]>(
+      `SELECT ${PHOTO_COLUMNS} ${FILES} ${where}
+       ORDER BY m.taken_at ${direction(order)}, f.library_file_id ${direction(order)} LIMIT ?`
+    )
+    .all(prefix, ...narrow.params, limit)
+    .map(toAlbumPhoto);
+  return { count, photos };
+};
+
 export type EventDetail = {
   albumEventId: number;
   startAt: string;
