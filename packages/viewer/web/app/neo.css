@@ -1007,10 +1007,24 @@ a {
   border-color: transparent;
   background: transparent;
 }
+/* 選んだ日: 浮かせず、細い黒線で、すき間をあけて囲む(濃さの色は、そのまま見える) */
 .cd.sel {
-  outline: 4px solid var(--ink);
-  outline-offset: -4px;
-  box-shadow: var(--shs);
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+/* 選べる日(写真のある日): 指のカーソル。ホバーで、少し黒を足す */
+button.cd {
+  cursor: pointer;
+}
+button.cd:hover:not(.sel) {
+  background-image: linear-gradient(rgb(13 13 13 / 0.12), rgb(13 13 13 / 0.12));
+}
+/* 選べない日(写真のない日): 線も文字も薄く。カーソルは、禁止の印 */
+.cd.off {
+  border-color: rgb(13 13 13 / 0.3);
+  color: #7a7466;
+  background: transparent;
+  cursor: not-allowed;
 }
 /* 読み込み中(スケルトン) */
 .sk {

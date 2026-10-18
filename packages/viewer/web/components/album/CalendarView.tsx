@@ -188,7 +188,11 @@ export function CalendarView() {
                             // biome-ignore lint/suspicious/noArrayIndexKey: 固定の並び
                             <div key={`b${index}`} className="cd e" />
                           ) : cell.count === 0 ? (
-                            <div key={cell.date} className="cd">
+                            <div
+                              key={cell.date}
+                              className="cd off"
+                              title="この日の写真は、ありません"
+                            >
                               {cell.day}
                             </div>
                           ) : (
@@ -196,7 +200,7 @@ export function CalendarView() {
                               key={cell.date}
                               type="button"
                               className={`cd h${cell.level}${cell.date === selected ? ' sel' : ''}`}
-                              style={{ cursor: 'pointer', textAlign: 'left' }}
+                              style={{ textAlign: 'left' }}
                               aria-pressed={cell.date === selected}
                               aria-label={`${month}月${cell.day}日 ${cell.count} 枚`}
                               onClick={() => url.set({ d: cell.date })}
@@ -217,7 +221,7 @@ export function CalendarView() {
                 {[0, 1, 2, 3, 4].map((level) => (
                   <i
                     key={level}
-                    className={`cd${level > 0 ? ` h${level}` : ''}`}
+                    className={`cd${level > 0 ? ` h${level}` : ' off'}`}
                     style={{ width: 20, display: 'block' }}
                   />
                 ))}
