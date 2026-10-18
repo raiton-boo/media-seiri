@@ -429,19 +429,21 @@ export function StatsView() {
                   className="flex items-end gap-1"
                   style={{ height: 170, borderBottom: 'var(--bd)' }}
                 >
-                  {data.hours.map((count, hour) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: 0〜23 時の固定の並び
-                    <div
-                      key={`h${hour}`}
-                      title={`${hour} 時: ${count} 枚`}
-                      style={{
-                        flex: 1,
-                        height: barHeight(count, hourMax, 166, 3),
-                        border: count > 0 ? '2px solid var(--ink)' : undefined,
-                        background: 'var(--paper)',
-                      }}
-                    />
-                  ))}
+                  {data.hours
+                    .map((count, hour) => ({ count, hour }))
+                    .map(({ count, hour }) => (
+                      <div
+                        key={`h${hour}`}
+                        title={`${hour} 時: ${count} 枚`}
+                        style={{
+                          flex: 1,
+                          height: barHeight(count, hourMax, 166, 3),
+                          border:
+                            count > 0 ? '2px solid var(--ink)' : undefined,
+                          background: 'var(--paper)',
+                        }}
+                      />
+                    ))}
                 </div>
                 <div
                   className="mono flex justify-between"
