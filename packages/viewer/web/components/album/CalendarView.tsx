@@ -91,9 +91,9 @@ export function CalendarView() {
           className="flex flex-wrap items-end justify-between gap-6"
           data-motion="title"
         >
-          <div className="flex flex-col gap-4">
+          <div>
             <div className="kicker">CALENDAR</div>
-            <h1 className="h1">日ごとに、見る。</h1>
+            <h1 className="h1">カレンダー</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button href={albumHref({ view: undefined })}>← アルバムへ</Button>

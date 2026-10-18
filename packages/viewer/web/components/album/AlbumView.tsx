@@ -182,9 +182,7 @@ function AlbumBrowser() {
   const entrance = view === undefined;
   const heading =
     view === 'search'
-      ? searchResult.data
-        ? `見つけた、${formatCount(searchResult.data.total)} 枚。`
-        : '検索結果'
+      ? '検索結果'
       : view === 'all'
         ? 'すべて'
         : view === 'event' && eventStart
