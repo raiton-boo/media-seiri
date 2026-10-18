@@ -39,6 +39,7 @@ import { MonthDesk } from './MonthDesk';
 import { PhotoViewer } from './PhotoViewer';
 import { SearchBox } from './SearchBox';
 import { SearchDesk } from './SearchDesk';
+import { Slideshow } from './Slideshow';
 import { TimeRuler } from './TimeRuler';
 import { YearDesk } from './YearDesk';
 
@@ -373,6 +374,9 @@ function AlbumBrowser() {
                   >
                     行ぞろえ
                   </FilterChip>
+                  <Button href={albumHref({ view: 'slide', order })}>
+                    ▶ スライドショー
+                  </Button>
                 </div>
                 {allSections.data ? (
                   <AllView
@@ -397,7 +401,10 @@ function AlbumBrowser() {
                   }
                 />
                 {searchResult.data.total > 0 ? (
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap justify-end gap-4">
+                    <Button href={albumHref({ view: 'slide', order })}>
+                      ▶ スライドショー
+                    </Button>
                     <Button
                       variant="y"
                       href={albumHref({ view: 'all', layout: 'rows', order })}
@@ -428,6 +435,13 @@ function AlbumBrowser() {
                   title={eventTitle(event.data.startAt)}
                   onMore={() => url.set({ more: String(more + EVENT_STEP) })}
                 />
+                <div className="flex justify-end">
+                  <Button
+                    href={albumHref({ view: 'slide', e: eventId, order })}
+                  >
+                    ▶ このできごとをスライドショー
+                  </Button>
+                </div>
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   {event.data.previous ? (
                     <Button
@@ -472,5 +486,8 @@ function AlbumBrowser() {
 /** アルバム: 机・すべて・検索結果は、`AlbumBrowser`。写真の拡大表示(`view=photo`)は、別の画面(全面の暗い画面) */
 export function AlbumView() {
   const url = useUrlState();
-  return url.get('view') === 'photo' ? <PhotoViewer /> : <AlbumBrowser />;
+  const view = url.get('view');
+  if (view === 'photo') return <PhotoViewer />;
+  if (view === 'slide') return <Slideshow />;
+  return <AlbumBrowser />;
 }

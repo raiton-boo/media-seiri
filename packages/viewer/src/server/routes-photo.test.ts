@@ -8,7 +8,11 @@ import {
   startRun,
   upsertVolume,
 } from '@file-seiri/ledger';
-import type { PhotoDetailResponse, PhotoStripResponse } from '../api-types.ts';
+import type {
+  PhotoDetailResponse,
+  PhotoStripResponse,
+  SlideshowResponse,
+} from '../api-types.ts';
 import { createViewerApp } from './app.ts';
 import { get, makeSource, NOW } from './test-support.ts';
 
@@ -180,5 +184,34 @@ describe('GET /api/files/:id(原本)', () => {
         })
       ).status
     ).toBeGreaterThanOrEqual(400);
+  });
+});
+
+describe('GET /api/album/slideshow', () => {
+  test('条件に合う写真を、表示の順に返す(種別の条件も効く)', async () => {
+    const { source } = seed([
+      { rel: 'a.jpg', takenAt: '2024-03-05T10:00:00' },
+      { rel: 'b.jpg', takenAt: '2024-03-06T10:00:00' },
+      { rel: 'c.mp4', takenAt: '2024-03-07T10:00:00' },
+    ]);
+    const app = createViewerApp(source);
+    const slides = async (query: string) =>
+      (await (
+        await get(app, `/api/album/slideshow${query}`)
+      ).json()) as SlideshowResponse;
+    expect((await slides('')).photos.map((p) => p.relPath)).toEqual([
+      'c.mp4',
+      'b.jpg',
+      'a.jpg',
+    ]);
+    expect((await slides('?order=old')).photos.map((p) => p.relPath)).toEqual([
+      'a.jpg',
+      'b.jpg',
+      'c.mp4',
+    ]);
+    expect(await slides('?kind=video')).toMatchObject({
+      total: 1,
+      photos: [{ relPath: 'c.mp4' }],
+    });
   });
 });
