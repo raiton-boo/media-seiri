@@ -10,7 +10,7 @@ import {
   type Bounds,
   clusterSize,
   clusterTone,
-  MAX_PIN_COUNT,
+  isPinCluster,
 } from '../../lib/map';
 import { Button } from '../Button';
 
@@ -59,11 +59,15 @@ const currentView = (map: MapLibreMap): MapView => {
 };
 
 /** まとまり(件数の円)・ピン(1 枚)の、DOM の要素 */
-const markerElement = (cluster: MapCluster, selected: boolean): HTMLElement => {
+const markerElement = (
+  cluster: MapCluster,
+  selected: boolean,
+  zoom: number
+): HTMLElement => {
   const element = document.createElement('button');
   element.type = 'button';
-  if (cluster.count <= MAX_PIN_COUNT) {
-    // ピン(オレンジのしずく形)。2〜4 枚が重なる場所は、右上に枚数の印
+  if (isPinCluster(cluster.count, zoom)) {
+    // ピン(オレンジのしずく形)。2 枚以上が重なる場所は、右上に枚数の印(十分に近づいたら、件数が多くても、ピン)
     element.className = `mk-pin${selected ? ' sel' : ''}`;
     element.setAttribute('aria-label', `${cluster.count} 枚`);
     if (cluster.count > 1) {
@@ -177,7 +181,7 @@ export function MapCanvas({
         selected !== undefined &&
         selected.libraryFileId === cluster.libraryFileId &&
         selected.count === cluster.count;
-      const element = markerElement(cluster, isSelected);
+      const element = markerElement(cluster, isSelected, current.getZoom());
       element.addEventListener('click', (event) => {
         event.stopPropagation();
         callbacks.current.onSelect(cluster);
@@ -185,7 +189,9 @@ export function MapCanvas({
       return new Marker({
         element,
         // ピンは、下の先が、位置。円は、中心が位置
-        anchor: cluster.count <= MAX_PIN_COUNT ? 'bottom' : 'center',
+        anchor: isPinCluster(cluster.count, current.getZoom())
+          ? 'bottom'
+          : 'center',
       })
         .setLngLat([cluster.lon, cluster.lat])
         .addTo(current);
