@@ -74,6 +74,11 @@ export function RunsView() {
         >
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-4">
+              <div className="listhead runhead" aria-hidden="true">
+                <span>実行</span>
+                <span>ソース / 採用・重複・フォールバック・エラー</span>
+                <span>状態 / 開始</span>
+              </div>
               {data.items.map((run) => (
                 <Button
                   key={run.runId}

@@ -122,6 +122,11 @@ export function ErrorsView() {
         >
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
+              <div className="listhead errhead" aria-hidden="true">
+                <span>コード</span>
+                <span>ファイル</span>
+                <span>実行 / 日時</span>
+              </div>
               {data.items.map((item) => (
                 <Button
                   key={item.errorId}

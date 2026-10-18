@@ -22,7 +22,7 @@ function Count({ label, value }: { label: string; value: number }) {
   );
 }
 
-/** 実行 1 件の詳細。選んだカードと同じ黄色(つながりを示す)。dry-run かどうかは、札と注意書きで示す */
+/** 実行 1 件の詳細。白(見やすさのため)。dry-run かどうかは、札と注意書きで示す */
 export function RunDetailCard({ id }: { id: number }) {
   const { data, isPending, isError } = useRunDetail(id);
   if (isError)
@@ -44,7 +44,7 @@ export function RunDetailCard({ id }: { id: number }) {
       1000
     : null;
   return (
-    <div className="card y flex flex-col gap-4">
+    <div className="card flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="h2">run #{run.runId}</h2>
         <span className="flex gap-2">

@@ -1135,7 +1135,7 @@ select.sel {
 /* 実行履歴の 1 件(ボタンカード): 番号・ソースと件数・状態と日時 */
 .btn.block.runcard .face {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
+  grid-template-columns: 72px minmax(0, 1fr) 132px;
   gap: 4px 16px;
   align-items: center;
   text-align: left;
@@ -1173,7 +1173,7 @@ select.sel {
 /* エラー一覧の 1 件(ボタンカード): コードの札・ファイル・実行と日時 */
 .btn.block.errcard .face {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr) auto;
+  grid-template-columns: 190px minmax(0, 1fr) 150px;
   gap: 4px 16px;
   align-items: center;
   text-align: left;
@@ -1202,4 +1202,26 @@ select.sel {
   color: var(--paper);
   outline: 3px solid var(--ink);
   outline-offset: 2px;
+}
+
+/* 一覧の見出しの帯(表の見出しの代わり): 各列が何かを示す。列の幅は、カードの中の列と、そろえる */
+.listhead {
+  display: grid;
+  gap: 4px 16px;
+  padding: 8px 21px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.listhead.runhead {
+  grid-template-columns: 72px minmax(0, 1fr) 132px;
+}
+.listhead.errhead {
+  grid-template-columns: 190px minmax(0, 1fr) 150px;
+}
+.listhead > :last-child {
+  text-align: right;
 }
