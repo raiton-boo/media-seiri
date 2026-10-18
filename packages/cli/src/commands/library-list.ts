@@ -1,6 +1,6 @@
 import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
-import { listRegisteredLibraries } from '../library/choose.ts';
+import { listRegisteredLibraries, STATE_LABELS } from '../library/choose.ts';
 import { showReport } from '../present/index.ts';
 import { formatTable } from '../table.ts';
 
@@ -17,9 +17,10 @@ export const libraryList = (context: CommandContext): ExitCode => {
   }
   const rows = libraries.map((library) => [
     library.id.slice(0, SHORT_ID_LENGTH),
-    library.connected ? '接続中' : 'ドライブ未接続',
+    STATE_LABELS[library.state],
     library.root,
   ]);
+  const stale = libraries.filter((library) => library.state === 'stale').length;
   if (context.fancy) {
     showReport(context, {
       title: 'ライブラリ',
@@ -31,11 +32,19 @@ export const libraryList = (context: CommandContext): ExitCode => {
           table: { header: ['ID', '状態', '場所'], rows },
         },
       ],
-      hint: '使うライブラリは、--library <場所> で指定します(接続中が 1 つだけなら、省けます)',
+      hint:
+        stale > 0
+          ? `古い登録が ${stale} 件あります。seiri library prune で、外せます(ファイルは、消しません)`
+          : '使うライブラリは、--library <場所> で指定します(接続中が 1 つだけなら、省けます)',
     });
     return EXIT_CODES.ok;
   }
   for (const line of formatTable(['ID', '状態', '場所'], rows))
     context.stdout(line);
+  if (stale > 0) {
+    context.stdout(
+      `\n古い登録が ${stale} 件あります(同じ場所に、作り直したライブラリがあります)。seiri library prune で、外せます(ファイルは、消しません)。`
+    );
+  }
   return EXIT_CODES.ok;
 };

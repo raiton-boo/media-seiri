@@ -115,6 +115,7 @@ export const executeCopies = async (
     copiedBytes: 0,
     failed: 0,
     linkedDuplicates: 0,
+    elapsedMs: 0,
     stopReason: undefined,
   };
   summary.copy = result;

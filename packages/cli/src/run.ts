@@ -10,6 +10,7 @@ import { eventsCommand } from './commands/events.ts';
 import { ingestCommand } from './commands/ingest.ts';
 import { libraryInit } from './commands/library-init.ts';
 import { libraryList } from './commands/library-list.ts';
+import { libraryPrune } from './commands/library-prune.ts';
 import { logsCommand } from './commands/logs.ts';
 import { statusCommand } from './commands/status.ts';
 import { thumbsCommand } from './commands/thumbs.ts';
@@ -235,6 +236,9 @@ export const run = async (
     const [command, subcommand, ...rest] = positionals;
     if (command === 'library' && subcommand === 'init' && rest.length <= 1) {
       return libraryInit(context, rest[0]);
+    }
+    if (command === 'library' && subcommand === 'prune' && rest.length === 0) {
+      return await libraryPrune(context, values.yes ?? false);
     }
     if (command === 'library' && subcommand === 'list' && rest.length === 0) {
       return libraryList(context);

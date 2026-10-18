@@ -1,8 +1,10 @@
 import { formatBytes } from '../ingest/preflight.ts';
-import type {
-  CopyResult,
-  IngestSummary,
-  StopReason,
+import {
+  type CopyResult,
+  formatElapsed,
+  formatSpeed,
+  type IngestSummary,
+  type StopReason,
 } from '../ingest/summary.ts';
 import type { Report, Row, Section } from './report.ts';
 
@@ -139,6 +141,11 @@ export const summaryReport = (
       value: `計算 ${count(summary.hashComputed)} / キャッシュ ${count(summary.hashFromCache)}`,
       tone: 'dim',
     },
+    {
+      label: context.isDryRun ? '所要時間' : '解析の時間',
+      value: formatElapsed(summary.elapsedMs),
+      tone: 'dim',
+    },
   ];
   if (summary.sequencedGroups > 0) {
     otherRows.push({
@@ -228,6 +235,20 @@ export const copyResultReport = (result: CopyResult): Report => {
           value: `${count(result.failed)} ファイル`,
           tone: failed ? 'error' : undefined,
         },
+        {
+          label: 'コピーの時間',
+          value: formatElapsed(result.elapsedMs),
+          tone: 'dim',
+        },
+        ...(formatSpeed(result.copiedBytes, result.elapsedMs)
+          ? [
+              {
+                label: '平均の速さ',
+                value: formatSpeed(result.copiedBytes, result.elapsedMs) ?? '',
+                tone: 'dim' as const,
+              },
+            ]
+          : []),
       ],
     },
   ];

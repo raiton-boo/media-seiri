@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { dropOverlappingSources } from '../ingest/sources.ts';
-import { emptySummary } from '../ingest/summary.ts';
+import { emptySummary, formatElapsed, formatSpeed } from '../ingest/summary.ts';
 import {
   addPhoto,
   initLibrary,
@@ -184,5 +184,35 @@ describe('色つきの出力(端末のとき)', () => {
     expect(result.code).toBe(0);
     expect(result.stdout.join('\n')).toContain('合計(取り込み元 2 件)');
     expect(result.stderr.join('\n')).toContain('重なるため');
+  });
+});
+
+describe('所要時間・平均の速さ', () => {
+  test('時間の表示(秒・分・時間)と、速さ(短すぎる・0 バイトのときは、出さない)', () => {
+    expect(formatElapsed(2300)).toBe('2.3 秒');
+    expect(formatElapsed(65_000)).toBe('1 分 05 秒');
+    expect(formatElapsed(3_725_000)).toBe('1 時間 02 分 05 秒');
+    expect(formatSpeed(10 * 1024 ** 2, 1000)).toBe('10.5 MB/秒');
+    expect(formatSpeed(0, 5000)).toBeUndefined();
+    expect(formatSpeed(1000, 10)).toBeUndefined();
+  });
+
+  test('dry-run の結果に、所要時間が出る。本実行は、解析の時間・コピーの時間・平均の速さ', async () => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/a.jpg', {
+      DateTimeOriginal: '2024:03:05 10:20:30',
+    });
+    const args = [
+      'ingest',
+      join(world.srcRoot, 'DCIM'),
+      '--dest',
+      world.library,
+    ];
+    const dry = await runIn(world, [...args, '--dry-run']);
+    expect(dry.stdout.join('\n')).toMatch(/所要時間　*: [\d.]+ 秒/);
+    const real = await runIn(world, [...args, '--yes']);
+    const text = real.stdout.join('\n');
+    expect(text).toContain('解析の時間');
+    expect(text).toMatch(/コピーの時間　*: [\d.]+ 秒/);
   });
 });

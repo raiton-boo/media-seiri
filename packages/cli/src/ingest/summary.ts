@@ -50,6 +50,8 @@ export type IngestSummary = {
   errorsByCode: Partial<Record<ErrorCode, number>>;
   hashComputed: number;
   hashFromCache: number;
+  /** スキャン・解析・計画にかかった時間(ミリ秒)。dry-run では、これが、全体の時間 */
+  elapsedMs: number;
   sequencedGroups: number;
   capacity: CapacityEstimate | undefined;
   problems: Problem[];
@@ -65,6 +67,8 @@ export type CopyResult = {
   failed: number;
   /** 重複として、採用側に結びつけた数(今回の中の重複) */
   linkedDuplicates: number;
+  /** コピーにかかった時間(ミリ秒) */
+  elapsedMs: number;
   stopReason: StopReason | undefined;
 };
 
@@ -99,6 +103,7 @@ export const emptySummary = (): IngestSummary => ({
   errorsByCode: {},
   hashComputed: 0,
   hashFromCache: 0,
+  elapsedMs: 0,
   sequencedGroups: 0,
   capacity: undefined,
   problems: [],
@@ -115,6 +120,28 @@ export const describeVolume = (volume: VolumeInfo): string => {
 };
 
 const count = (value: number): string => value.toLocaleString('en-US');
+
+/** 時間の表示: 1 分未満は「2.3 秒」、それ以上は「1 分 05 秒」、1 時間以上は「1 時間 02 分 05 秒」 */
+export const formatElapsed = (milliseconds: number): string => {
+  const seconds = Math.max(0, milliseconds) / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1)} 秒`;
+  const whole = Math.floor(seconds);
+  const pad = (value: number): string => String(value).padStart(2, '0');
+  const hours = Math.floor(whole / 3600);
+  const minutes = Math.floor((whole % 3600) / 60);
+  return hours > 0
+    ? `${hours} 時間 ${pad(minutes)} 分 ${pad(whole % 60)} 秒`
+    : `${minutes} 分 ${pad(whole % 60)} 秒`;
+};
+
+/** 平均の速さ。読んだ量があり、ある程度の時間がかかったときだけ(「0 B/秒」のような表示を避ける) */
+export const formatSpeed = (
+  bytes: number,
+  milliseconds: number
+): string | undefined =>
+  bytes > 0 && milliseconds >= 100
+    ? `${formatBytes((bytes / milliseconds) * 1000)}/秒`
+    : undefined;
 const line = (label: string, value: string): string =>
   `  ${label.padEnd(16, '　')}: ${value}`;
 
@@ -211,6 +238,12 @@ export const formatSummary = (
       `計算 ${count(summary.hashComputed)} / キャッシュ ${count(summary.hashFromCache)}`
     )
   );
+  lines.push(
+    line(
+      context.isDryRun ? '所要時間' : '解析の時間',
+      formatElapsed(summary.elapsedMs)
+    )
+  );
   if (summary.sequencedGroups > 0) {
     lines.push(
       line(
@@ -272,7 +305,10 @@ export const formatCopyResult = (result: CopyResult): string[] => {
     ),
     line('重複の記録', `${count(result.linkedDuplicates)} ファイル`),
     line('コピー失敗', `${count(result.failed)} ファイル`),
+    line('コピーの時間', formatElapsed(result.elapsedMs)),
   ];
+  const speed = formatSpeed(result.copiedBytes, result.elapsedMs);
+  if (speed) lines.push(line('平均の速さ', speed));
   if (result.stopReason)
     lines.push('', `中断: ${STOP_MESSAGES[result.stopReason]}`);
   return lines;

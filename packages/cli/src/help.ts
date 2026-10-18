@@ -55,6 +55,17 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
     examples: [{ command: 'seiri library list', text: '一覧を見る' }],
   },
   {
+    name: 'library prune',
+    summary: '古い登録(同じ場所に作り直したライブラリ)を、設定から外す',
+    usage: 'seiri library prune [-y]',
+    about: [
+      '同じ場所で、ライブラリを作り直すと、前の登録が、設定に残ります(`library list` で「古い登録」と出ます)。',
+      'それを、設定から外します。ライブラリのファイルも、この Mac の台帳(data/libraries/)も、消しません。',
+    ],
+    options: [{ flag: '-y, --yes', text: '確認を、省く' }, DATA_DIR],
+    examples: [{ command: 'seiri library prune', text: '古い登録を、外す' }],
+  },
+  {
     name: 'ingest',
     summary: '写真・動画を、ライブラリに取り込む',
     usage: 'seiri ingest [<ソース...>] [--dest <ライブラリの根>] [オプション]',
