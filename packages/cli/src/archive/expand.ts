@@ -34,11 +34,15 @@ export type ArchiveContext = {
   additionalExtensions?: ReadonlyMap<string, FileKind>;
 };
 
-/** ZIP を開くときに起きた問題。`ZIP_DEPTH_EXCEEDED` だけが、警告(ほかは、エラー) */
+/** ZIP を開くときに起きた問題。`ZIP_DEPTH_EXCEEDED`・`ZIP_DUPLICATE_ENTRY` だけが、警告(ほかは、エラー) */
 export type ArchiveProblem = {
   code: Extract<
     ErrorCode,
-    'ZIP_ENCRYPTED' | 'ZIP_UNSAFE_PATH' | 'ZIP_DEPTH_EXCEEDED' | 'READ_FAILED'
+    | 'ZIP_ENCRYPTED'
+    | 'ZIP_UNSAFE_PATH'
+    | 'ZIP_DEPTH_EXCEEDED'
+    | 'ZIP_DUPLICATE_ENTRY'
+    | 'READ_FAILED'
   >;
   /** 問題のあった場所(`a.zip!/inner/b.jpg` の形) */
   relPath: string;
@@ -102,6 +106,12 @@ const materializeChain = async (
   };
 };
 
+/** `name.ext` の、拡張子の前に、` (番号)` を入れる(拡張子がなければ、末尾) */
+const withNumber = (name: string, ext: string, number: number): string =>
+  ext !== '' && name.toLowerCase().endsWith(`.${ext}`)
+    ? `${name.slice(0, -(ext.length + 1))} (${number}).${name.slice(-ext.length)}`
+    : `${name} (${number})`;
+
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
@@ -114,6 +124,8 @@ export const expandArchive = async (
   zipFile: ScannedFile,
   context: ArchiveContext
 ): Promise<ExpandResult> => {
+  // この ZIP(入れ子を含む)の中で、使った仮想パス。重なったら、連番を付ける
+  const seenPaths = new Set<string>();
   const result: ExpandResult = {
     files: [],
     emptyFiles: [],
@@ -200,15 +212,32 @@ export const expandArchive = async (
         result.excluded += 1;
         continue;
       }
-      const fileName = safe.segments[safe.segments.length - 1] as string;
-      const innerDirectory = safe.segments.slice(0, -1).join('/');
-      const relPath = `${archive.relPath}!/${safe.segments.join('/')}`;
-      const ext = extensionOf(fileName);
+      const innerSegments = safe.segments.slice(0, -1);
+      const originalName = safe.segments[safe.segments.length - 1] as string;
+      const ext = extensionOf(originalName);
+      // 同じ名前のファイルが、ZIP の中に複数あるとき(名前の正規化で重なる場合も)は、連番を付けて、すべて取り込む。
+      // 台帳の「同じ実行の、同じパス」は、1 件だけなので、そのままでは、記録できない
+      const pathOf = (name: string): string =>
+        `${archive.relPath}!/${[...innerSegments, name].join('/')}`;
+      let fileName = originalName;
+      for (let number = 2; seenPaths.has(pathOf(fileName)); number += 1) {
+        fileName = withNumber(originalName, ext, number);
+      }
+      const relPath = pathOf(fileName);
+      seenPaths.add(relPath);
+      if (fileName !== originalName) {
+        result.problems.push({
+          code: 'ZIP_DUPLICATE_ENTRY',
+          relPath: pathOf(originalName),
+          detail: `同じ名前のファイルが、複数あるため、名前に連番を付けて取り込みます(${fileName})`,
+        });
+      }
+      const innerDirectory = innerSegments.join('/');
       const isArchive = ext === 'zip';
       const entryChain = [...chain, entry];
       const mtimeMs = Math.round(entry.mtimeMs);
       const file: ScannedFile = {
-        absolutePath: `${archive.absolutePath}!/${safe.segments.join('/')}`,
+        absolutePath: `${archive.absolutePath}!/${[...innerSegments, fileName].join('/')}`,
         relPath,
         directory: innerDirectory
           ? `${directoryOfArchive}/${innerDirectory}`

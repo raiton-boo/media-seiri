@@ -29,6 +29,8 @@ export const runCli = async (
     stdout: (text) => stdout.push(text),
     stderr: (text) => stderr.push(text),
     now: () => FIXED_NOW,
+    // 端末で `bun run test` を動かしても、本物の画面(メニュー・質問)を出さない
+    isInteractive: false,
     fancy: false,
     viewerBundleDir: undefined,
     newLibraryId: options.newLibraryId ?? (() => 'lib-1'),

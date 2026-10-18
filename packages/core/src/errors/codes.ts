@@ -31,6 +31,12 @@ export const ERROR_CODES = [
     description: 'ZIP の入れ子が深さ3を超えた',
     level: 'WARN',
   },
+  // 同じ名前のファイルが、ZIP の中に複数あるときは、名前に連番を付けて、すべて取り込む(警告)
+  {
+    code: 'ZIP_DUPLICATE_ENTRY',
+    description: 'ZIP の中に、同じ名前のファイルが複数ある',
+    level: 'WARN',
+  },
   {
     code: 'ZIP_UNSAFE_PATH',
     description: 'ZIP 内のパスが危険',

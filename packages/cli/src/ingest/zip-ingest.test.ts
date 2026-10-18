@@ -198,6 +198,40 @@ describe('ZIP の取り込み', () => {
     expect(tmpLeftovers(world)).toEqual([]);
   });
 
+  test('ZIP の中に、同じ名前のファイルが複数あっても、落ちずに、連番を付けて、すべて取り込む(警告)', async () => {
+    const world = await newWorld();
+    const first = await photoBytes(world, 'a1.jpg', DATE_2024_03_05);
+    const second = await photoBytes(world, 'a2.jpg', {
+      DateTimeOriginal: '2023:01:01 01:01:01',
+    });
+    addFile(
+      world,
+      'DCIM/dup.zip',
+      buildZip([
+        { name: 'same.jpg', data: first },
+        { name: 'same.jpg', data: second },
+        { name: 'sub/same.jpg', data: first },
+      ])
+    );
+    const result = await ingest(world);
+    expect(result.code).toBe(0);
+    const paths = rows(
+      world,
+      'SELECT rel_path FROM source_files ORDER BY rel_path'
+    ).map((r) => r.rel_path);
+    expect(paths).toEqual([
+      'DCIM/dup.zip!/same (2).jpg',
+      'DCIM/dup.zip!/same.jpg',
+      'DCIM/dup.zip!/sub/same.jpg',
+    ]);
+    const warnings = rows(
+      world,
+      "SELECT message FROM events WHERE code = 'ZIP_DUPLICATE_ENTRY'"
+    );
+    expect(warnings).toHaveLength(1);
+    expect(result.stdout.join('\n')).toMatch(/警告 1/);
+  });
+
   test('危険なパス・暗号化・壊れた ZIP は、エラーとして記録し、ほかの中身は、続ける', async () => {
     const world = await newWorld();
     const good = await photoBytes(world, 'good.jpg', DATE_2024_03_05);

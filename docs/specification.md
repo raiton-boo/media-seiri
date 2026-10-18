@@ -385,6 +385,7 @@ stateDiagram-v2
 | `HASH_MISMATCH`           | コピー後のハッシュが一致しない   |
 | `COPY_FAILED`             | 書き込みに失敗した(容量不足など) |
 | `ZIP_DEPTH_EXCEEDED`      | ZIP の入れ子が深さ3を超えた      |
+| `ZIP_DUPLICATE_ENTRY`     | ZIP の中に、同じ名前のファイルが複数ある(警告。連番を付けて、すべて取り込む) |
 | `ZIP_UNSAFE_PATH`         | ZIP 内のパスが危険               |
 | `ZIP_ENCRYPTED`           | 暗号化された ZIP                 |
 | `METADATA_INVALID`        | メタデータが不正で読めない       |
