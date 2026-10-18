@@ -15,6 +15,10 @@ type Props = {
   block?: boolean;
   /** 大きいボタン(影 6px)。主役の操作に使う */
   large?: boolean;
+  /** 選んでいる(一覧から 1 つを選ぶボタン)。黄色になり、押した位置に沈んだままになる */
+  selected?: boolean;
+  /** 追加のクラス名(中身の並べ方など) */
+  className?: string;
   /** 押せない。影を消して、灰色の平らな面になる */
   disabled?: boolean;
   /** 処理中。押せなくして、くるくる回る印を出す(カーソルは「待ち」) */
@@ -55,6 +59,8 @@ export function Button({
   tone,
   block = false,
   large = false,
+  selected = false,
+  className: extraClassName = '',
   disabled = false,
   loading = false,
   href,
@@ -68,6 +74,8 @@ export function Button({
     tone ? `t-${tone}` : variant === 'default' ? '' : variant,
     block ? 'block' : '',
     large ? 'lg' : '',
+    selected ? 'sel' : '',
+    extraClassName,
     loading ? 'loading' : '',
   ]
     .filter(Boolean)
@@ -96,6 +104,7 @@ export function Button({
       className={className}
       disabled={inactive}
       aria-busy={loading || undefined}
+      aria-pressed={selected || undefined}
       aria-label={ariaLabel}
       onClick={onClick}
     >

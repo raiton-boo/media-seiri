@@ -1120,3 +1120,49 @@ select.sel {
 .tbl .nw {
   white-space: nowrap;
 }
+
+/* 選んでいるボタン(一覧から 1 つを選ぶ): 黄色で、押した位置に沈んだまま */
+.btn.sel {
+  --btn-bg: var(--y);
+}
+.btn.sel .face {
+  transform: translate(var(--sh), var(--sh));
+}
+
+/* 実行履歴の 1 件(ボタンカード): 番号・ソースと件数・状態と日時 */
+.btn.block.runcard .face {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  align-items: center;
+  text-align: left;
+  padding: 14px 18px;
+}
+.runcard-id {
+  font-family: var(--disp);
+  font-size: 30px;
+  line-height: 1;
+}
+.runcard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.runcard-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+.runcard-counts {
+  font-size: 13px;
+  font-weight: 400;
+}
+.runcard-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 13px;
+}
