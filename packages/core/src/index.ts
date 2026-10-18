@@ -1,3 +1,4 @@
+export * from './album/index.ts';
 export * from './date/index.ts';
 export * from './errors/index.ts';
 export * from './group/index.ts';
