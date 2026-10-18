@@ -1,4 +1,8 @@
-import type { AlbumFilter } from '@file-seiri/ledger';
+import {
+  type AlbumFilter,
+  parseDateQuery,
+  roundToPlaceCell,
+} from '@file-seiri/ledger';
 
 /** クエリ文字列の読み取り。不正な値は、既定値にする(エラーにはしない。画面の URL を手で書き換えても、壊れないように) */
 
@@ -67,6 +71,26 @@ export const parseAlbumFilter = (
   // 機種名は、カンマを含みうるので、カンマで割らず、そのまま
   const cameras = (queries('camera') ?? []).filter(Boolean);
   const gps = list('gps')[0];
+  // 検索の条件: 日付は、書き方をそろえる(読めないものは、無視)。名前は、カンマを含みうるので、そのまま。場所は、`緯度:経度`
+  const dates = [
+    ...new Set(
+      list('date')
+        .map((value) => parseDateQuery(value))
+        .filter((value): value is string => value !== undefined)
+    ),
+  ];
+  const names = (queries('name') ?? []).filter(Boolean);
+  const places = list('place').flatMap((value) => {
+    const [lat, lon] = value.split(':').map(Number);
+    return lat !== undefined &&
+      lon !== undefined &&
+      Number.isFinite(lat) &&
+      Number.isFinite(lon) &&
+      Math.abs(lat) <= 90 &&
+      Math.abs(lon) <= 180
+      ? [{ lat: roundToPlaceCell(lat), lon: roundToPlaceCell(lon) }]
+      : [];
+  });
   return {
     ...(kinds.length > 0 ? { kinds } : {}),
     ...(cameras.length > 0 ? { cameras } : {}),
@@ -75,5 +99,8 @@ export const parseAlbumFilter = (
     ...(precisions.length > 0 ? { precisions } : {}),
     ...(dateSources.length > 0 ? { dateSources } : {}),
     ...(volumeIds.length > 0 ? { volumeIds } : {}),
+    ...(dates.length > 0 ? { dates } : {}),
+    ...(names.length > 0 ? { names } : {}),
+    ...(places.length > 0 ? { places } : {}),
   };
 };

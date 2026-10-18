@@ -9,6 +9,8 @@ import {
 import type {
   AlbumSectionPhotosResponse,
   AlbumSectionsResponse,
+  SearchPhotosResponse,
+  SearchSuggestResponse,
 } from '../api-types.ts';
 import { createViewerApp } from './app.ts';
 import { parseAlbumFilter } from './query.ts';
@@ -144,5 +146,38 @@ describe('/api/album/all', () => {
       400
     );
     expect((await get(app, '/api/album/all/photos')).status).toBe(400);
+  });
+});
+
+describe('検索', () => {
+  test('parseAlbumFilter: 日付はそろえ、場所は格子に丸め、不正な値は無視', () => {
+    const parse = (query: Record<string, string[]>) =>
+      parseAlbumFilter((name) => query[name]);
+    expect(
+      parse({
+        date: ['2014年4月', 'x', '2014-04'],
+        name: ['a,b', ''],
+        place: ['35.04:139.96', 'x:y', '99:0'],
+      })
+    ).toEqual({
+      dates: ['2014-04'],
+      names: ['a,b'],
+      places: [{ lat: 35, lon: 140 }],
+    });
+  });
+
+  test('suggest: 候補と件数。photos: 合う枚数と、先頭から', async () => {
+    const app = createViewerApp(seed());
+    const suggest = (await (
+      await get(app, '/api/album/search/suggest?q=2024-03')
+    ).json()) as SearchSuggestResponse;
+    expect(suggest.suggestions).toEqual([
+      { type: 'date', value: '2024-03', label: '2024年3月', count: 2 },
+    ]);
+    const found = (await (
+      await get(app, '/api/album/search/photos?name=.jpg&limit=2')
+    ).json()) as SearchPhotosResponse;
+    expect(found).toMatchObject({ total: 3, limit: 2, offset: 0 });
+    expect(found.photos).toHaveLength(2);
   });
 });

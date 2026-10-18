@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import {
   countFilter,
+  countSearch,
   EMPTY_FILTER,
   filterParams,
+  isFiltered,
   readFilter,
   toggleValue,
 } from './album-filter';
@@ -37,6 +39,14 @@ describe('album-filter', () => {
       kind: [],
       gps: undefined,
     });
+  });
+
+  test('検索の条件は、絞り込みの数に入れず、1 つずつ数える', () => {
+    const filter = { ...EMPTY_FILTER, dates: ['2014-04'], names: ['a', 'b'] };
+    expect(countFilter(filter)).toBe(0);
+    expect(countSearch(filter)).toBe(3);
+    expect(isFiltered(filter)).toBe(true);
+    expect(isFiltered(EMPTY_FILTER)).toBe(false);
   });
 
   test('値の出し入れ', () => {

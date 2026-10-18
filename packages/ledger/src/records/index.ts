@@ -36,8 +36,19 @@ export {
   type AlbumFilter,
   albumFilterSql,
   countAlbumFilters,
+  PLACE_CELL_DEGREES,
+  roundToPlaceCell,
   UNKNOWN_CAMERA,
 } from './album-filter.ts';
+export {
+  countFilteredPhotos,
+  describeDate,
+  describePlace,
+  listFilteredPhotos,
+  parseDateQuery,
+  type SearchSuggestion,
+  suggestSearch,
+} from './album-search.ts';
 export {
   type Content,
   findContentByHash,

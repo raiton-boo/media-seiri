@@ -7,6 +7,13 @@ import {
   countAlbumFilters,
   UNKNOWN_CAMERA,
 } from './album-filter.ts';
+import {
+  countFilteredPhotos,
+  describePlace,
+  listFilteredPhotos,
+  parseDateQuery,
+  suggestSearch,
+} from './album-search.ts';
 import { getOrCreateContent } from './contents.ts';
 import { insertFileGroup } from './file-groups.ts';
 import { openDb, seedRun, seedSourceFile, T0 } from './fixtures.ts';
@@ -274,5 +281,101 @@ describe('年・月の集計に、絞り込みが効く', () => {
     expect(
       months.filter((m) => m.count > 0).map((m) => [m.month, m.count])
     ).toEqual([[12, 1]]);
+  });
+});
+
+describe('検索の条件(日付・名前・場所)', () => {
+  const ctx = build(SPECS);
+  test('日付: 年・月・日の前方一致。複数なら、どれか', () => {
+    expect(countFilteredPhotos(ctx.db, { dates: ['2016'] })).toBe(4);
+    expect(countFilteredPhotos(ctx.db, { dates: ['2016-12-24'] })).toBe(2);
+    expect(countFilteredPhotos(ctx.db, { dates: ['2016-08', '2014-04'] })).toBe(
+      2
+    );
+  });
+  test('名前: ファイル名に含む(大文字小文字は区別しない。ディレクトリ名は含めない。% と _ は、そのまま)', () => {
+    expect(countFilteredPhotos(ctx.db, { names: ['A1'] })).toBe(1);
+    expect(countFilteredPhotos(ctx.db, { names: ['.jpg'] })).toBe(5);
+    expect(countFilteredPhotos(ctx.db, { names: ['%'] })).toBe(0);
+    expect(countFilteredPhotos(ctx.db, { names: ['a1', 'b1'] })).toBe(2);
+  });
+  test('場所: GPS の格子。種類の違う条件は、AND', () => {
+    expect(
+      countFilteredPhotos(ctx.db, { places: [{ lat: 35, lon: 139 }] })
+    ).toBe(1);
+    expect(
+      countFilteredPhotos(ctx.db, { places: [{ lat: 36, lon: 139 }] })
+    ).toBe(0);
+    expect(
+      countFilteredPhotos(ctx.db, { names: ['a'], dates: ['2016-12'] })
+    ).toBe(3);
+  });
+  test('写真の一覧: 日付のないものは最後。ページ送りができる', () => {
+    const all = listFilteredPhotos(ctx.db, {}, 'new', {
+      limit: 100,
+      offset: 0,
+    });
+    expect(all.map((p) => p.relPath)[all.length - 1]).toBe('n1.jpg');
+    const page = listFilteredPhotos(ctx.db, {}, 'new', { limit: 2, offset: 2 });
+    expect(page.map((p) => p.relPath)).toEqual(
+      all.slice(2, 4).map((p) => p.relPath)
+    );
+  });
+});
+
+describe('parseDateQuery', () => {
+  test('いろいろな書き方を、そろえる', () => {
+    expect(parseDateQuery('2014')).toBe('2014');
+    expect(parseDateQuery('2014年4月')).toBe('2014-04');
+    expect(parseDateQuery('2014/4/2')).toBe('2014-04-02');
+    expect(parseDateQuery('2014年4月12日')).toBe('2014-04-12');
+    expect(parseDateQuery('2014-')).toBe('2014');
+  });
+  test('日付でないものは、undefined', () => {
+    expect(parseDateQuery('2014-13')).toBeUndefined();
+    expect(parseDateQuery('2014-04-32')).toBeUndefined();
+    expect(parseDateQuery('abc')).toBeUndefined();
+    expect(parseDateQuery('')).toBeUndefined();
+  });
+});
+
+describe('suggestSearch(候補)', () => {
+  const ctx = build(SPECS);
+  test('日付: 件数つき。件数 0 は出さない', () => {
+    expect(suggestSearch(ctx.db, '2016年12月', {})).toEqual([
+      { type: 'date', value: '2016-12', label: '2016年12月', count: 3 },
+    ]);
+    expect(suggestSearch(ctx.db, '1999', {})).toEqual([]);
+  });
+  test('名前: 「含む」と、具体的なファイル名。カメラ: 機種名の一部', () => {
+    const found = suggestSearch(ctx.db, 'a1', {});
+    expect(found[0]).toMatchObject({
+      type: 'name',
+      label: '名前に「a1」を含む',
+      count: 1,
+    });
+    expect(found.some((c) => c.type === 'name' && c.value === 'a1.jpg')).toBe(
+      true
+    );
+    expect(suggestSearch(ctx.db, 'cano', {})).toEqual([
+      { type: 'camera', value: 'Canon', label: 'Canon', count: 2 },
+    ]);
+  });
+  test('入力が空なら、場所とカメラ。場所は座標のまとまりで出す', () => {
+    const found = suggestSearch(ctx.db, '', {});
+    expect(found.find((c) => c.type === 'place')).toEqual({
+      type: 'place',
+      value: { lat: 35, lon: 139 },
+      label: describePlace({ lat: 35, lon: 139 }),
+      count: 1,
+    });
+    expect(found.some((c) => c.type === 'camera' && c.value === 'Canon')).toBe(
+      true
+    );
+  });
+  test('件数は、いまの条件に、その候補を足した結果', () => {
+    expect(suggestSearch(ctx.db, 'cano', { kinds: ['video'] })).toEqual([
+      { type: 'camera', value: 'Canon', label: 'Canon', count: 1 },
+    ]);
   });
 });

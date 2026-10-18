@@ -20,6 +20,8 @@ import type {
   FallbackResponse,
   RunDetailResponse,
   RunsResponse,
+  SearchPhotosResponse,
+  SearchSuggestResponse,
   ViewerInfo,
 } from '../../src/api-types.ts';
 import { type FilterState, filterParams } from './album-filter';
@@ -250,6 +252,39 @@ export const useAlbumFilters = (filter: FilterState, enabled: boolean) =>
     queryFn: () =>
       fetchJson<AlbumFiltersResponse>(
         `/api/album/filters${queryString(filterParams(filter))}`
+      ),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+
+/** 検索の候補。入力が止まってから(呼ぶ側で間を置く)、開いているときだけ読む */
+export const useSearchSuggest = (
+  text: string,
+  filter: FilterState,
+  enabled: boolean
+) =>
+  useQuery({
+    queryKey: ['album-search-suggest', text, filter],
+    queryFn: () =>
+      fetchJson<SearchSuggestResponse>(
+        `/api/album/search/suggest${queryString({ q: text, ...filterParams(filter) })}`
+      ),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+
+/** 検索の結果: 合う枚数と、先頭から `limit` 枚 */
+export const useSearchPhotos = (
+  order: AlbumOrderParam,
+  filter: FilterState,
+  limit: number,
+  enabled: boolean
+) =>
+  useQuery({
+    queryKey: ['album-search-photos', order, filter, limit],
+    queryFn: () =>
+      fetchJson<SearchPhotosResponse>(
+        `/api/album/search/photos${queryString({ order, limit, ...filterParams(filter) })}`
       ),
     enabled,
     placeholderData: keepPreviousData,

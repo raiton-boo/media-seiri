@@ -4,6 +4,7 @@ import {
   countFilter,
   EMPTY_FILTER,
   type FilterState,
+  isFiltered,
   type ListField,
 } from '../../lib/album-filter';
 import { Button } from '../Button';
@@ -101,7 +102,7 @@ export function FilterBar({
           {chip.label} ×
         </FilterChip>
       ))}
-      {count > 0 ? (
+      {isFiltered(filter) ? (
         <Button onClick={() => onChange(EMPTY_FILTER)}>
           条件をすべてクリア
         </Button>
