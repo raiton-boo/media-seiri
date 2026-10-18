@@ -44,6 +44,17 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
     ],
   },
   {
+    name: 'library list',
+    summary: '登録済みのライブラリの一覧(接続中かどうかつき)',
+    usage: 'seiri library list',
+    about: [
+      'この Mac に登録されたライブラリを、一覧にします。ドライブが接続中かどうかも出ます。',
+      'ライブラリが複数あるとき、`status`・`viewer` などは、接続中のものが 1 つだけなら、それを自動で使います。複数なら、端末で選べます(端末でなければ、--library で指定)。',
+    ],
+    options: [DATA_DIR],
+    examples: [{ command: 'seiri library list', text: '一覧を見る' }],
+  },
+  {
     name: 'ingest',
     summary: '写真・動画を、ライブラリに取り込む',
     usage: 'seiri ingest [<ソース...>] [--dest <ライブラリの根>] [オプション]',

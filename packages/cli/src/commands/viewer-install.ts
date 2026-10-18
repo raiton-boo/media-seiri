@@ -9,11 +9,11 @@ import { showReport } from '../present/index.ts';
 import { installViewerBundle } from '../viewer-bundle/install.ts';
 
 /** `viewer-install [--library <パス>]`: 閲覧専用ビューア(Windows・Mac 用の実行ファイル)を、ライブラリの `viewer/` に置く */
-export const viewerInstallCommand = (
+export const viewerInstallCommand = async (
   context: CommandContext,
   libraryOption: string | undefined
-): ExitCode => {
-  const root = chooseLibraryRoot(context, libraryOption);
+): Promise<ExitCode> => {
+  const root = await chooseLibraryRoot(context, libraryOption);
   if (!markerExists(root)) {
     throw new CliError(
       `ライブラリではありません(ドライブが、接続されていますか): ${root}`

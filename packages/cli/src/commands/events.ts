@@ -30,7 +30,7 @@ export const eventsCommand = async (
   context: CommandContext,
   args: EventsArguments
 ): Promise<ExitCode> => {
-  const root = chooseLibraryRoot(context, args.library);
+  const root = await chooseLibraryRoot(context, args.library);
   if (!existsSync(root)) {
     throw new CliError(
       `ライブラリが見つかりません(ドライブが、接続されていますか): ${root}`

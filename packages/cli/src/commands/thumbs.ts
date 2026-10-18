@@ -32,7 +32,7 @@ export const thumbsCommand = async (
   context: CommandContext,
   args: ThumbsArguments
 ): Promise<ExitCode> => {
-  const root = chooseLibraryRoot(context, args.library);
+  const root = await chooseLibraryRoot(context, args.library);
   if (!existsSync(root)) {
     throw new CliError(
       `ライブラリが見つかりません(ドライブが、接続されていますか): ${root}`

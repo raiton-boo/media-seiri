@@ -66,11 +66,11 @@ const openReadOnly = (path: string, libraryId: string): Ledger => {
  * 作業用の台帳がない(または `--snapshot`)ときは、ライブラリのスナップショットと `.file-seiri/thumbs/`
  * (家の PC と同じ見え方。ドライブが接続されている必要がある)。
  */
-const openViewerSource = (
+const openViewerSource = async (
   context: CommandContext,
   args: ViewerArguments
-): ViewerSource => {
-  const root = chooseLibraryRoot(context, args.library);
+): Promise<ViewerSource> => {
+  const root = await chooseLibraryRoot(context, args.library);
   const libraryId = libraryIdOf(context, root);
   const workingPath = ledgerPathFor(context.dataDir, libraryId);
   const snapshotPath = snapshotPathOf(root);
@@ -146,7 +146,7 @@ export const viewerCommand = async (
         '`bun run --filter @file-seiri/viewer build:web` で、画面を作ってください。'
     );
   }
-  const source = openViewerSource(context, args);
+  const source = await openViewerSource(context, args);
   try {
     const running = startViewer({
       source,

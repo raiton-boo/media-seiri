@@ -16,11 +16,11 @@ export type ReadOnlyLibrary = {
  * ライブラリの作業用の台帳を、読み取り専用で開く(`logs`・`status`)。何も書かない・ロックも取らない。
  * 取り込み中でも、開ける(WAL)。台帳は、この Mac にあるため、ライブラリのドライブが抜けていても、読める。
  */
-export const openLibraryReadOnly = (
+export const openLibraryReadOnly = async (
   context: CommandContext,
   libraryOption: string | undefined
-): ReadOnlyLibrary => {
-  const root = chooseLibraryRoot(context, libraryOption);
+): Promise<ReadOnlyLibrary> => {
+  const root = await chooseLibraryRoot(context, libraryOption);
   const libraryId = libraryIdOf(context, root);
   const path = ledgerPathFor(context.dataDir, libraryId);
   if (!existsSync(path)) {

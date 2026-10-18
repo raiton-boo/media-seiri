@@ -81,7 +81,7 @@ export const logsCommand = async (
       ? undefined
       : parsePositiveInteger(args.run, '--run');
 
-  const { ledger } = openLibraryReadOnly(context, args.library);
+  const { ledger } = await openLibraryReadOnly(context, args.library);
   try {
     const { db } = ledger;
     const run =
