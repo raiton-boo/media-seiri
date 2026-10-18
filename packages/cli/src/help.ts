@@ -44,16 +44,23 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
   {
     name: 'ingest',
     summary: '写真・動画を、ライブラリに取り込む',
-    usage: 'seiri ingest <ソース...> --dest <ライブラリの根> [オプション]',
+    usage: 'seiri ingest [<ソース...>] [--dest <ライブラリの根>] [オプション]',
     about: [
+      '【選びながら進める】ソースや --dest を省いて、端末で実行すると、取り込み元(ドライブ・フォルダ)と保存先を、番号で選べます。最後に、同じことを自分で行うコマンドも、表示します。',
       '指定した場所(フォルダ・ZIP)の写真・動画を、撮影日ごとに整理して、ライブラリにコピーします。',
       '元のファイルは、変えません。コピーしたあと、中身が同じか、照合します。',
       '途中で止めても大丈夫です(q か Ctrl-C)。--resume で、続きから実行できます。',
       '端末で実行すると、進み具合の画面が出ます。キー: p 一時停止 / l ログ全画面 / q 安全に停止。',
     ],
     options: [
-      { flag: '<ソース...>', text: '取り込む、フォルダや ZIP(いくつでも)' },
-      { flag: '--dest <パス>', text: '保存先(ライブラリの根)' },
+      {
+        flag: '<ソース...>',
+        text: '取り込む、フォルダや ZIP(いくつでも。省くと、選べます)',
+      },
+      {
+        flag: '--dest <パス>',
+        text: '保存先(ライブラリの根。省くと、選べます)',
+      },
       {
         flag: '--dry-run',
         text: 'コピーせずに、結果と容量の見積りだけを見る',
@@ -75,6 +82,7 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
       DATA_DIR,
     ],
     examples: [
+      { command: 'seiri ingest', text: '選びながら、進める(端末で)' },
       {
         command:
           'seiri ingest ~/Pictures/旅行 --dest /Volumes/Photos/Pictures --dry-run',
@@ -243,7 +251,8 @@ export const renderOverview = (color: boolean): string => {
     `${p.name('seiri')} ${p.dim('(file-seiri)')} — 写真・動画を、撮影日ごとに整理するツール`,
     '',
     p.title('使い方'),
-    `  seiri <コマンド> [オプション]`,
+    `  seiri                     選びながら進める(メニューが出ます)`,
+    `  seiri <コマンド> [オプション]   直接、コマンドを指定する`,
     '',
     p.title('コマンド'),
     ...COMMAND_HELPS.map(

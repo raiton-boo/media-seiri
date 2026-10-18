@@ -3,6 +3,7 @@ import { copyFileSync, mkdirSync, utimesSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { openLedger } from '@file-seiri/ledger';
 import { ExifTool } from 'exiftool-vendored';
+import type { Asker } from '../ask.ts';
 import { ledgerPathFor } from '../config/paths.ts';
 import type { LiveController } from '../live/controller.ts';
 import { createFeed } from '../live/feed.ts';
@@ -239,5 +240,44 @@ export const fakeLiveController = (
       events.push('stop');
     },
     note: () => {},
+  };
+};
+
+/**
+ * 決まった答えを、順に返す質問役(対話式の試験用)。
+ * 選ぶ質問: 答えが数字なら、その番号。そうでなければ、その文字を含む、最初の選択肢。文字の入力: 答えを、そのまま返す。
+ * 答えが尽きたら、投げる(想定より多く聞かれた)。
+ */
+export const scriptedAsker = (
+  answers: string[]
+): Asker & { asked: string[] } => {
+  const queue = [...answers];
+  const asked: string[] = [];
+  const next = (message: string): string => {
+    asked.push(message);
+    const answer = queue.shift();
+    if (answer === undefined) throw new Error(`答えが足りない: ${message}`);
+    return answer;
+  };
+  return {
+    asked,
+    select: async (message, choices) => {
+      const answer = next(message);
+      const byNumber = /^\d+$/.test(answer)
+        ? choices[Number(answer) - 1]
+        : undefined;
+      const chosen =
+        byNumber ?? choices.find((choice) => choice.label.includes(answer));
+      if (!chosen) {
+        throw new Error(
+          `選択肢がない: ${answer}(${choices.map((choice) => choice.label).join(' | ')})`
+        );
+      }
+      return chosen.value;
+    },
+    text: async (message, initial) => {
+      const answer = next(message);
+      return answer === '' ? (initial ?? '') : answer;
+    },
   };
 };

@@ -2,6 +2,7 @@ import { parseArgs } from 'node:util';
 import { systemTimeZone } from '@file-seiri/core';
 import { DEFAULT_WEB_DIR } from '@file-seiri/viewer';
 import cliPackage from '../package.json' with { type: 'json' };
+import { type Asker, createAsker, PromptCancelled } from './ask.ts';
 import { CliError } from './cli-error.ts';
 import { drivesCommand } from './commands/drives.ts';
 import { eventsCommand } from './commands/events.ts';
@@ -35,6 +36,7 @@ import {
   resolveVolume as resolveRealVolume,
   type VolumeInfo,
 } from './volume/index.ts';
+import { mainMenu } from './wizard/menu.ts';
 
 export const PARSE_OPTIONS = {
   'data-dir': { type: 'string' },
@@ -88,6 +90,7 @@ export type RunEnvironment = {
   listVolumes?: () => VolumeInfo[];
   timeZone?: string;
   isInteractive?: boolean;
+  ask?: Asker;
   confirm?: (question: string) => Promise<boolean>;
   shouldStop?: () => boolean;
   random?: () => number;
@@ -123,7 +126,11 @@ export const run = async (
       Boolean(process.stdout.isTTY && !environment.env.NO_COLOR);
     // `seiri help <コマンド>` も、`seiri <コマンド> --help` と同じ
     const asksHelp = values.help || positionals[0] === 'help';
-    if (asksHelp || positionals.length === 0) {
+    const interactive =
+      environment.isInteractive ??
+      Boolean(process.stdin.isTTY && process.stdout.isTTY);
+    // 端末で、コマンドなしなら、説明ではなく、入口のメニューを出す
+    if (asksHelp || (positionals.length === 0 && !interactive)) {
       const words =
         positionals[0] === 'help' ? positionals.slice(1) : positionals;
       const help = words.length > 0 ? findCommandHelp(words) : undefined;
@@ -146,9 +153,8 @@ export const run = async (
         environment.resolveVolume ?? ((path) => resolveRealVolume(path)),
       listVolumes: environment.listVolumes ?? (() => listMountedVolumes()),
       timeZone: environment.timeZone ?? systemTimeZone(),
-      isInteractive:
-        environment.isInteractive ??
-        Boolean(process.stdin.isTTY && process.stdout.isTTY),
+      isInteractive: interactive,
+      ask: environment.ask ?? createAsker(environment.stdout),
       confirm: environment.confirm ?? askYesNo,
       shouldStop: environment.shouldStop ?? (() => false),
       random: environment.random ?? Math.random,
@@ -168,6 +174,14 @@ export const run = async (
       viewerWebDir: environment.viewerWebDir ?? DEFAULT_WEB_DIR,
       ingestHooks: environment.ingestHooks,
     };
+    if (positionals.length === 0) {
+      const chosen = await mainMenu(context);
+      if (!chosen) return EXIT_CODES.ok;
+      const dataDirArgs = values['data-dir']
+        ? ['--data-dir', values['data-dir']]
+        : [];
+      return run([...dataDirArgs, ...chosen], environment);
+    }
     const [command, subcommand, ...rest] = positionals;
     if (command === 'library' && subcommand === 'init' && rest.length <= 1) {
       return libraryInit(context, rest[0]);
@@ -229,6 +243,10 @@ export const run = async (
     }
     throw new CliError(unknownCommandMessage(positionals));
   } catch (error) {
+    if (error instanceof PromptCancelled) {
+      environment.stderr('\n中止しました。');
+      return EXIT_CODES.interrupted;
+    }
     if (error instanceof CliError) {
       environment.stderr(`エラー: ${error.message}`);
       return EXIT_CODES.failed;
