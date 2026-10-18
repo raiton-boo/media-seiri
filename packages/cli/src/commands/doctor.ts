@@ -1,3 +1,7 @@
+import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { dirname, resolve } from 'node:path';
+import cliPackage from '../../package.json' with { type: 'json' };
 import type { CommandContext } from '../context.ts';
 import { runChecks } from '../doctor/checks.ts';
 import type { Finding } from '../doctor/types.ts';
@@ -10,6 +14,10 @@ export type DoctorArguments = {
   yes: boolean;
   /** 深い診断(ファイルの存在・大きさ・サムネイル) */
   deep: boolean;
+  /** 共有できる報告の書き出し先(`.json` なら JSON、それ以外は文章) */
+  report: string | undefined;
+  /** 報告に、パス・ファイル名も含める */
+  includePaths: boolean;
 };
 
 const MARKS: Record<Finding['level'], string> = {
@@ -93,6 +101,97 @@ const showFindings = (context: CommandContext, findings: Finding[]): void => {
   });
 };
 
+/** 外のコマンドの版(1 行目)。なければ undefined */
+const toolVersion = (name: string, args: string[]): string | undefined => {
+  try {
+    const result = Bun.spawnSync([name, ...args], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    const text =
+      `${result.stdout.toString()}${result.stderr.toString()}`.trim();
+    return text.split('\n')[0]?.slice(0, 120) || undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/** 報告に出す文字から、利用者のホームのパスを、伏せる */
+const redactHome = (text: string): string => text.split(homedir()).join('~');
+
+/**
+ * 診断の報告を、ファイルに書き出す(問題を、そのまま共有できるように)。
+ * 既定では、パス・ファイル名(`detail`)は、含めない。`--include-paths` で、含める(ホームのパスは、`~` に置き換える)。
+ */
+const writeReport = (
+  context: CommandContext,
+  target: string,
+  findings: Finding[],
+  includePaths: boolean
+): string => {
+  const path = resolve(target);
+  const environment = {
+    seiriVersion: cliPackage.version,
+    bun: Bun.version,
+    platform: process.platform,
+    arch: process.arch,
+    standalone: false,
+    tools: {
+      perl: toolVersion('perl', ['-e', 'print $^V']),
+      ffmpeg: toolVersion('ffmpeg', ['-version']),
+      sips: context.findTool('sips') ? 'あり' : undefined,
+    },
+  };
+  const items = findings.map((finding) => ({
+    level: finding.level,
+    area: finding.area,
+    title: redactHome(finding.title),
+    ...(includePaths && finding.detail
+      ? { detail: redactHome(finding.detail) }
+      : {}),
+    ...(finding.hint ? { hint: finding.hint } : {}),
+    fixable: Boolean(finding.fix),
+  }));
+  const summary = {
+    error: countOf(findings, 'error'),
+    warn: countOf(findings, 'warn'),
+    info: countOf(findings, 'info'),
+    ok: countOf(findings, 'ok'),
+  };
+  const body = path.toLowerCase().endsWith('.json')
+    ? `${JSON.stringify(
+        {
+          createdAt: context.now().toISOString(),
+          includePaths,
+          environment,
+          summary,
+          findings: items,
+        },
+        null,
+        2
+      )}\n`
+    : [
+        `seiri 診断の報告 ${context.now().toISOString()}`,
+        `seiri ${environment.seiriVersion} / bun ${environment.bun} / ${environment.platform} ${environment.arch}`,
+        `perl: ${environment.tools.perl ?? 'なし'} / ffmpeg: ${environment.tools.ffmpeg ?? 'なし'} / sips: ${environment.tools.sips ?? 'なし'}`,
+        `要対応 ${summary.error + summary.warn} 件(問題 ${summary.error} / 注意 ${summary.warn})、知らせ ${summary.info} 件、問題なし ${summary.ok} 件`,
+        '',
+        ...items.flatMap((item) => [
+          `${MARKS[item.level]} [${item.area}] ${item.title}`,
+          ...('detail' in item && item.detail
+            ? item.detail.split('\n').map((l) => `    ${l}`)
+            : []),
+          ...(item.hint ? [`    対処: ${item.hint}`] : []),
+        ]),
+        '',
+      ].join('\n');
+  mkdirSync(dirname(path), { recursive: true });
+  const temporary = `${path}.tmp`;
+  writeFileSync(temporary, body);
+  renameSync(temporary, path);
+  return path;
+};
+
 /**
  * `doctor [--library <パス>] [--fix] [-y]`: トラブルの診断。何も書き換えず、見つけた問題と、対処を案内する。
  * `--fix` で、安全に直せるもの(古い登録の削除・中断で残った一時ファイル・付属ファイルの掃除)だけを直す。
@@ -133,6 +232,12 @@ export const doctorCommand = async (
       findings = runChecks(context, { libraryRoot, deep: args.deep });
       show(findings);
     }
+  }
+  if (args.report) {
+    const path = writeReport(context, args.report, findings, args.includePaths);
+    context.stdout(
+      `\n診断の報告を書き出しました: ${path}${args.includePaths ? '' : '(パス・ファイル名は、伏せてあります)'}`
+    );
   }
   const bad = countOf(findings, 'error') + countOf(findings, 'warn');
   context.stdout(

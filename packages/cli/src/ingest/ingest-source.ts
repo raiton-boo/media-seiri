@@ -3,10 +3,12 @@ import { basename, join, resolve } from 'node:path';
 import {
   createSnapshot,
   finishRun,
+  getVolumeHistory,
   incrementRevision,
   type LockInfo,
   LockLostError,
   listUnfinishedRuns,
+  recordError,
   recordEvent,
   recordRunCapacity,
   resumeRun,
@@ -23,12 +25,14 @@ import {
 import { CliError } from '../cli-error.ts';
 import { libraryWorkDir } from '../config/paths.ts';
 import type { CommandContext } from '../context.ts';
+import { COPY_CHUNK_BYTES, hashWithoutCache } from '../copy/index.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { exportRunLog } from '../log/export.ts';
 import type { MetadataReader } from '../metadata/index.ts';
 import type { RepairTools } from '../repair/index.ts';
 import { collectScan, type ScannedFile } from '../scan/index.ts';
 import { runThumbnailStage } from '../thumbs/index.ts';
+import { spotCheck } from '../verify/spot-check.ts';
 import { recordVolume, type VolumeInfo } from '../volume/index.ts';
 import { type AnalyzeEnvironment, analyzeFile } from './analyze.ts';
 import { mapConcurrent, readConcurrency } from './concurrency.ts';
@@ -74,6 +78,8 @@ export type IngestOptions = {
   yes: boolean;
   /** ライブ表示を使わない(ログの行だけ) */
   plain: boolean;
+  /** 取り込みの最後に、コピーしたファイルの一部を、読み直して照合する(既定: する) */
+  spotCheck: boolean;
 };
 
 /** ソースを処理するための、実行全体で共有するもの */
@@ -103,7 +109,11 @@ class StopRequested extends Error {
 
 import { terminalColumns } from '../live/terminal-size.ts';
 import { renderReport } from '../present/report-view.tsx';
-import { copyResultReport, summaryReport } from '../present/summary-report.ts';
+import {
+  copyResultReport,
+  spotCheckReport,
+  summaryReport,
+} from '../present/summary-report.ts';
 
 /** 取り込みの結果(サマリー)を出す。ライブ表示の間は、画面を閉じてから、まとめて出す(`context.report`) */
 const reportLines = (
@@ -179,6 +189,8 @@ export const ingestSource = async (
   assertDifferentVolumes(sourceVolume, destinationVolume);
 
   const volume = write(() => recordVolume(db, sourceVolume, context.now()));
+  // このソースの、これまでの取り込み(初めてのソースなら、なし)
+  const history = getVolumeHistory(db, volume.volumeId);
   const unfinished = listUnfinishedRuns(db, volume.volumeId).filter(
     (run) => !run.isDryRun
   );
@@ -239,6 +251,13 @@ export const ingestSource = async (
   }
 
   const summary = emptySummary();
+  if (history.runs > 0 && history.lastStartedAt) {
+    summary.previous = {
+      runs: history.runs,
+      lastStartedAt: history.lastStartedAt,
+      filesDone: history.filesDone,
+    };
+  }
   const startedAt = performance.now();
   context.progress.begin({
     runId,
@@ -389,7 +408,7 @@ export const ingestSource = async (
           sourceFileId,
           analyzeEnvironment
         );
-        context.progress.analyzeDone(file.relPath);
+        context.progress.analyzeDone(file.relPath, file.sizeBytes);
         analyzed += 1;
         if (analyzed % PROGRESS_INTERVAL === 0)
           context.stdout(`  解析: ${analyzed} / ${rows.length}`);
@@ -518,6 +537,59 @@ export const ingestSource = async (
     if (thumbnails.stopped) {
       const thumbReason = stopRequested();
       if (thumbReason) return stopped(thumbReason);
+    }
+
+    // 抜き取り照合: 書き終えたあとの、ドライブの上の状態を、もう一度、確かめる(全件は、seiri verify)
+    if (options.spotCheck && summary.copy && summary.copy.copied > 0) {
+      context.progress.phase('抜き取り照合');
+      const spot = await spotCheck({
+        db,
+        libraryRoot: library.root,
+        runId,
+        hashFile: (path) => hashWithoutCache(path, COPY_CHUNK_BYTES),
+        random: context.random,
+        shouldStop: () => stopRequested() !== undefined,
+      });
+      summary.copy.spotCheck = {
+        checked: spot.checked,
+        matched: spot.matched,
+        problems: spot.problems.length,
+      };
+      write(() => {
+        for (const problem of spot.problems) {
+          recordError(db, {
+            runId,
+            code: 'HASH_MISMATCH',
+            detail: `抜き取り照合: ${problem.relPath}: ${problem.detail}`,
+            occurredAt: context.now(),
+          });
+        }
+      });
+      summary.errorFiles += spot.problems.length;
+      if (spot.problems.length > 0) {
+        summary.errorsByCode.HASH_MISMATCH =
+          (summary.errorsByCode.HASH_MISMATCH ?? 0) + spot.problems.length;
+      }
+      log(
+        spot.problems.length > 0 ? 'ERROR' : 'INFO',
+        'SPOT_CHECK',
+        `抜き取り照合: ${spot.checked} 件を読み直し、一致 ${spot.matched} 件、問題 ${spot.problems.length} 件`
+      );
+      reportLines(
+        context,
+        context.fancy
+          ? [
+              renderReport(
+                spotCheckReport(spot.checked, spot.matched, spot.problems),
+                terminalColumns()
+              ),
+            ]
+          : [
+              '',
+              `  抜き取り照合　　　　　　　　　　: ${spot.checked} ファイルを読み直し → 一致 ${spot.matched}${spot.problems.length > 0 ? ` / 不一致・読めない ${spot.problems.length}` : ''}`,
+              ...spot.problems.map((p) => `    ${p.relPath}: ${p.detail}`),
+            ]
+      );
     }
 
     const { snapshotFailed } = conclude('completed');

@@ -14,6 +14,8 @@ export type IngestArguments = {
   yes: boolean;
   /** ライブ表示を使わない(ログの行だけ) */
   plain: boolean;
+  /** 取り込みの最後の、抜き取り照合を行う */
+  spotCheck: boolean;
 };
 
 /** `ingest <ソース...> --dest <ライブラリの根> [--dry-run] [--resume] [--yes] [--rehash] [--restore-snapshot]` */
@@ -52,5 +54,6 @@ export const ingestCommand = async (
     resume: args.resume,
     yes: args.yes,
     plain: args.plain,
+    spotCheck: args.spotCheck,
   });
 };

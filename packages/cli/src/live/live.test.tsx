@@ -245,6 +245,27 @@ describe('createFeed(進み具合の集計)', () => {
       summary,
     });
 
+  test('解析の間も、読んだ速さ(MB/s)が、速さのグラフに出る', async () => {
+    const w = world();
+    const feed = createFeed();
+    begin(feed, w);
+    feed.scanned({
+      found: 3,
+      photos: 3,
+      videos: 0,
+      raws: 0,
+      zipEntries: 0,
+      zipSizes: new Map(),
+    });
+    feed.analyzeTotal(3);
+    feed.sampleSpeed();
+    feed.analyzeStart('a.jpg');
+    feed.analyzeDone('a.jpg', 50 * 1024 ** 2);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    feed.sampleSpeed();
+    expect(feed.speeds().at(-1) ?? 0).toBeGreaterThan(0);
+  });
+
   test('begin の前は、状態がない', () => {
     expect(createFeed().snapshot()).toBeUndefined();
   });

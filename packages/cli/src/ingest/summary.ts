@@ -50,6 +50,8 @@ export type IngestSummary = {
   errorsByCode: Partial<Record<ErrorCode, number>>;
   hashComputed: number;
   hashFromCache: number;
+  /** このソースの、これまでの取り込み(初めてなら undefined) */
+  previous?: { runs: number; lastStartedAt: string; filesDone: number };
   /** スキャン・解析・計画にかかった時間(ミリ秒)。dry-run では、これが、全体の時間 */
   elapsedMs: number;
   sequencedGroups: number;
@@ -70,6 +72,8 @@ export type CopyResult = {
   /** コピーにかかった時間(ミリ秒) */
   elapsedMs: number;
   stopReason: StopReason | undefined;
+  /** 取り込みの最後の、抜き取り照合の結果(行わなかったときは undefined) */
+  spotCheck?: { checked: number; matched: number; problems: number };
 };
 
 export const emptySummary = (): IngestSummary => ({
@@ -238,6 +242,14 @@ export const formatSummary = (
       `計算 ${count(summary.hashComputed)} / キャッシュ ${count(summary.hashFromCache)}`
     )
   );
+  if (summary.previous) {
+    lines.push(
+      line(
+        'このソースの履歴',
+        `これまでに ${count(summary.previous.runs)} 回、${count(summary.previous.filesDone)} ファイルを取り込み済み(最後 ${summary.previous.lastStartedAt.slice(0, 10)})`
+      )
+    );
+  }
   lines.push(
     line(
       context.isDryRun ? '所要時間' : '解析の時間',
@@ -309,6 +321,14 @@ export const formatCopyResult = (result: CopyResult): string[] => {
   ];
   const speed = formatSpeed(result.copiedBytes, result.elapsedMs);
   if (speed) lines.push(line('平均の速さ', speed));
+  if (result.spotCheck) {
+    lines.push(
+      line(
+        '抜き取り照合',
+        `${count(result.spotCheck.checked)} ファイルを読み直し → 一致 ${count(result.spotCheck.matched)}${result.spotCheck.problems > 0 ? ` / 不一致・読めない ${count(result.spotCheck.problems)}` : ''}`
+      )
+    );
+  }
   if (result.stopReason)
     lines.push('', `中断: ${STOP_MESSAGES[result.stopReason]}`);
   return lines;
