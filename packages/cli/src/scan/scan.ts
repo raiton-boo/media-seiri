@@ -6,6 +6,7 @@ import {
   type FileKind,
   isExcludedName,
 } from '@file-seiri/core';
+import type { ArchiveProblem } from '../archive/expand.ts';
 import { CliError } from '../cli-error.ts';
 import { relativeToVolume, type VolumeInfo } from '../volume/index.ts';
 
@@ -14,7 +15,18 @@ export const ARCHIVE_EXTENSION = 'zip';
 
 export type ScanKind = FileKind | 'archive';
 
+/** ZIP の中のファイルを、一時領域に取り出したもの。使い終わったら、`cleanup` で、消す */
+export type Materialized = {
+  path: string;
+  cleanup: () => Promise<void>;
+};
+
 export type ScannedFile = {
+  /**
+   * ZIP の中のファイルは、使うときに、一時領域へ 1 ファイルだけ取り出す(`materializeFile`)。通常のファイルは、なし。
+   * ZIP の中のファイルの `absolutePath` は、実在しない、表示用のパス(`/…/a.zip!/inner/b.jpg`)。
+   */
+  materialize?: () => Promise<Materialized>;
   absolutePath: string;
   /** ボリューム内の相対パス(`/` 区切り)。台帳の `rel_path` */
   relPath: string;
@@ -155,6 +167,12 @@ export function* scanSource(options: ScanOptions): Generator<ScanEvent> {
 
 export type ScanSummary = {
   files: ScannedFile[];
+  /** ZIP を開いた結果(`expandArchives` のあと。開かなければ、なし) */
+  archive?: {
+    problems: ArchiveProblem[];
+    opened: number;
+    excluded: number;
+  };
   emptyFiles: ScannedFile[];
   skipped: Extract<ScanEvent, { type: 'skipped' }>[];
   unreadable: Extract<ScanEvent, { type: 'unreadable' }>[];

@@ -1,5 +1,5 @@
 import { existsSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import {
   createSnapshot,
   finishRun,
@@ -14,12 +14,19 @@ import {
   type WriteLock,
 } from '@file-seiri/ledger';
 import { rebuildAlbumEvents } from '../album/rebuild.ts';
+import {
+  cleanupArchiveTemp,
+  DEFAULT_MAX_ENTRY_BYTES,
+  expandArchives,
+  MAX_ZIP_DEPTH,
+} from '../archive/index.ts';
 import { CliError } from '../cli-error.ts';
+import { libraryWorkDir } from '../config/paths.ts';
 import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { exportRunLog } from '../log/export.ts';
 import type { MetadataReader } from '../metadata/index.ts';
-import { collectScan } from '../scan/index.ts';
+import { collectScan, type ScannedFile } from '../scan/index.ts';
 import { runThumbnailStage } from '../thumbs/index.ts';
 import { recordVolume, type VolumeInfo } from '../volume/index.ts';
 import { type AnalyzeEnvironment, analyzeFile } from './analyze.ts';
@@ -239,10 +246,22 @@ export const ingestSource = async (
 
   try {
     context.stdout(`スキャン: ${sourceRoot}`);
-    const scan = collectScan({
+    // 前の実行の残りの、取り出しかけのファイルを、消す(ZIP の取り出し先)
+    const archiveTmpDir = join(
+      libraryWorkDir(context.dataDir, library.libraryId),
+      'tmp'
+    );
+    cleanupArchiveTemp(archiveTmpDir);
+    const found = collectScan({
       sourceRoot,
       volume: sourceVolume,
       excludePaths: [library.root, context.dataDir],
+    });
+    // ZIP は、開いて、中のファイルを足す(取り出しは、解析・コピーのときに、1 ファイルずつ)
+    const scan = await expandArchives(found, {
+      tmpDir: archiveTmpDir,
+      maxDepth: MAX_ZIP_DEPTH,
+      maxEntryBytes: DEFAULT_MAX_ENTRY_BYTES,
     });
     const { rows } = recordScan({
       db,
@@ -258,13 +277,14 @@ export const ingestSource = async (
       `  ${scan.files.length + scan.emptyFiles.length} ファイルを見つけました(解析する対象: ${rows.length})`
     );
 
-    const jsonNamesByDirectory = new Map<string, Set<string>>();
+    const jsonFilesByDirectory = new Map<string, Map<string, ScannedFile>>();
     for (const file of scan.files) {
       if (file.kind !== 'json') continue;
-      const names =
-        jsonNamesByDirectory.get(file.directory) ?? new Set<string>();
-      names.add(file.fileName);
-      jsonNamesByDirectory.set(file.directory, names);
+      const files =
+        jsonFilesByDirectory.get(file.directory) ??
+        new Map<string, ScannedFile>();
+      files.set(file.fileName, file);
+      jsonFilesByDirectory.set(file.directory, files);
     }
     const analyzeEnvironment: AnalyzeEnvironment = {
       db,
@@ -273,7 +293,7 @@ export const ingestSource = async (
       dateOptions: { now: context.now(), timeZone: context.timeZone },
       rehash: options.rehash,
       now: context.now,
-      jsonNamesByDirectory,
+      jsonFilesByDirectory,
     };
     let analyzed = 0;
     const analyses = await mapConcurrent(

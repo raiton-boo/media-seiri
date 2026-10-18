@@ -12,6 +12,7 @@ import {
   setSourceFileState,
   type WriteLock,
 } from '@file-seiri/ledger';
+import { ZipExtractError } from '../archive/index.ts';
 import type { CommandContext } from '../context.ts';
 import {
   CopyError,
@@ -20,6 +21,7 @@ import {
   usesAppleDouble,
 } from '../copy/index.ts';
 import { SourceChangedError } from '../hash/index.ts';
+import { materializeFile } from '../scan/index.ts';
 import type { VolumeInfo } from '../volume/index.ts';
 import type { FileAnalysis } from './analyze.ts';
 import { COPY_START, encodeCopyIntent } from './copy-events.ts';
@@ -55,6 +57,11 @@ const messageOf = (error: unknown): string =>
 
 /** コピーの失敗を、エラーのコードと、続けられるかに分ける */
 const classify = (error: unknown): Failure => {
+  if (error instanceof ZipExtractError)
+    return {
+      code: error.kind === 'encrypted' ? 'ZIP_ENCRYPTED' : 'READ_FAILED',
+      detail: error.message,
+    };
   if (error instanceof LockLostError)
     return { code: 'COPY_FAILED', detail: error.message, fatal: 'lock-lost' };
   if (error instanceof SourceChangedError)
@@ -173,16 +180,22 @@ export const executeCopies = async (
             occurredAt: at(),
           });
         });
-        await copyVerified({
-          sourcePath: file.absolutePath,
-          destinationPath: destination,
-          expected: {
-            sizeBytes: file.sizeBytes,
-            mtimeMs: file.mtimeMs,
-            hash: analysis.content.hash,
-          },
-          removeAppleDouble,
-        });
+        // ZIP の中のファイルは、ここで、一時領域に取り出して、コピーし、すぐ消す
+        const materialized = await materializeFile(file);
+        try {
+          await copyVerified({
+            sourcePath: materialized.path,
+            destinationPath: destination,
+            expected: {
+              sizeBytes: file.sizeBytes,
+              mtimeMs: file.mtimeMs,
+              hash: analysis.content.hash,
+            },
+            removeAppleDouble,
+          });
+        } finally {
+          await materialized.cleanup();
+        }
         lock.transaction(() => {
           let groupId = groupIds.get(groupIndex);
           if (groupId === undefined) {

@@ -1,6 +1,5 @@
 import type { Database } from 'bun:sqlite';
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import {
   type DateInput,
   type DateOptions,
@@ -9,6 +8,7 @@ import {
   resolveDate,
 } from '@file-seiri/core';
 import type { Content, MediaDetails } from '@file-seiri/ledger';
+import { ZipExtractError } from '../archive/index.ts';
 import { resolveContent } from '../hash/index.ts';
 import {
   findTakeoutJson,
@@ -16,7 +16,12 @@ import {
   parseTakeoutJson,
   type TakeoutMetadata,
 } from '../metadata/index.ts';
-import type { ScannedFile } from '../scan/index.ts';
+import {
+  type Materialized,
+  materializeFile,
+  type ScannedFile,
+  withMaterialized,
+} from '../scan/index.ts';
 
 /** 1 ファイルの解析の結果 */
 export type FileAnalysis = {
@@ -49,25 +54,36 @@ export type AnalyzeEnvironment = {
   dateOptions: DateOptions;
   rehash: boolean;
   now: () => Date;
-  /** フォルダ(ソースからの相対)ごとの、json のファイル名(Takeout)。写真・動画に対応する json を探す */
-  jsonNamesByDirectory: ReadonlyMap<string, ReadonlySet<string>>;
+  /** フォルダ(ソースからの相対。ZIP の中も)ごとの、json のファイル(Takeout)。写真・動画に対応する json を探す */
+  jsonFilesByDirectory: ReadonlyMap<string, ReadonlyMap<string, ScannedFile>>;
 };
 
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+/** ZIP から取り出せなかった原因を、エラーの種類にする(暗号化 → `ZIP_ENCRYPTED`、ほかは `READ_FAILED`) */
+const problemOf = (error: unknown): { code: ErrorCode; detail: string } => ({
+  code:
+    error instanceof ZipExtractError && error.kind === 'encrypted'
+      ? 'ZIP_ENCRYPTED'
+      : 'READ_FAILED',
+  detail: messageOf(error),
+});
+
 /** 対応する Takeout の json を読む。なければ、読めなければ、空の結果 */
-const readTakeout = (
+const readTakeout = async (
   file: ScannedFile,
   environment: AnalyzeEnvironment
-): TakeoutMetadata => {
-  const names = environment.jsonNamesByDirectory.get(file.directory);
-  if (!names) return {};
-  const jsonName = findTakeoutJson(file.fileName, names);
-  if (!jsonName) return {};
+): Promise<TakeoutMetadata> => {
+  const jsonFiles = environment.jsonFilesByDirectory.get(file.directory);
+  if (!jsonFiles) return {};
+  const jsonName = findTakeoutJson(file.fileName, new Set(jsonFiles.keys()));
+  const jsonFile = jsonName === undefined ? undefined : jsonFiles.get(jsonName);
+  if (!jsonFile) return {};
   try {
-    return parseTakeoutJson(
-      readFileSync(join(dirname(file.absolutePath), jsonName), 'utf8')
+    // ZIP の中の json は、一時領域に出して読み、すぐ消す
+    return await withMaterialized(jsonFile, async (path) =>
+      parseTakeoutJson(readFileSync(path, 'utf8'))
     );
   } catch {
     // json は、補助の情報。読めなくても、取り込みは続ける(本体のメタデータ・ファイル名で決める)
@@ -113,54 +129,70 @@ export const analyzeFile = async (
   let metadataError: string | undefined;
   let warning: string | undefined;
   let problem: FileAnalysis['problem'];
-
-  if (file.kind !== 'xmp') {
-    const read = await environment.metadataReader.read(
-      file.absolutePath,
-      file.kind === 'video'
-    );
-    const takeout = readTakeout(file, environment);
-    if (read.ok) {
-      dateInput = {
-        fileName: file.fileName,
-        mtime,
-        ...read.metadata.dates,
-        ...(takeout.photoTakenEpochSeconds === undefined
-          ? {}
-          : { takeoutPhotoTakenEpochSeconds: takeout.photoTakenEpochSeconds }),
-      };
-      details = withTakeoutGps(read.metadata.details, takeout);
-      warning = read.metadata.warning;
-    } else {
-      metadataError = read.error;
-      // 読めなかった場合も、Takeout の json があれば、日付に使う
-      if (takeout.photoTakenEpochSeconds !== undefined) {
-        dateInput = {
-          ...dateInput,
-          takeoutPhotoTakenEpochSeconds: takeout.photoTakenEpochSeconds,
-        };
-      }
-      details = withTakeoutGps({}, takeout);
-    }
-  }
-
   let content: Content | undefined;
   let fromCache = false;
+
+  // ZIP の中のファイルは、一時領域に取り出して読む(終わったら、すぐ消す)。取り出せなければ、読めないものとして扱う
+  let materialized: Materialized | undefined;
   try {
-    const resolved = await resolveContent(environment.db, {
-      volumeId: environment.volumeId,
-      relPath: file.relPath,
-      absolutePath: file.absolutePath,
-      sizeBytes: file.sizeBytes,
-      mtimeMs: file.mtimeMs,
-      rehash: environment.rehash,
-      now: environment.now,
-    });
-    content = resolved.content;
-    fromCache = resolved.fromCache;
+    materialized = await materializeFile(file);
   } catch (error) {
-    // バイトが読めない(または、読んでいる間に変わった)ものは、コピーできない。メタデータの問題より、重い
-    problem = { code: 'READ_FAILED', detail: messageOf(error) };
+    problem = problemOf(error);
+  }
+
+  if (materialized) {
+    try {
+      if (file.kind !== 'xmp') {
+        const read = await environment.metadataReader.read(
+          materialized.path,
+          file.kind === 'video'
+        );
+        const takeout = await readTakeout(file, environment);
+        if (read.ok) {
+          dateInput = {
+            fileName: file.fileName,
+            mtime,
+            ...read.metadata.dates,
+            ...(takeout.photoTakenEpochSeconds === undefined
+              ? {}
+              : {
+                  takeoutPhotoTakenEpochSeconds: takeout.photoTakenEpochSeconds,
+                }),
+          };
+          details = withTakeoutGps(read.metadata.details, takeout);
+          warning = read.metadata.warning;
+        } else {
+          metadataError = read.error;
+          // 読めなかった場合も、Takeout の json があれば、日付に使う
+          if (takeout.photoTakenEpochSeconds !== undefined) {
+            dateInput = {
+              ...dateInput,
+              takeoutPhotoTakenEpochSeconds: takeout.photoTakenEpochSeconds,
+            };
+          }
+          details = withTakeoutGps({}, takeout);
+        }
+      }
+
+      try {
+        const resolved = await resolveContent(environment.db, {
+          volumeId: environment.volumeId,
+          relPath: file.relPath,
+          absolutePath: materialized.path,
+          sizeBytes: file.sizeBytes,
+          mtimeMs: file.mtimeMs,
+          rehash: environment.rehash,
+          now: environment.now,
+        });
+        content = resolved.content;
+        fromCache = resolved.fromCache;
+      } catch (error) {
+        // バイトが読めない(または、読んでいる間に変わった)ものは、コピーできない。メタデータの問題より、重い
+        problem = { code: 'READ_FAILED', detail: messageOf(error) };
+      }
+    } finally {
+      await materialized.cleanup();
+    }
   }
 
   return {
