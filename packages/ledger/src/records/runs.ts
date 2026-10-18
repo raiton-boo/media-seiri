@@ -3,8 +3,12 @@ import { formatTimestamp } from './time.ts';
 
 export type RunStatus = 'running' | 'completed' | 'interrupted' | 'failed';
 
+/** 実行の種類: 取り込み / ライブラリの再照合(`verify`) */
+export type RunKind = 'ingest' | 'verify';
+
 export type Run = {
   runId: number;
+  kind: RunKind;
   sourceVolumeId: number;
   isDryRun: boolean;
   status: RunStatus;
@@ -14,6 +18,9 @@ export type Run = {
 };
 
 export type RunInput = {
+  /** 既定は、取り込み */
+  kind?: RunKind;
+  /** 検査(`verify`)では、検査するライブラリのボリューム */
   sourceVolumeId: number;
   /** true なら、集計に含めない(`er.md` §3-3) */
   isDryRun: boolean;
@@ -29,7 +36,7 @@ export type RunFinish = {
 
 type RunRow = Omit<Run, 'isDryRun'> & { isDryRun: number };
 
-const COLUMNS = `run_id AS runId, source_volume_id AS sourceVolumeId, is_dry_run AS isDryRun,
+const COLUMNS = `run_id AS runId, kind, source_volume_id AS sourceVolumeId, is_dry_run AS isDryRun,
   status, started_at AS startedAt, finished_at AS finishedAt, revision_after AS revisionAfter`;
 
 const toRun = (row: RunRow): Run => ({ ...row, isDryRun: row.isDryRun === 1 });
@@ -38,9 +45,10 @@ const toRun = (row: RunRow): Run => ({ ...row, isDryRun: row.isDryRun === 1 });
 export const startRun = (db: Database, input: RunInput): number => {
   const result = db
     .query(
-      'INSERT INTO runs (source_volume_id, is_dry_run, started_at) VALUES (?, ?, ?)'
+      'INSERT INTO runs (kind, source_volume_id, is_dry_run, started_at) VALUES (?, ?, ?, ?)'
     )
     .run(
+      input.kind ?? 'ingest',
       input.sourceVolumeId,
       input.isDryRun ? 1 : 0,
       formatTimestamp(input.startedAt)
@@ -74,7 +82,7 @@ export const getRun = (db: Database, runId: number): Run | undefined => {
   return row ? toRun(row) : undefined;
 };
 
-/** 終わっていない実行(`running`・`interrupted`)。新しい順。同じコマンドで再開するために探す */
+/** 終わっていない取り込みの実行(`running`・`interrupted`。検査は、含めない)。新しい順。再開するために探す */
 export const listUnfinishedRuns = (
   db: Database,
   sourceVolumeId: number
@@ -82,7 +90,7 @@ export const listUnfinishedRuns = (
   db
     .query<RunRow, [number]>(
       `SELECT ${COLUMNS} FROM runs
-       WHERE source_volume_id = ? AND status IN ('running', 'interrupted')
+       WHERE source_volume_id = ? AND kind = 'ingest' AND status IN ('running', 'interrupted')
        ORDER BY run_id DESC`
     )
     .all(sourceVolumeId)
@@ -96,7 +104,7 @@ export const resumeRun = (db: Database, runId: number): void => {
   const result = db
     .query(
       `UPDATE runs SET status = 'running', finished_at = NULL
-       WHERE run_id = ? AND is_dry_run = 0 AND status IN ('interrupted', 'running')`
+       WHERE run_id = ? AND kind = 'ingest' AND is_dry_run = 0 AND status IN ('interrupted', 'running')`
     )
     .run(runId);
   if (result.changes === 0) {

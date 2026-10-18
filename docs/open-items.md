@@ -25,7 +25,6 @@
 | :---------------- | :---------------------------------------------------------------- | :---------------------------------------------------------------------- | :----- |
 | 採用側の選び方    | 並列処理のとき、先に確定した 1 件を採用(仮)                       | [仕様書 §5](specification.md)、[dedupe](features/dedupe.md)             | 実装時 |
 | 再実行の判定      | 「ボリューム+相対パス+サイズ+mtime」で処理済みを判定(仮)          | [仕様書 §8](specification.md)、[multi-source](features/multi-source.md) | 実装時 |
-| `verify --sample` | 抜き取り方(仮)                                                    | [hash-verify](features/hash-verify.md)                                  | 実装時 |
 | 変更通知          | CLI と Web の間は、まずポーリング(仮)                             | [tech-selection](tech-selection.md)                                     | PoC    |
 
 ## 3. 容量・ZIP・修復

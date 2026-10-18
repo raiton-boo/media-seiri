@@ -11,6 +11,7 @@ export {
   type CopyRequest,
   type CopyResult,
   copyVerified,
+  hashWithoutCache,
   partPathOf,
 } from './copy-file.ts';
 export { CopyError, DestinationExistsError } from './errors.ts';
