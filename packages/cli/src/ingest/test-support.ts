@@ -125,6 +125,7 @@ export const runIn = async (
     timeZone: 'Asia/Tokyo',
     isInteractive: false,
     fancy: false,
+    viewerBundleDir: undefined,
     useColor: false,
     sleep: async () => {},
     thumbnailMaker: () => fakeThumbnailMaker(),

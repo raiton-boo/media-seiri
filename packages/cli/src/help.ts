@@ -130,6 +130,20 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
     ],
   },
   {
+    name: 'viewer-install',
+    summary: '閲覧専用ビューアを、ドライブに置く(Windows でも見られる)',
+    usage: 'seiri viewer-install [--library <パス>]',
+    about: [
+      'ライブラリの viewer/ フォルダに、閲覧専用ビューア(Windows・Mac 用の実行ファイル)を置きます。',
+      'ドライブを Windows の PC につないで、その実行ファイルを開くと、ブラウザで、写真を見られます(見るだけ)。',
+      '取り込みの最後に、自動でも置かれます(ビューアの実行ファイルの一式が、見つかるとき)。',
+    ],
+    options: [LIBRARY, DATA_DIR],
+    examples: [
+      { command: 'seiri viewer-install', text: 'ビューアを、ドライブに置く' },
+    ],
+  },
+  {
     name: 'status',
     summary: '今の状況(ロック・直近の実行)を見る',
     usage: 'seiri status [--library <パス>]',

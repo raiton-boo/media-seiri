@@ -93,6 +93,16 @@ Web は、書き込みの操作を持たないので、動作モードを分け�
 - ライブラリの場所は、台帳が相対パスのため、ドライブ文字・マウント先が変わっても、動く ([ドライブ文字が変わっても動く](../requirements.md#w-04))。
 - 台帳のスナップショットが古い場合は、「最終の更新が、〇月〇日です」と表示する。
 
+## 9-0. 閲覧専用ビューアの実装(いまの実装)
+
+- **入口**: `packages/cli/src/main-viewer.ts`。取り込み・ExifTool・Ink を含まず、Mac 専用の処理(`diskutil`・`df`)を使わない(Windows でも動く)。読むのは、ライブラリの**スナップショット**(`.file-seiri/catalog.snapshot.sqlite`)と**サムネイル**(`.file-seiri/thumbs/`)だけ。この Mac の `data/` は、使わない。
+- **ライブラリの探し方**: 実行ファイルの置き場所から、上のフォルダへ向かって、「そのフォルダ自身」→「その直下」の順に、目印(`.file-seiri-library.json`)のあるフォルダを探し、見つかった最初の階層で止める。`<ライブラリ>/viewer/` に置けば、1 つ上。`<ドライブ>/viewer/` に置けば、ドライブ直下のライブラリ。複数あれば、番号で選ぶ。`--library <パス>` で、指定もできる。見つからなければ、置き場所の案内を出して、Enter を待つ(ダブルクリックで開いたとき、読めるように)。
+- **起動**: 127.0.0.1 の、既定のポート(3939)で配信する(使用中なら、空いているもの)。既定のブラウザを開く(`--no-open` で、開かない)。終わりは、ウィンドウを閉じるか、Ctrl-C。
+- **古いスナップショット**: 起動時に、最後の更新の日付と日数を出す。30 日以上前なら、注意を添える。画面にも、情報の帯に、日数を出す。
+- **作り方**: `bun run build:viewers` で、`dist/viewer/` に、`seiri-viewer-windows-x64.exe`・`seiri-viewer-macos-arm64`・`seiri-viewer-macos-x64` ができる(各 90〜110MB。`bun build --compile --target`。別の OS 用の実行環境を取得するため、初回は、ネットワークが要る)。単体の実行ファイル(`seiri`)の `build:binary` に、`--viewer` を付けたものと、同じ仕組み。
+- **ドライブへ置く**: 本実行の取り込みの最後に、実行ファイルの一式(環境変数 `FILE_SEIRI_VIEWER_BUNDLE` → `seiri` の隣の `viewer-bundle/` → リポジトリの `dist/viewer/`)が見つかれば、ライブラリの `viewer/` へ置く(説明の `README.txt` も)。版と大きさが同じなら、置き直さない。置けなくても、取り込みは、成功のまま(警告だけ)。いつでも、`seiri viewer-install [--library]` で、置ける。exFAT・FAT では、`._` の付属ファイルを、掃除する。
+- **未確認**: Windows の実機での動作(日本語のパス・ドライブ文字・SmartScreen の警告)。署名はしていないため、初回は「詳細情報 → 実行」が要る(README に書く)。
+
 ## 9-1. 開発中の起動(いまの実装)
 
 - 画面を書き出す: `bun run --filter @file-seiri/viewer build:web`(`packages/viewer/web/out/` にできる)。
