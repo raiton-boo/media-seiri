@@ -8,6 +8,7 @@ import {
   LockLostError,
   listUnfinishedRuns,
   recordEvent,
+  recordRunCapacity,
   resumeRun,
   startRun,
   type WriteLock,
@@ -295,6 +296,13 @@ export const ingestSource = async (
     summary.capacity = estimateCapacity(
       summary.copyBytes,
       destinationVolume.freeBytes
+    );
+    // 容量の見積りを、実行に残す(dry-run の結果の画面で、あとから、足りていたかを見られるように)
+    write(() =>
+      recordRunCapacity(db, runId, {
+        requiredBytes: summary.capacity?.requiredBytes ?? 0,
+        destinationFreeBytes: summary.capacity?.freeBytes ?? 0,
+      })
     );
     const shortage = capacityProblem(summary.capacity);
     if (shortage) problems.push(shortage);

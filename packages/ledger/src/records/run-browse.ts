@@ -6,6 +6,7 @@ import {
   type RunSummaryRow,
   toRunSummary,
 } from './dashboard.ts';
+import type { RunCapacity } from './runs.ts';
 
 /** 実行履歴の絞り込み: すべて / 通常(dry-run でない)/ dry-run / 中断 */
 export type RunFilter = 'all' | 'normal' | 'dry-run' | 'interrupted';
@@ -48,6 +49,8 @@ export type RunDetail = RunSummary & {
   copyBytes: number;
   /** 対象外・無視したもの */
   ignored: number;
+  /** 容量の見積り(取り込みのとき。残っていない古い実行は、null) */
+  capacity: RunCapacity | null;
 };
 
 export const getRunDetail = (
@@ -63,16 +66,20 @@ export const getRunDetail = (
         copyBytes: number;
         ignored: number;
         revisionAfter: number | null;
+        requiredBytes: number | null;
+        destinationFreeBytes: number | null;
       },
-      [number, number]
+      [number, number, number, number]
     >(
       `SELECT count(*) AS detected,
               coalesce(sum(size_bytes) FILTER (WHERE state IN ('planned', 'done')), 0) AS copyBytes,
               count(*) FILTER (WHERE state = 'ignored') AS ignored,
-              (SELECT revision_after FROM runs WHERE run_id = ?) AS revisionAfter
+              (SELECT revision_after FROM runs WHERE run_id = ?) AS revisionAfter,
+              (SELECT required_bytes FROM runs WHERE run_id = ?) AS requiredBytes,
+              (SELECT destination_free_bytes FROM runs WHERE run_id = ?) AS destinationFreeBytes
        FROM source_files WHERE run_id = ?`
     )
-    .get(runId, runId);
+    .get(runId, runId, runId, runId);
   return {
     ...summary,
     revisionAfter: counts?.revisionAfter ?? null,
@@ -80,5 +87,12 @@ export const getRunDetail = (
     copyFiles: summary.adopted,
     copyBytes: counts?.copyBytes ?? 0,
     ignored: counts?.ignored ?? 0,
+    capacity:
+      counts?.requiredBytes != null && counts.destinationFreeBytes != null
+        ? {
+            requiredBytes: counts.requiredBytes,
+            destinationFreeBytes: counts.destinationFreeBytes,
+          }
+        : null,
   };
 };

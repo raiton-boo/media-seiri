@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { useDashboard } from '../../lib/api';
 import {
@@ -9,7 +10,6 @@ import {
   formatPeriodEnd,
   splitBytes,
 } from '../../lib/format';
-import { Button } from '../Button';
 import { Attention } from './Attention';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { RecentRuns } from './RecentRuns';
@@ -78,9 +78,9 @@ function Dashboard() {
           <div className="mono" style={{ fontSize: 12 }}>
             付き {formatCount(gps.with)} / なし {formatCount(gps.without)}
           </div>
-          <div className="mt-auto pt-2">
-            <Button href="/map">地図へ →</Button>
-          </div>
+          <Link href="/map" className="textlink mt-auto pt-2">
+            地図へ →
+          </Link>
         </div>
       </div>
 

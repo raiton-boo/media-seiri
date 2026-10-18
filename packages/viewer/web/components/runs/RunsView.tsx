@@ -3,6 +3,7 @@
 import { useRuns } from '../../lib/api';
 import { formatCount, formatDateTime } from '../../lib/format';
 import { useUrlState } from '../../lib/query-state';
+import { FilterChip } from '../FilterChip';
 import { ListSkeleton } from '../ListSkeleton';
 import { Pager } from '../Pager';
 import { RUN_KIND_LABELS, RunStatusChip } from '../RunLabels';
@@ -44,10 +45,9 @@ export function RunsView() {
         </div>
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((item) => (
-            <button
+            <FilterChip
               key={item.label}
-              type="button"
-              className={filter === item.value ? 'chip on' : 'chip'}
+              selected={filter === item.value}
               onClick={() =>
                 url.set({
                   filter: item.value,
@@ -57,7 +57,7 @@ export function RunsView() {
               }
             >
               {item.label}
-            </button>
+            </FilterChip>
           ))}
         </div>
       </div>
@@ -72,55 +72,59 @@ export function RunsView() {
           style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
         >
           <div className="flex flex-col gap-4">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>実行</th>
-                  <th>ソース</th>
-                  <th>状態</th>
-                  <th>採用</th>
-                  <th>重複</th>
-                  <th>フォールバック</th>
-                  <th>エラー</th>
-                  <th>開始</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((run) => (
-                  <tr
-                    key={run.runId}
-                    className={run.runId === selected?.runId ? 'hl' : undefined}
-                  >
-                    <td className="m">
-                      <button
-                        type="button"
-                        className="rowbtn"
-                        aria-pressed={run.runId === selected?.runId}
-                        onClick={() => url.set({ sel: String(run.runId) })}
-                      >
-                        #{run.runId}
-                      </button>
-                    </td>
-                    <td>
-                      {run.kind === 'ingest' ? null : (
-                        <span className="chip" style={{ marginRight: 8 }}>
-                          {RUN_KIND_LABELS[run.kind]}
-                        </span>
-                      )}
-                      {run.sourceLabel ?? '—'}
-                    </td>
-                    <td>
-                      <RunStatusChip run={run} />
-                    </td>
-                    <td className="m">{formatCount(run.adopted)}</td>
-                    <td className="m">{formatCount(run.duplicates)}</td>
-                    <td className="m">{formatCount(run.dateFallback)}</td>
-                    <td className="m">{formatCount(run.errors)}</td>
-                    <td className="m">{formatDateTime(run.startedAt)}</td>
+            <div className="hatch">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>実行</th>
+                    <th>ソース</th>
+                    <th>状態</th>
+                    <th>採用</th>
+                    <th>重複</th>
+                    <th>フォールバック</th>
+                    <th>エラー</th>
+                    <th>開始</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.items.map((run) => (
+                    <tr
+                      key={run.runId}
+                      className={
+                        run.runId === selected?.runId ? 'hl' : undefined
+                      }
+                    >
+                      <td className="m">
+                        <button
+                          type="button"
+                          className="rowbtn"
+                          aria-pressed={run.runId === selected?.runId}
+                          onClick={() => url.set({ sel: String(run.runId) })}
+                        >
+                          #{run.runId}
+                        </button>
+                      </td>
+                      <td>
+                        {run.kind === 'ingest' ? null : (
+                          <span className="chip" style={{ marginRight: 8 }}>
+                            {RUN_KIND_LABELS[run.kind]}
+                          </span>
+                        )}
+                        {run.sourceLabel ?? '—'}
+                      </td>
+                      <td>
+                        <RunStatusChip run={run} />
+                      </td>
+                      <td className="m">{formatCount(run.adopted)}</td>
+                      <td className="m">{formatCount(run.duplicates)}</td>
+                      <td className="m">{formatCount(run.dateFallback)}</td>
+                      <td className="m">{formatCount(run.errors)}</td>
+                      <td className="m">{formatDateTime(run.startedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <Pager
               total={data.total}
               limit={data.limit}

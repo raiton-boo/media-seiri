@@ -123,8 +123,41 @@ a {
 .muted {
   opacity: 0.65;
 }
-/* 影は、押せるもの(.btn)だけに付ける。カード・表は、影を付けず、線と色面で構造を作る(arcana-members の原則)。
-   カードとボタンが同じに見えると、押せるか分からないため。ワイヤーフレームは、カードにも影があった */
+/* 押せるもの(.btn)の影は、ベタの黒。カード・表の影は、斜線(ハッチ)。立体感は残して、押せるかどうかを、影の質で見分けられるようにする
+   (arcana-members の「影は、押せるものだけ」の原則を、ネオブルータリズムの立体感と両立させた)。
+   斜線の影は、擬似要素で作る */
+.card,
+.hatch {
+  position: relative;
+  isolation: isolate;
+  --hs: 8px;
+}
+.card.s {
+  --hs: 5px;
+}
+/* 影(斜線)は、いちばん後ろ(-2)。面(カードの色)は、その上(-1)。中身は、その上。
+   カードごとに重なりの文脈を作る(isolation)ので、カードの中の小さなカードの影も、親の面に隠れない */
+.card::before,
+.hatch::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  transform: translate(var(--hs), var(--hs));
+  border: 2px solid var(--ink);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--ink) 0 2px,
+    transparent 2px 6px
+  );
+}
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: inherit;
+}
 .card {
   background: var(--paper);
   border: var(--bd);
@@ -1051,4 +1084,25 @@ select.sel {
 }
 .tbl tr.hl:has(.rowbtn):hover td {
   background: var(--y);
+}
+/* 文字のリンク(目立たせたい行き先): 大きく、太く、下線。ワイヤーフレームの「地図へ →」の下線を、太く大きくした */
+.textlink {
+  align-self: flex-start;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+}
+.textlink:hover {
+  text-decoration-thickness: 6px;
+}
+.textlink:focus-visible {
+  outline: 3px solid var(--b);
+  outline-offset: 3px;
+}
+/* 絞り込みの札: 選んでいるものは、黒く塗って、✓ を付ける */
+.chip .tick {
+  font-weight: 900;
 }

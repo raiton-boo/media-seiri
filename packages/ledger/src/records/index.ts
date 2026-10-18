@@ -99,10 +99,12 @@ export {
   listRecentRuns,
   listUnfinishedRuns,
   type Run,
+  type RunCapacity,
   type RunFinish,
   type RunInput,
   type RunKind,
   type RunStatus,
+  recordRunCapacity,
   resumeRun,
   startRun,
 } from './runs.ts';

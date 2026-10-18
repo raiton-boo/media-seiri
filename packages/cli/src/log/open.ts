@@ -3,6 +3,7 @@ import { type Ledger, LedgerError, openLedger } from '@file-seiri/ledger';
 import { CliError } from '../cli-error.ts';
 import { ledgerPathFor } from '../config/paths.ts';
 import type { CommandContext } from '../context.ts';
+import { describeLedgerOpenError } from '../ledger-error.ts';
 import { chooseLibraryRoot, libraryIdOf } from '../library/choose.ts';
 
 export type ReadOnlyLibrary = {
@@ -35,7 +36,7 @@ export const openLibraryReadOnly = (
     };
   } catch (error) {
     if (error instanceof LedgerError)
-      throw new CliError(`台帳を開けません: ${error.message}`);
+      throw new CliError(`台帳を開けません: ${describeLedgerOpenError(error)}`);
     throw error;
   }
 };

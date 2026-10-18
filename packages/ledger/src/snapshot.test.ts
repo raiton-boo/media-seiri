@@ -249,6 +249,27 @@ describe('compareWithSnapshot(リビジョンの比較)', () => {
     });
   });
 
+  test('古いスキーマの台帳・スナップショットでも、リビジョンを比べられる(移行の前に呼ぶため)', () => {
+    const { ledger, workingPath, snapshotPath } = setupPair(2, 2);
+    ledger.close();
+    // どちらも、スキーマの版を、1 つ古い値にする(プログラムを更新した直後の状態)
+    for (const path of [workingPath, snapshotPath]) {
+      const raw = new Database(path);
+      raw.exec('PRAGMA user_version = 1');
+      raw.close();
+    }
+    expect(
+      compareWithSnapshot({ workingPath, snapshotPath, libraryId: LIBRARY_ID })
+    ).toEqual({ kind: 'in-sync', workingRevision: 2, snapshotRevision: 2 });
+    // 新しすぎる版(別の、新しいプログラムが作った台帳)は、これまでどおり、エラー
+    const raw = new Database(workingPath);
+    raw.exec('PRAGMA user_version = 999');
+    raw.close();
+    expect(() => compareWithSnapshot({ workingPath, snapshotPath })).toThrow(
+      LedgerError
+    );
+  });
+
   test('何も書き換えない(比べるだけ)', () => {
     const pair = setupPair(1, 3);
     const before = readFileSync(pair.snapshotPath);

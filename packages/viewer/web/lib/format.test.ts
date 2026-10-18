@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatDuration,
   formatPeriodEnd,
+  shortenPath,
   splitBytes,
 } from './format.ts';
 
@@ -73,5 +74,14 @@ describe('format', () => {
       remainingSeconds: null,
     });
     expect(estimatePace({ ...base, total: 0, done: 0 }, now).percent).toBe(0);
+  });
+
+  test('shortenPath: 4 つ以上の区切りは、最後の 2 つだけ残して省く', () => {
+    expect(shortenPath('DCIM/a.jpg')).toBe('DCIM/a.jpg');
+    expect(shortenPath('A/B/c.jpg')).toBe('A/B/c.jpg');
+    expect(shortenPath('A/B/C/d.jpg')).toBe('…/C/d.jpg');
+    expect(shortenPath('/private/tmp/x/DCIM/e.jpg')).toBe('…/DCIM/e.jpg');
+    // ZIP の中身(`!` の後ろ)も、区切り(`/`)で数える
+    expect(shortenPath('A/B/C/z.zip ! in/f.jpg')).toBe('…/z.zip ! in/f.jpg');
   });
 });

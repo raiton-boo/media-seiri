@@ -2,9 +2,14 @@
 
 import type { BrowsedError } from '@file-seiri/ledger';
 import { errorsCsvUrl, useErrors } from '../../lib/api';
-import { formatCount, formatDateTimeSeconds } from '../../lib/format';
+import {
+  formatCount,
+  formatDateTimeSeconds,
+  shortenPath,
+} from '../../lib/format';
 import { useUrlState } from '../../lib/query-state';
 import { Button } from '../Button';
+import { FilterChip } from '../FilterChip';
 import { ListSkeleton } from '../ListSkeleton';
 import { Pager } from '../Pager';
 import { RUN_KIND_LABELS } from '../RunLabels';
@@ -15,6 +20,15 @@ export const describeSource = (source: BrowsedError['source']): string => {
   if (!source) return '(ファイルなし)';
   const path = `${source.volumeLabel ?? ''}/${source.relPath}`;
   return source.entryPath ? `${path} ! ${source.entryPath}` : path;
+};
+
+/** 表では、長いパスを、ドライブ名と最後の 2 つのフォルダ・ファイル名に省く(全体は、ホバーと、右の詳細に出す) */
+export const shortenSource = (source: BrowsedError['source']): string => {
+  if (!source) return '(ファイルなし)';
+  const path = source.entryPath
+    ? `${source.relPath} ! ${source.entryPath}`
+    : source.relPath;
+  return `${source.volumeLabel ?? ''}/${shortenPath(path)}`;
 };
 
 /** エラー一覧: コード・実行で絞り込み、行を選ぶと、右に詳細(サムネイル・内容・修復の経過) */
@@ -60,22 +74,21 @@ export function ErrorsView() {
             コード
           </span>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={code === undefined ? 'chip on' : 'chip'}
+            <FilterChip
+              selected={code === undefined}
               onClick={() => filterTo({ code: undefined })}
             >
               すべて {formatCount(totalCodes)}
-            </button>
+            </FilterChip>
             {data.codes.map((item) => (
-              <button
+              <FilterChip
                 key={item.code}
-                type="button"
-                className={code === item.code ? 'chip on' : 'chip r'}
+                selected={code === item.code}
+                marker="r"
                 onClick={() => filterTo({ code: item.code })}
               >
                 {item.code} {formatCount(item.count)}
-              </button>
+              </FilterChip>
             ))}
           </div>
         </div>
@@ -110,44 +123,46 @@ export function ErrorsView() {
           style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
         >
           <div className="flex flex-col gap-4">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>コード</th>
-                  <th>ファイル</th>
-                  <th>実行</th>
-                  <th>日時</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((item) => (
-                  <tr
-                    key={item.errorId}
-                    className={
-                      item.errorId === selected?.errorId ? 'hl' : undefined
-                    }
-                  >
-                    <td>
-                      <button
-                        type="button"
-                        className="rowbtn"
-                        aria-pressed={item.errorId === selected?.errorId}
-                        onClick={() => url.set({ sel: String(item.errorId) })}
-                      >
-                        <span className="chip r">{item.code}</span>
-                      </button>
-                    </td>
-                    <td className="m" style={{ wordBreak: 'break-all' }}>
-                      {describeSource(item.source)}
-                    </td>
-                    <td className="m">#{item.runId}</td>
-                    <td className="m">
-                      {formatDateTimeSeconds(item.occurredAt)}
-                    </td>
+            <div className="hatch">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>コード</th>
+                    <th>ファイル</th>
+                    <th>実行</th>
+                    <th>日時</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.items.map((item) => (
+                    <tr
+                      key={item.errorId}
+                      className={
+                        item.errorId === selected?.errorId ? 'hl' : undefined
+                      }
+                    >
+                      <td>
+                        <button
+                          type="button"
+                          className="rowbtn"
+                          aria-pressed={item.errorId === selected?.errorId}
+                          onClick={() => url.set({ sel: String(item.errorId) })}
+                        >
+                          <span className="chip r">{item.code}</span>
+                        </button>
+                      </td>
+                      <td className="m" title={describeSource(item.source)}>
+                        {shortenSource(item.source)}
+                      </td>
+                      <td className="m">#{item.runId}</td>
+                      <td className="m">
+                        {formatDateTimeSeconds(item.occurredAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <Pager
               total={data.total}
               limit={data.limit}

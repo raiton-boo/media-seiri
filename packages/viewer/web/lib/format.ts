@@ -121,3 +121,13 @@ export const formatDateTimeSeconds = (iso: string): string => {
   if (Number.isNaN(date.getTime())) return iso;
   return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
+
+/**
+ * 長いパスを省く: 区切り(`/`)で 4 つ以上あれば、最後の 2 つだけ残し、前を `…` にする(`A/B/C/D.jpg` → `…/C/D.jpg`)。
+ * 先頭に `/` が付くものは、そのまま扱う。
+ */
+export const shortenPath = (path: string): string => {
+  const parts = path.split('/').filter((part) => part !== '');
+  if (parts.length <= 3) return parts.join('/');
+  return `…/${parts.slice(-2).join('/')}`;
+};

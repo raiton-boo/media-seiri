@@ -10,7 +10,7 @@ import { insertFileGroup } from './file-groups.ts';
 import { openDb, seedRun, seedSourceFile, T0, T1 } from './fixtures.ts';
 import { insertLibraryFile } from './library-files.ts';
 import { browseRuns, getRunDetail } from './run-browse.ts';
-import { finishRun } from './runs.ts';
+import { finishRun, recordRunCapacity } from './runs.ts';
 import { setSourceFileContent, setSourceFileState } from './source-files.ts';
 import { upsertVolume } from './volumes.ts';
 
@@ -201,5 +201,30 @@ describe('browseRuns・getRunDetail', () => {
       ignored: 1,
     });
     expect(getRunDetail(db, 999)).toBeUndefined();
+  });
+
+  test('容量の見積りは、記録するまでは null。記録すると、詳細に出る(上書きもできる)', () => {
+    const db = openDb();
+    const seed = seedRun(db);
+    expect(getRunDetail(db, seed.runId)?.capacity).toBeNull();
+    recordRunCapacity(db, seed.runId, {
+      requiredBytes: 130,
+      destinationFreeBytes: 1800,
+    });
+    expect(getRunDetail(db, seed.runId)?.capacity).toEqual({
+      requiredBytes: 130,
+      destinationFreeBytes: 1800,
+    });
+    recordRunCapacity(db, seed.runId, {
+      requiredBytes: 5,
+      destinationFreeBytes: 6,
+    });
+    expect(getRunDetail(db, seed.runId)?.capacity).toEqual({
+      requiredBytes: 5,
+      destinationFreeBytes: 6,
+    });
+    expect(() =>
+      recordRunCapacity(db, 999, { requiredBytes: 1, destinationFreeBytes: 1 })
+    ).toThrow();
   });
 });

@@ -79,9 +79,25 @@ export function RunDetailCard({ id }: { id: number }) {
             <Count label="対象外" value={run.ignored} />
           </div>
           <div className="card s">
-            <div className="mono" style={{ fontSize: 12 }}>
-              {run.isDryRun ? 'コピーする予定のサイズ' : 'コピーしたサイズ'}{' '}
-              {formatBytes(run.copyBytes)}
+            <div className="mono" style={{ fontSize: 12, lineHeight: 1.8 }}>
+              {run.capacity ? (
+                <>
+                  必要な容量 {formatBytes(run.capacity.requiredBytes)}
+                  (余裕分を含む)
+                  <br />
+                  保存先の空き {formatBytes(run.capacity.destinationFreeBytes)}{' '}
+                  →{' '}
+                  {run.capacity.destinationFreeBytes >=
+                  run.capacity.requiredBytes
+                    ? '足りています'
+                    : `足りません(不足 ${formatBytes(run.capacity.requiredBytes - run.capacity.destinationFreeBytes)})`}
+                </>
+              ) : (
+                <>
+                  {run.isDryRun ? 'コピーする予定のサイズ' : 'コピーしたサイズ'}{' '}
+                  {formatBytes(run.copyBytes)}
+                </>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -101,7 +117,7 @@ export function RunDetailCard({ id }: { id: number }) {
         </>
       )}
       {run.isDryRun ? (
-        <div className="mono" style={{ fontSize: 12 }}>
+        <div className="note" style={{ background: 'var(--paper)' }}>
           dry-run の結果は、アルバム・地図・統計には含まれません。
         </div>
       ) : null}
