@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { IngestHooks } from './ingest/copy-stage.ts';
+import type { ThumbnailMaker } from './thumbs/maker.ts';
 import type { VolumeInfo } from './volume/index.ts';
 
 /** コマンドが使う、外の世界との境目。テストでは、差し替える */
@@ -31,6 +32,8 @@ export type CommandContext = {
   useColor: boolean;
   /** 指定のミリ秒、待つ(`logs --follow`)。テストでは、差し替える */
   sleep: (milliseconds: number) => Promise<void>;
+  /** サムネイルを作るもの(sips・ffmpeg・ExifTool を使う)。使い終わったら、`close` を呼ぶ。テストでは、差し替える */
+  thumbnailMaker: () => ThumbnailMaker;
   /** テストで、取り込みの途中に割り込むための差し込み口 */
   ingestHooks?: IngestHooks;
 };

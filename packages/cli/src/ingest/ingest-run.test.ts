@@ -205,6 +205,7 @@ describe('ingest(本実行): コピーと記録', () => {
     expect(existsSync(snapshotPath)).toBe(true);
     expect(readdirSync(join(world.library, '.file-seiri')).sort()).toEqual([
       'catalog.snapshot.sqlite',
+      'thumbs',
     ]);
     const snapshot = openLedger(snapshotPath, { mode: 'readonly' });
     try {

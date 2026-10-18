@@ -6,11 +6,13 @@ import { ingestCommand } from './commands/ingest.ts';
 import { libraryInit } from './commands/library-init.ts';
 import { logsCommand } from './commands/logs.ts';
 import { statusCommand } from './commands/status.ts';
+import { thumbsCommand } from './commands/thumbs.ts';
 import { verifyCommand } from './commands/verify.ts';
 import { resolveDataDir } from './config/paths.ts';
 import { type CommandContext, newLibraryId } from './context.ts';
 import { EXIT_CODES, type ExitCode } from './exit-codes.ts';
 import { askYesNo } from './prompt.ts';
+import { createThumbnailMaker, type ThumbnailMaker } from './thumbs/index.ts';
 import {
   listMountedVolumes,
   resolveVolume as resolveRealVolume,
@@ -27,6 +29,7 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
   status                        ロックの保持者と、直近の実行の状況を表示する
   verify [--library <パス>] [--sample <割合>]
                                 ライブラリの全ファイルを読み直して、台帳と照合する(修復・削除はしない)
+  thumbs [--library <パス>]     サムネイルのないファイルに、サムネイルを作る(何度でも実行できる)
   ingest <ソース...> --dest <ライブラリの根>
                                 ソースを取り込む(--dry-run: コピーせず、結果だけ)
 
@@ -34,7 +37,7 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
   --data-dir <パス>   作業用の領域(data/)の場所。環境変数 FILE_SEIRI_DATA_DIR でも指定できる
   --dest <パス>       ingest の保存先(ライブラリの根)
   --dry-run           ingest で、コピーせずに、結果だけを見る
-  --library <パス>    verify・logs・status の対象のライブラリの根(登録が 1 つだけなら、省ける)
+  --library <パス>    verify・thumbs・logs・status の対象のライブラリの根(登録が 1 つだけなら、省ける)
   --run <ID> / --level <レベル> / --tail <N> / -f, --follow / --verbose / --quiet   logs の絞り込み・追いかけ
   --sample <割合>     verify を、抜き取りで行う(例: 0.1、10%)
   --resume            ingest で、中断した実行を、続きから実行する
@@ -58,6 +61,7 @@ export type RunEnvironment = {
   random?: () => number;
   useColor?: boolean;
   sleep?: (milliseconds: number) => Promise<void>;
+  thumbnailMaker?: () => ThumbnailMaker;
   ingestHooks?: CommandContext['ingestHooks'];
 };
 
@@ -120,6 +124,7 @@ export const run = async (
         environment.sleep ??
         ((milliseconds) =>
           new Promise((resolve) => setTimeout(resolve, milliseconds))),
+      thumbnailMaker: environment.thumbnailMaker ?? createThumbnailMaker,
       ingestHooks: environment.ingestHooks,
     };
     const [command, subcommand, ...rest] = positionals;
@@ -147,6 +152,12 @@ export const run = async (
       return await verifyCommand(context, {
         library: values.library,
         sample: values.sample,
+        restoreSnapshot: values['restore-snapshot'] ?? false,
+      });
+    }
+    if (command === 'thumbs' && positionals.length === 1) {
+      return await thumbsCommand(context, {
+        library: values.library,
         restoreSnapshot: values['restore-snapshot'] ?? false,
       });
     }

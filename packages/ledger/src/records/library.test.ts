@@ -25,6 +25,8 @@ import {
   libraryPathExists,
   listLibraryFilesByContent,
   listLibraryFilesByGroup,
+  listThumbnailCandidates,
+  setThumbRelPath,
 } from './library-files.ts';
 
 const seedLibraryFile = (
@@ -92,6 +94,23 @@ describe('file_groups・library_files', () => {
     expect(libraryPathExists(db, '2024/03/20240305_IMG_0001.jpg')).toBe(true);
     expect(libraryPathExists(db, '2024/03/20240305_img_0001.JPG')).toBe(true);
     expect(libraryPathExists(db, '2024/03/20240305_IMG_0002.jpg')).toBe(false);
+  });
+
+  test('サムネイルの候補は、ハッシュつきで返り、場所を記録すると、反映される', () => {
+    const db = openDb();
+    const seed = seedRun(db);
+    const id = seedLibraryFile(db, seed);
+    const [candidate] = listThumbnailCandidates(db);
+    expect(candidate).toEqual({
+      libraryFileId: id,
+      relPath: '2024/03/20240305_IMG_0001.jpg',
+      thumbRelPath: null,
+      contentHash: expect.stringMatching(/^[0-9]{64}$/),
+    });
+    setThumbRelPath(db, id, '00/abc.jpg');
+    expect(getLibraryFile(db, id)?.thumbRelPath).toBe('00/abc.jpg');
+    expect(listThumbnailCandidates(db)[0]?.thumbRelPath).toBe('00/abc.jpg');
+    expect(() => setThumbRelPath(db, 999, 'x.jpg')).toThrow();
   });
 
   test('core の choosePlacements と組み合わせると、衝突のとき、連番を選ぶ', () => {
