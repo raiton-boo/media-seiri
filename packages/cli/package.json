@@ -12,6 +12,7 @@
   "dependencies": {
     "@file-seiri/core": "workspace:*",
     "@file-seiri/ledger": "workspace:*",
+    "@file-seiri/viewer": "workspace:*",
     "exiftool-vendored": "^39.0.1"
   }
 }

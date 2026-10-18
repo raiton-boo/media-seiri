@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { systemTimeZone } from '@file-seiri/core';
+import { DEFAULT_WEB_DIR } from '@file-seiri/viewer';
 import { CliError } from './cli-error.ts';
 import { drivesCommand } from './commands/drives.ts';
 import { ingestCommand } from './commands/ingest.ts';
@@ -8,6 +9,7 @@ import { logsCommand } from './commands/logs.ts';
 import { statusCommand } from './commands/status.ts';
 import { thumbsCommand } from './commands/thumbs.ts';
 import { verifyCommand } from './commands/verify.ts';
+import { viewerCommand } from './commands/viewer.ts';
 import { resolveDataDir } from './config/paths.ts';
 import { type CommandContext, newLibraryId } from './context.ts';
 import { EXIT_CODES, type ExitCode } from './exit-codes.ts';
@@ -30,6 +32,8 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
   verify [--library <パス>] [--sample <割合>]
                                 ライブラリの全ファイルを読み直して、台帳と照合する(修復・削除はしない)
   thumbs [--library <パス>]     サムネイルのないファイルに、サムネイルを作る(何度でも実行できる)
+  viewer [--library <パス>] [--port <番号>] [--snapshot]
+                                ライブラリを、ブラウザで見る(閲覧専用。本機の 127.0.0.1 だけで配信する)
   ingest <ソース...> --dest <ライブラリの根>
                                 ソースを取り込む(--dry-run: コピーせず、結果だけ)
 
@@ -40,6 +44,8 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
   --library <パス>    verify・thumbs・logs・status の対象のライブラリの根(登録が 1 つだけなら、省ける)
   --run <ID> / --level <レベル> / --tail <N> / -f, --follow / --verbose / --quiet   logs の絞り込み・追いかけ
   --sample <割合>     verify を、抜き取りで行う(例: 0.1、10%)
+  --port <番号>       viewer の待ち受けポート(既定 3939。0 なら、空いているものを選ぶ)
+  --snapshot          viewer で、この Mac の台帳ではなく、ライブラリのスナップショットを開く(家の PC と同じ見え方)
   --resume            ingest で、中断した実行を、続きから実行する
   -y, --yes           ingest で、コピーの前の確認を、省く
   --rehash            ingest で、ハッシュのキャッシュを使わず、計算し直す
@@ -62,6 +68,7 @@ export type RunEnvironment = {
   useColor?: boolean;
   sleep?: (milliseconds: number) => Promise<void>;
   thumbnailMaker?: () => ThumbnailMaker;
+  viewerWebDir?: string;
   ingestHooks?: CommandContext['ingestHooks'];
 };
 
@@ -91,6 +98,8 @@ export const run = async (
         tail: { type: 'string' },
         follow: { type: 'boolean', short: 'f' },
         sample: { type: 'string' },
+        port: { type: 'string' },
+        snapshot: { type: 'boolean' },
         yes: { type: 'boolean', short: 'y' },
         help: { type: 'boolean', short: 'h' },
       },
@@ -125,6 +134,7 @@ export const run = async (
         ((milliseconds) =>
           new Promise((resolve) => setTimeout(resolve, milliseconds))),
       thumbnailMaker: environment.thumbnailMaker ?? createThumbnailMaker,
+      viewerWebDir: environment.viewerWebDir ?? DEFAULT_WEB_DIR,
       ingestHooks: environment.ingestHooks,
     };
     const [command, subcommand, ...rest] = positionals;
@@ -159,6 +169,13 @@ export const run = async (
       return await thumbsCommand(context, {
         library: values.library,
         restoreSnapshot: values['restore-snapshot'] ?? false,
+      });
+    }
+    if (command === 'viewer' && positionals.length === 1) {
+      return await viewerCommand(context, {
+        library: values.library,
+        port: values.port,
+        snapshot: values.snapshot ?? false,
       });
     }
     if (command === 'ingest') {

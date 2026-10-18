@@ -1,0 +1,7 @@
+/* Tailwind は、配置(flex・grid・gap など)の補助にだけ使う。見た目は neo.css が正本(design.md §2)。
+   preflight(リセット)は、ワイヤーフレームの見た目を変えないため、読み込まない。 */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./neo.css";
+
+/* 余白の刻み(design.md §3): 4 / 8 / 12 / 16 / 24 / 32 px は、Tailwind の既定(1 単位 = 4px)の gap-1 / 2 / 3 / 4 / 6 / 8 にあたる */
