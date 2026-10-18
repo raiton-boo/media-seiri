@@ -13,6 +13,7 @@
   --l: #c1aeff;
   --r: #ff5a4d;
   --y2: #fff0a3;
+  --r-deep: #d63326;
   --desk: #ede6d0;
   --map: #dce9d5;
   --sk: #e6e0cc;
@@ -309,7 +310,9 @@ a {
   background: var(--l);
 }
 .chip.r {
-  background: var(--r);
+  /* 白い文字が読める赤(コントラスト比 4.8。--r の白は 3.1) */
+  background: var(--r-deep);
+  color: var(--paper);
 }
 .field {
   display: flex;
@@ -1191,4 +1194,12 @@ select.sel {
   font-size: 13px;
   font-weight: 400;
   white-space: nowrap;
+}
+
+/* 選んでいる赤い札: 赤のまま、✓ と、太い枠で分かる */
+.chip.r.on {
+  background: var(--r-deep);
+  color: var(--paper);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
 }

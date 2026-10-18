@@ -82,7 +82,7 @@ export function ErrorsView() {
               <FilterChip
                 key={item.code}
                 selected={code === item.code}
-                marker="r"
+                tone="r"
                 onClick={() => filterTo({ code: item.code })}
               >
                 {item.code} {formatCount(item.count)}
