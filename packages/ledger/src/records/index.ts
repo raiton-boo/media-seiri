@@ -18,6 +18,13 @@ export {
   pickPhotoOfDay,
 } from './album-browse.ts';
 export {
+  type CalendarDay,
+  type DaySummary,
+  getDaySummary,
+  listCalendarDays,
+  listCalendarYears,
+} from './album-calendar.ts';
+export {
   type AlbumEvent,
   type AlbumEventInput,
   countAlbumEvents,

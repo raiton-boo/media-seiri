@@ -577,7 +577,8 @@ a {
   background: var(--paper);
 }
 .seg span,
-.seg a {
+.seg a,
+.seg button {
   padding: 7px 16px;
   font-weight: 900;
   font-size: 14px;
@@ -586,6 +587,13 @@ a {
 }
 .seg > :last-child {
   border-right: 0;
+}
+.seg button {
+  cursor: pointer;
+  background: none;
+}
+.seg button.on {
+  cursor: default;
 }
 .seg .on {
   background: var(--ink);

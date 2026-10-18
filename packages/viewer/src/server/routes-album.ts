@@ -3,8 +3,11 @@ import {
   type AlbumFilter,
   type AlbumOrder,
   countFilteredPhotos,
+  getDaySummary,
   getEventDetail,
   listAlbumSections,
+  listCalendarDays,
+  listCalendarYears,
   listEventStacks,
   listFilteredPhotos,
   listFilterOptions,
@@ -26,6 +29,8 @@ import type {
   AlbumSectionsResponse,
   AlbumYearResponse,
   AreaLabelsResponse,
+  CalendarDayResponse,
+  CalendarResponse,
   SearchPhotosResponse,
   SearchSuggestResponse,
 } from '../api-types.ts';
@@ -75,6 +80,7 @@ const parseDate = (
  * - `GET /api/album/event/:id`: できごとの写真(ページ送り)と、前後のできごと
  * - `GET /api/album/all/sections`・`/api/album/all/photos?y=&m=`: 「すべて」(区画の一覧と、区画ごとの写真。絞り込みの条件つき)
  * - `GET /api/album/search/suggest?q=`・`/api/album/search/photos`: 検索の候補と結果(絞り込みの条件つき)
+ * - `GET /api/album/calendar?y=`・`/api/album/day?day=`: カレンダー(日ごとの枚数・選んだ日のまとめ。絞り込みの条件つき)
  * - `GET /api/album/filters`: 絞り込みの選択肢と件数
  * - `GET /api/album/memories?date=&salt=`: 去年の今日・今日の一枚
  * どれも `order=new|old`(既定は new)で、並び順を変えられる。
@@ -203,6 +209,37 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
         order,
         SECTION_PHOTO_LIMIT
       ),
+    };
+    return context.json(body);
+  });
+
+  // カレンダー: 年の、日ごとの枚数と、選んだ日のまとめ
+  app.get('/api/album/calendar', (context) => {
+    const filter = filterOf(context);
+    const years = listCalendarYears(db, filter);
+    const requested = parseId(context.req.query('y'));
+    const year =
+      requested !== undefined && requested >= 1 && requested <= 9999
+        ? requested
+        : (years[0]?.year ?? null);
+    const days = year === null ? [] : listCalendarDays(db, year, filter);
+    const body: CalendarResponse = {
+      years,
+      year,
+      days,
+      total: days.reduce((sum, day) => sum + day.count, 0),
+    };
+    return context.json(body);
+  });
+
+  // 日付は `day`(`date` は、検索の日付の条件の名前)
+  app.get('/api/album/day', (context) => {
+    const date = parseDate(context.req.query('day'));
+    if (!date) return context.json({ error: 'bad date' }, 400);
+    const text = `${String(date.year).padStart(4, '0')}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`;
+    const body: CalendarDayResponse = {
+      date: text,
+      ...getDaySummary(db, text, filterOf(context)),
     };
     return context.json(body);
   });

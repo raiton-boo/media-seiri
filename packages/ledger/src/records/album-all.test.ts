@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { listAlbumSections, listSectionPhotos } from './album-all.ts';
 import { listMonthSummaries, listYearCounts } from './album-browse.ts';
+import {
+  getDaySummary,
+  listCalendarDays,
+  listCalendarYears,
+} from './album-calendar.ts';
 import { listFilterOptions } from './album-facets.ts';
 import {
   albumFilterSql,
@@ -503,5 +508,45 @@ describe('listGpsCells・NO_PLACE', () => {
   });
   test('NO_PLACE は、どの写真にも合わない', () => {
     expect(countFilteredPhotos(ctx.db, { places: [NO_PLACE] })).toBe(0);
+  });
+});
+
+describe('カレンダー', () => {
+  const ctx = build(SPECS);
+  test('年の、日ごとの枚数。年・月だけの日付と、日付なしは、載らない', () => {
+    expect(listCalendarDays(ctx.db, 2016, {})).toEqual([
+      { date: '2016-08-13', count: 1 },
+      { date: '2016-12-24', count: 2 },
+      { date: '2016-12-31', count: 1 },
+    ]);
+    // 2014: 4/6 の 1 枚だけ(`2014` は年だけなので、載らない)
+    expect(listCalendarDays(ctx.db, 2014, {})).toEqual([
+      { date: '2014-04-06', count: 1 },
+    ]);
+    expect(listCalendarDays(ctx.db, 2016, { kinds: ['video'] })).toEqual([
+      { date: '2016-12-24', count: 1 },
+    ]);
+  });
+  test('年の一覧(新しい年が先)', () => {
+    expect(listCalendarYears(ctx.db, {})).toEqual([
+      { year: 2016, count: 4 },
+      { year: 2014, count: 1 },
+    ]);
+  });
+  test('選んだ日のまとめ: 枚数・最初と最後の時刻・GPS', () => {
+    expect(getDaySummary(ctx.db, '2016-12-24', {})).toEqual({
+      count: 2,
+      firstClock: '18:00',
+      lastClock: '18:10',
+      gpsCount: 1,
+    });
+    // 時刻のない日(精度が date)
+    expect(getDaySummary(ctx.db, '2014-04-06', {})).toEqual({
+      count: 1,
+      firstClock: null,
+      lastClock: null,
+      gpsCount: 0,
+    });
+    expect(getDaySummary(ctx.db, '1999-01-01', {}).count).toBe(0);
   });
 });
