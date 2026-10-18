@@ -1,6 +1,7 @@
 import type {
   AlbumOrder,
   AlbumPhoto,
+  AlbumSection,
   BrowsedError,
   DashboardSummary,
   DuplicateGroup,
@@ -133,4 +134,19 @@ export type AlbumEventResponse = EventDetail & {
 export type AlbumMemoriesResponse = {
   onThisDay: OnThisDay[];
   photoOfDay: AlbumPhoto | null;
+};
+
+/** 「すべて」の区画の一覧(表示の順)。絞り込みに合うものだけ */
+export type AlbumSectionsResponse = {
+  order: AlbumOrder;
+  total: number;
+  sections: AlbumSection[];
+};
+
+/** 1 つの区画の写真(`year` 0 = 日付なし、`month` 0 = 月不明) */
+export type AlbumSectionPhotosResponse = {
+  year: number;
+  month: number;
+  order: AlbumOrder;
+  photos: AlbumPhoto[];
 };

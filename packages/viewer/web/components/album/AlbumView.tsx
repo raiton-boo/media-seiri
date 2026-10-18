@@ -7,14 +7,17 @@ import {
   useAlbumEvent,
   useAlbumMonth,
   useAlbumOverview,
+  useAlbumSections,
   useAlbumYear,
 } from '../../lib/api';
 import { formatCount } from '../../lib/format';
 import { useUrlState } from '../../lib/query-state';
 import { Button } from '../Button';
+import { FilterChip } from '../FilterChip';
 import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
 import { RevealPage } from '../motion/Reveal';
+import { AllView } from './AllView';
 import { EventDesk } from './EventDesk';
 import { Memories } from './Memories';
 import { MonthDesk } from './MonthDesk';
@@ -37,7 +40,7 @@ const toInt = (value: string | undefined): number | undefined => {
  */
 export function AlbumView() {
   const url = useUrlState();
-  const view = (['year', 'month', 'event'] as const).find(
+  const view = (['year', 'month', 'event', 'all'] as const).find(
     (candidate) => candidate === url.get('view')
   );
   const order = url.get('order') === 'old' ? 'old' : 'new';
@@ -47,7 +50,10 @@ export function AlbumView() {
   const more = toInt(url.get('more')) ?? EVENT_STEP;
   const showSmall = url.get('small') === '1';
 
+  const layout = url.get('layout') === 'rows' ? 'rows' : 'masonry';
+
   const overview = useAlbumOverview(order);
+  const allSections = useAlbumSections(order);
   const event = useAlbumEvent(eventId, order, more);
   const eventStart = event.data?.startAt;
   // いま開いている年(定規の開く年): できごとなら、その年。入口は、最新の年
@@ -64,7 +70,11 @@ export function AlbumView() {
   );
 
   const failed =
-    overview.isError || yearData.isError || monthData.isError || event.isError;
+    overview.isError ||
+    (view === 'all' && allSections.isError) ||
+    yearData.isError ||
+    monthData.isError ||
+    event.isError;
   if (failed) {
     return (
       <div className="page">
@@ -106,19 +116,23 @@ export function AlbumView() {
 
   const entrance = view === undefined;
   const heading =
-    view === 'event' && eventStart
-      ? eventTitle(eventStart)
-      : view === 'month' && monthParam
-        ? `${year}年${monthParam}月`
-        : `${year}年`;
+    view === 'all'
+      ? 'すべて'
+      : view === 'event' && eventStart
+        ? eventTitle(eventStart)
+        : view === 'month' && monthParam
+          ? `${year}年${monthParam}月`
+          : `${year}年`;
   const kicker =
-    view === 'event'
-      ? 'EVENT / 机の上に広げる'
-      : view === 'month'
-        ? 'MONTH / できごとの束'
-        : entrance
-          ? `入口 / 最新の年の机 / ${order === 'new' ? '新しい順' : '古い順'}`
-          : `YEAR / ${order === 'new' ? '新しい順' : '古い順'}`;
+    view === 'all'
+      ? `ALL / ${order === 'new' ? '新しい順' : '古い順'}`
+      : view === 'event'
+        ? 'EVENT / 机の上に広げる'
+        : view === 'month'
+          ? 'MONTH / できごとの束'
+          : entrance
+            ? `入口 / 最新の年の机 / ${order === 'new' ? '新しい順' : '古い順'}`
+            : `YEAR / ${order === 'new' ? '新しい順' : '古い順'}`;
 
   return (
     <RevealPage className="page">
@@ -127,7 +141,7 @@ export function AlbumView() {
         data-motion="title"
       >
         <div>
-          {view ? (
+          {view && view !== 'all' ? (
             <div className="mono" style={{ fontSize: 14, fontWeight: 700 }}>
               <Link
                 href={albumHref({ order })}
@@ -169,7 +183,10 @@ export function AlbumView() {
           ) : (
             <div className="kicker">{kicker}</div>
           )}
-          <h1 className="h1" style={view ? { paddingTop: 8 } : undefined}>
+          <h1
+            className="h1"
+            style={view && view !== 'all' ? { paddingTop: 8 } : undefined}
+          >
             {heading}{' '}
             {entrance && year === overview.data.latestYear ? (
               <span
@@ -200,6 +217,9 @@ export function AlbumView() {
 
       <div className="flex flex-wrap items-center gap-3" data-motion="block">
         <span className="mono" style={{ fontSize: 13, fontWeight: 700 }}>
+          {zoom === 'all' &&
+            allSections.data &&
+            `${formatCount(allSections.data.total)} 枚 / 年月ごとに、すべて並べている`}
           {zoom === 'year' &&
             `${formatCount(yearData.data.total)} 枚 / 月ごとの代表を広げている`}
           {zoom === 'month' &&
@@ -211,6 +231,31 @@ export function AlbumView() {
         </span>
       </div>
 
+      {zoom === 'all' ? (
+        <>
+          <div className="flex flex-wrap gap-2" data-motion="block">
+            <FilterChip
+              selected={layout === 'masonry'}
+              onClick={() => url.set({ layout: undefined })}
+            >
+              マソンリー
+            </FilterChip>
+            <FilterChip
+              selected={layout === 'rows'}
+              onClick={() => url.set({ layout: 'rows' })}
+            >
+              行ぞろえ
+            </FilterChip>
+          </div>
+          {allSections.data ? (
+            <AllView
+              sections={allSections.data.sections}
+              order={order}
+              layout={layout}
+            />
+          ) : null}
+        </>
+      ) : null}
       {zoom === 'year' ? <YearDesk data={yearData.data} /> : null}
       {zoom === 'month' && monthEvents ? (
         <MonthDesk

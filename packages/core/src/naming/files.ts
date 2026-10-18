@@ -50,6 +50,13 @@ const VIDEO_EXTENSIONS = [
   'mpeg',
 ];
 
+/** 種類ごとの拡張子(小文字・ドットなし)。アルバムの種別の絞り込み(SQL)で使う */
+export const EXTENSIONS_BY_KIND = {
+  photo: PHOTO_EXTENSIONS,
+  raw: RAW_EXTENSIONS,
+  video: VIDEO_EXTENSIONS,
+} as const;
+
 const KIND_BY_EXTENSION = new Map<string, FileKind>([
   ...PHOTO_EXTENSIONS.map((extension): [string, FileKind] => [
     extension,

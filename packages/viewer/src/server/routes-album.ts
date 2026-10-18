@@ -1,9 +1,11 @@
 import {
   type AlbumOrder,
   getEventDetail,
+  listAlbumSections,
   listEventStacks,
   listMonthSummaries,
   listOnThisDay,
+  listSectionPhotos,
   listYearCounts,
   pickPhotoOfDay,
 } from '@file-seiri/ledger';
@@ -13,9 +15,11 @@ import type {
   AlbumMemoriesResponse,
   AlbumMonthResponse,
   AlbumOverviewResponse,
+  AlbumSectionPhotosResponse,
+  AlbumSectionsResponse,
   AlbumYearResponse,
 } from '../api-types.ts';
-import { parseId } from './query.ts';
+import { parseAlbumFilter, parseId } from './query.ts';
 import type { ViewerSource } from './source.ts';
 
 /** 「小さなできごと」の境(この枚数より少ないものは、まとめる。仕様書 §16-6) */
@@ -23,6 +27,8 @@ const SMALL_EVENT_FILES = 3;
 /** 1 回に返す、できごとの写真の数(「もっと広げる」で、+12 枚) */
 const EVENT_PAGE = 12;
 const MAX_EVENT_PAGE = 60;
+/** 「すべて」の、1 つの区画の写真の上限(月が、極端に多いときの、安全のため) */
+const SECTION_PHOTO_LIMIT = 5000;
 /** 去年の今日に出す、できごとの数 */
 const ON_THIS_DAY = 3;
 
@@ -51,6 +57,7 @@ const parseDate = (
  * - `GET /api/album/year?y=`: 1 年の、月ごとの枚数と代表
  * - `GET /api/album/month?y=&m=`: 1 か月の、できごと(束)
  * - `GET /api/album/event/:id`: できごとの写真(ページ送り)と、前後のできごと
+ * - `GET /api/album/all/sections`・`/api/album/all/photos?y=&m=`: 「すべて」(区画の一覧と、区画ごとの写真。絞り込みの条件つき)
  * - `GET /api/album/memories?date=&salt=`: 去年の今日・今日の一枚
  * どれも `order=new|old`(既定は new)で、並び順を変えられる。
  */
@@ -131,6 +138,44 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
         : getEventDetail(db, id, order, { limit, offset });
     if (!detail) return context.json({ error: 'not found' }, 404);
     const body: AlbumEventResponse = { ...detail, order, limit, offset };
+    return context.json(body);
+  });
+
+  // 「すべて」: 区画(年月)の一覧と、区画ごとの写真。見えている区画だけ、画面が取りに来る(仮想スクロール)
+  app.get('/api/album/all/sections', (context) => {
+    const order = orderOf(context.req.query('order'));
+    const sections = listAlbumSections(
+      db,
+      parseAlbumFilter((name) => context.req.queries(name)),
+      order
+    );
+    const body: AlbumSectionsResponse = {
+      order,
+      total: sections.reduce((sum, section) => sum + section.count, 0),
+      sections,
+    };
+    return context.json(body);
+  });
+
+  app.get('/api/album/all/photos', (context) => {
+    const year = parseId(context.req.query('y'));
+    const month = parseId(context.req.query('m'));
+    if (year === undefined || month === undefined || month > 12) {
+      return context.json({ error: 'bad section' }, 400);
+    }
+    const order = orderOf(context.req.query('order'));
+    const body: AlbumSectionPhotosResponse = {
+      year,
+      month,
+      order,
+      photos: listSectionPhotos(
+        db,
+        parseAlbumFilter((name) => context.req.queries(name)),
+        { year, month },
+        order,
+        SECTION_PHOTO_LIMIT
+      ),
+    };
     return context.json(body);
   });
 

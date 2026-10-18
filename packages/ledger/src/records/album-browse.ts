@@ -22,13 +22,14 @@ export type AlbumPhoto = {
   durationSec: number | null;
 };
 
-type PhotoRow = Omit<AlbumPhoto, 'kind' | 'hasGps'> & { hasGps: number };
+export type PhotoRow = Omit<AlbumPhoto, 'kind' | 'hasGps'> & { hasGps: number };
 
 const PHOTO_COLUMNS = `f.library_file_id AS libraryFileId, f.rel_path AS relPath, f.thumb_rel_path AS thumbRelPath,
   m.taken_at AS takenAt, m.width AS width, m.height AS height, m.duration_sec AS durationSec,
   (m.gps_lat IS NOT NULL) AS hasGps`;
 
-const toPhoto = (row: PhotoRow): AlbumPhoto => {
+/** SQL の行を、机に置く写真にする(種類は、拡張子から。GPS は、真偽に) */
+export const toAlbumPhoto = (row: PhotoRow): AlbumPhoto => {
   const kind = classifyFile(row.relPath);
   return {
     ...row,
@@ -106,7 +107,7 @@ export const listMonthSummaries = (
          ) WHERE rn = 1`
       )
       .all(prefix)
-      .map((row) => [row.month, toPhoto(row)])
+      .map((row) => [row.month, toAlbumPhoto(row)])
   );
   const months = Array.from({ length: 12 }, (_, index) => ({
     month: index + 1,
@@ -169,7 +170,7 @@ export const listEventStacks = (
   for (const row of photos) {
     byEvent.set(row.albumEventId, [
       ...(byEvent.get(row.albumEventId) ?? []),
-      toPhoto(row),
+      toAlbumPhoto(row),
     ]);
   }
   return events.map((event) => ({
@@ -221,7 +222,7 @@ export const getEventDetail = (
        LIMIT ? OFFSET ?`
     )
     .all(albumEventId, page.limit, page.offset)
-    .map(toPhoto);
+    .map(toAlbumPhoto);
   const camera =
     db
       .query<{ model: string }, [number]>(
@@ -305,7 +306,7 @@ export const listOnThisDay = (
       albumEventId: event.albumEventId,
       startAt: event.startAt,
       fileCount: event.fileCount,
-      cover: row ? toPhoto(row) : null,
+      cover: row ? toAlbumPhoto(row) : null,
     };
   });
 };
@@ -331,5 +332,5 @@ export const pickPhotoOfDay = (
        ORDER BY f.library_file_id LIMIT 1 OFFSET ?`
     )
     .get(((seed % total) + total) % total);
-  return row ? toPhoto(row) : null;
+  return row ? toAlbumPhoto(row) : null;
 };

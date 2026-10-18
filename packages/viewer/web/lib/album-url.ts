@@ -2,13 +2,15 @@ import { queryString } from './api';
 
 export type AlbumLocation = {
   /** 省くと、入口(最新の年の机) */
-  view?: 'year' | 'month' | 'event';
+  view?: 'year' | 'month' | 'event' | 'all';
   y?: number;
   m?: number;
   /** できごとの ID */
   e?: number;
   /** 並び順。`new`(既定)は、URL に出さない */
   order?: 'new' | 'old';
+  /** 「すべて」の配置。`masonry`(既定)は、URL に出さない */
+  layout?: 'masonry' | 'rows';
   /** 月の机で、小さなできごとも出す */
   small?: boolean;
   /** できごとの机で、広げた写真の数(既定は、12 枚) */
@@ -23,6 +25,7 @@ export const albumHref = (location: AlbumLocation = {}): string =>
     m: location.m,
     e: location.e,
     order: location.order === 'old' ? 'old' : undefined,
+    layout: location.layout === 'rows' ? 'rows' : undefined,
     small: location.small ? 1 : undefined,
     more: location.more,
   })}`;
