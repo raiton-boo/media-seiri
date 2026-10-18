@@ -13,6 +13,7 @@ import type {
   AlbumSectionsResponse,
   AlbumYearResponse,
   AreaLabelsResponse,
+  AutoAlbumsResponse,
   CalendarDayResponse,
   CalendarResponse,
   DashboardResponse,
@@ -373,5 +374,14 @@ export const useCalendarDay = (date: string | undefined, filter: FilterState) =>
         `/api/album/day${queryString({ day: date, ...filterParams(filter) })}`
       ),
     enabled: date !== undefined,
+    placeholderData: keepPreviousData,
+  });
+
+/** 自動アルバム: できごと(新しい順。先頭から `limit` 件)と、いろいろな切り口 */
+export const useAutoAlbums = (limit: number) =>
+  useQuery({
+    queryKey: ['album-auto', limit],
+    queryFn: () =>
+      fetchJson<AutoAlbumsResponse>(`/api/album/auto${queryString({ limit })}`),
     placeholderData: keepPreviousData,
   });

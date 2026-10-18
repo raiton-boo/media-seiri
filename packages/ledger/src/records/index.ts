@@ -4,6 +4,13 @@ export {
   listSectionPhotos,
 } from './album-all.ts';
 export {
+  type AutoAlbum,
+  type AutoAlbumKind,
+  type AutoEvent,
+  listAutoAlbums,
+  listLatestEvents,
+} from './album-auto.ts';
+export {
   type AlbumOrder,
   type AlbumPhoto,
   type EventDetail,

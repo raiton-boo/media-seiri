@@ -15,6 +15,8 @@ export type AlbumFilter = {
   dateSources?: string[];
   /** ソースのドライブ(コピーしたソースのファイルの、ドライブ) */
   volumeIds?: number[];
+  /** ライブフォト: 同名グループに、写真と動画の両方があるもの(その写真も動画も) */
+  livePhotos?: boolean;
   /** できごと(拡大表示で、できごとの中を、前後に動くときの範囲) */
   eventId?: number;
   /** 検索: 日付(`YYYY` / `YYYY-MM` / `YYYY-MM-DD`)。撮影日時が、その日付で始まるもの。複数なら、どれか */
@@ -126,6 +128,21 @@ export const albumFilterSql = (
     );
     for (const place of filter.places) params.push(place.lat, place.lon);
   }
+  if (filter.livePhotos) {
+    const likes = (kind: 'photo' | 'video'): string =>
+      EXTENSIONS_BY_KIND[kind]
+        .map(() => "lower(g.rel_path) LIKE ? ESCAPE '\\'")
+        .join(' OR ');
+    parts.push(
+      `f.group_id IN (
+         SELECT g.group_id FROM library_files AS g WHERE ${likes('photo')}
+         INTERSECT
+         SELECT g.group_id FROM library_files AS g WHERE ${likes('video')})`
+    );
+    for (const kind of ['photo', 'video'] as const)
+      for (const extension of EXTENSIONS_BY_KIND[kind])
+        params.push(`%.${extension}`);
+  }
   if (filter.eventId !== undefined) {
     parts.push('f.album_event_id = ?');
     params.push(filter.eventId);
@@ -146,6 +163,7 @@ export const countAlbumFilters = (filter: AlbumFilter): number =>
     filter.precisions?.length,
     filter.dateSources?.length,
     filter.volumeIds?.length,
+    filter.livePhotos ? 1 : 0,
     filter.dates?.length,
     filter.names?.length,
     filter.places?.length,

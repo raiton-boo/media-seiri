@@ -80,6 +80,7 @@ export const parseAlbumFilter = (
     ),
   ];
   const eventId = parseId(list('event')[0]);
+  const livePhotos = list('live')[0] === '1';
   const names = (queries('name') ?? []).filter(Boolean);
   const places = list('place').flatMap((value) => {
     const [lat, lon] = value.split(':').map(Number);
@@ -100,6 +101,7 @@ export const parseAlbumFilter = (
     ...(precisions.length > 0 ? { precisions } : {}),
     ...(dateSources.length > 0 ? { dateSources } : {}),
     ...(volumeIds.length > 0 ? { volumeIds } : {}),
+    ...(livePhotos ? { livePhotos } : {}),
     ...(eventId !== undefined ? { eventId } : {}),
     ...(dates.length > 0 ? { dates } : {}),
     ...(names.length > 0 ? { names } : {}),

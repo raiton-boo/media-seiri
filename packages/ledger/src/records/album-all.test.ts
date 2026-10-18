@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { listAlbumSections, listSectionPhotos } from './album-all.ts';
+import { listAutoAlbums, listLatestEvents } from './album-auto.ts';
 import { listMonthSummaries, listYearCounts } from './album-browse.ts';
 import {
   getDaySummary,
@@ -548,5 +549,114 @@ describe('カレンダー', () => {
       gpsCount: 0,
     });
     expect(getDaySummary(ctx.db, '1999-01-01', {}).count).toBe(0);
+  });
+});
+
+describe('自動アルバム', () => {
+  const ctx = build(SPECS);
+  const id = (rel: string) => ctx.ids.get(rel) as number;
+
+  test('切り口ごとの件数と、条件。ライブフォトは、組で数える(いまは、なし)', () => {
+    const albums = listAutoAlbums(ctx.db);
+    const byTitle = new Map(albums.map((album) => [album.title, album]));
+    expect(byTitle.get('動画')).toMatchObject({
+      count: 1,
+      unit: '本',
+      filter: { kinds: ['video'] },
+    });
+    expect(byTitle.get('RAW')).toMatchObject({ count: 1, unit: '枚' });
+    expect(byTitle.get('場所のある写真')).toMatchObject({
+      count: 1,
+      filter: { gps: true },
+    });
+    // 日付フォールバック: json と filename の 2 枚。日付なし: 1 枚
+    expect(byTitle.get('日付フォールバック')?.count).toBe(2);
+    expect(byTitle.get('日付なし')?.count).toBe(1);
+    // カメラ別: 多い順(Canon 2・Sony 1)。「不明」は、出さない
+    expect(
+      albums.filter((a) => a.kind === 'camera').map((a) => [a.title, a.count])
+    ).toEqual([
+      ['Canon', 2],
+      ['Sony', 1],
+    ]);
+    expect(byTitle.has('ライブフォト')).toBe(false);
+  });
+
+  test('ライブフォト: 同名グループに、写真と動画の両方がある組', () => {
+    const groupId = (
+      ctx.db
+        .query<{ g: number }, [number]>(
+          'SELECT group_id AS g FROM library_files WHERE library_file_id = ?'
+        )
+        .get(id('b1.jpg')) as { g: number }
+    ).g;
+    const { content } = getOrCreateContent(ctx.db, {
+      hash: 'l'.repeat(64),
+      sizeBytes: 9,
+    });
+    ctx.db
+      .query(
+        `INSERT INTO media_metadata (content_id, taken_at, date_precision, date_source, width, height, duration_sec)
+         VALUES (?, '2016-08-13T10:00:01', 'full', 'exif', 1200, 800, 2.5)`
+      )
+      .run(content.contentId);
+    insertLibraryFile(ctx.db, {
+      contentId: content.contentId,
+      groupId,
+      runId: 1,
+      relPath: 'b1.mov',
+      bucket: 'full',
+      createdAt: T0,
+    });
+    const live = listAutoAlbums(ctx.db).find((album) => album.kind === 'live');
+    expect(live).toMatchObject({ count: 1, unit: '組' });
+    // 条件としては、写真も動画も(2 枚)
+    expect(countFilteredPhotos(ctx.db, { livePhotos: true })).toBe(2);
+  });
+
+  test('できごとの一覧: 新しい順。カメラ・GPS・動画の数・代表', () => {
+    ctx.db
+      .query(
+        "INSERT INTO album_events (start_at, end_at, file_count, cover_library_file_id, rule, computed_revision) VALUES ('2016-12-24T18:00:00', '2016-12-24T18:10:00', 2, NULL, '4h', 1)"
+      )
+      .run();
+    ctx.db
+      .query(
+        "INSERT INTO album_events (start_at, end_at, file_count, cover_library_file_id, rule, computed_revision) VALUES ('2016-08-13T10:00:00', '2016-08-13T10:00:00', 1, NULL, '4h', 1)"
+      )
+      .run();
+    const ids = ctx.db
+      .query<{ i: number; s: string }, []>(
+        'SELECT album_event_id AS i, start_at AS s FROM album_events'
+      )
+      .all();
+    const eventOf = (start: string) =>
+      ids.find((row) => row.s === start)?.i as number;
+    ctx.db
+      .query(
+        'UPDATE library_files SET album_event_id = ? WHERE library_file_id IN (?, ?)'
+      )
+      .run(eventOf('2016-12-24T18:00:00'), id('a1.jpg'), id('a2.mp4'));
+    ctx.db
+      .query(
+        'UPDATE library_files SET album_event_id = ? WHERE library_file_id = ?'
+      )
+      .run(eventOf('2016-08-13T10:00:00'), id('b1.jpg'));
+    const events = listLatestEvents(ctx.db, 'new', 10);
+    expect(events.map((e) => e.startAt)).toEqual([
+      '2016-12-24T18:00:00',
+      '2016-08-13T10:00:00',
+    ]);
+    expect(events[0]).toMatchObject({
+      fileCount: 2,
+      camera: 'Canon',
+      gpsCount: 1,
+      videoCount: 1,
+    });
+    expect(listLatestEvents(ctx.db, 'old', 1)[0]?.startAt).toBe(
+      '2016-08-13T10:00:00'
+    );
+    // サムネイルがなければ、代表なし
+    expect(events[0]?.cover).toBeNull();
   });
 });

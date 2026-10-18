@@ -8,6 +8,8 @@ export type FilterState = {
   precisions: string[];
   sources: string[];
   volumes: string[];
+  /** ライブフォト(同名グループに、写真と動画がある組)。'1' = 絞る */
+  live?: '1';
   /** 検索の条件。日付(`YYYY-MM-DD` など)・ファイル名の一部・場所(`緯度:経度`) */
   dates: string[];
   names: string[];
@@ -60,6 +62,7 @@ export const readFilter = (getAll: (key: string) => string[]): FilterState => {
     names: getAll(LIST_KEYS.names),
     places: getAll(LIST_KEYS.places),
     areas: getAll(LIST_KEYS.areas),
+    live: getAll('live')[0] === '1' ? '1' : undefined,
   };
 };
 
@@ -78,6 +81,7 @@ export const filterParams = (
   [LIST_KEYS.names]: filter.names,
   [LIST_KEYS.places]: filter.places,
   [LIST_KEYS.areas]: filter.areas,
+  live: filter.live,
 });
 
 /** 絞り込み(引き出しの項目)の条件の数。複数の値を選んでいても、項目で 1 件。検索の条件は、数えない */
@@ -90,6 +94,7 @@ export const countFilter = (filter: FilterState): number =>
     filter.precisions.length,
     filter.sources.length,
     filter.volumes.length,
+    filter.live ? 1 : 0,
   ].filter(Boolean).length;
 
 /** 一覧に、値があれば外し、なければ足す(順は、保つ) */

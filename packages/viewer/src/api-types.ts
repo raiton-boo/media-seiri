@@ -2,6 +2,8 @@ import type {
   AlbumOrder,
   AlbumPhoto,
   AlbumSection,
+  AutoAlbum,
+  AutoEvent,
   BrowsedError,
   CalendarDay,
   DashboardSummary,
@@ -220,3 +222,11 @@ export type CalendarResponse = {
 
 /** 選んだ日のまとめ */
 export type CalendarDayResponse = DaySummary & { date: string };
+
+/** 自動アルバム: できごと(新しい順。先頭から)と、いろいろな切り口 */
+export type AutoAlbumsResponse = {
+  /** できごとの、全部の件数 */
+  eventTotal: number;
+  events: AutoEvent[];
+  albums: AutoAlbum[];
+};
