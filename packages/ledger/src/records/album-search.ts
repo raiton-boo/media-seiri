@@ -231,3 +231,18 @@ export const suggestSearch = (
   }
   return out;
 };
+
+/** GPS のある写真の、場所の格子(0.1 度)ごとの枚数。地名への変換は、呼び出し側(地名のデータを持つ側)が行う */
+export const listGpsCells = (
+  db: Database,
+  filter: AlbumFilter
+): { lat: number; lon: number; count: number }[] => {
+  const { sql, params } = albumFilterSql(filter);
+  return db
+    .query<{ lat: number; lon: number; count: number }, Param[]>(
+      `SELECT round(m.gps_lat, 1) AS lat, round(m.gps_lon, 1) AS lon, count(*) AS count ${FILES}
+       WHERE m.gps_lat IS NOT NULL${sql}
+       GROUP BY lat, lon`
+    )
+    .all(...params);
+};

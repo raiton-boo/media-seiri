@@ -159,7 +159,20 @@ export type AlbumSectionPhotosResponse = {
 export type AlbumFiltersResponse = FilterOptions;
 
 /** 検索の候補(入力中) */
-export type SearchSuggestResponse = { suggestions: SearchSuggestion[] };
+export type SearchSuggestResponse = {
+  suggestions: (SearchSuggestion | AreaSuggestion)[];
+};
+
+/** 地域(地名・都道府県・国)の候補。`value` は、地域の指定(`city:<ID>`・`pref:<2 桁>`・`country:<国コード>`) */
+export type AreaSuggestion = {
+  type: 'area';
+  value: string;
+  label: string;
+  count: number;
+};
+
+/** 地域の指定の表示(札に出す名前) */
+export type AreaLabelsResponse = { labels: Record<string, string> };
 
 /** 検索の結果: 合う枚数と、先頭から `limit` 枚(「もっと広げる」で、増やす) */
 export type SearchPhotosResponse = {
@@ -173,6 +186,8 @@ export type SearchPhotosResponse = {
 /** 拡大表示の情報。原本をブラウザで表示できるか(`original`)も添える */
 export type PhotoDetailResponse = {
   photo: PhotoDetail;
+  /** GPS に近い地名(なければ null)。`ref` は、地域の指定(「この場所の写真」の検索に使う) */
+  place: { label: string; ref: string } | null;
   original: {
     /** ブラウザで表示できる形か: 画像・動画・なし(HEIC・RAW など) */
     viewKind: 'image' | 'video' | null;

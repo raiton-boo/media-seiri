@@ -5,6 +5,7 @@ import { listFilterOptions } from './album-facets.ts';
 import {
   albumFilterSql,
   countAlbumFilters,
+  NO_PLACE,
   UNKNOWN_CAMERA,
 } from './album-filter.ts';
 import { getPhotoDetail, getPhotoStrip } from './album-photo.ts';
@@ -12,6 +13,7 @@ import {
   countFilteredPhotos,
   describePlace,
   listFilteredPhotos,
+  listGpsCells,
   parseDateQuery,
   suggestSearch,
 } from './album-search.ts';
@@ -490,5 +492,16 @@ describe('拡大表示(getPhotoDetail・getPhotoStrip)', () => {
       albumEventId: eventId,
       fileCount: 2,
     });
+  });
+});
+
+describe('listGpsCells・NO_PLACE', () => {
+  const ctx = build(SPECS);
+  test('GPS のある写真の、格子ごとの枚数(条件も効く)', () => {
+    expect(listGpsCells(ctx.db, {})).toEqual([{ lat: 35, lon: 139, count: 1 }]);
+    expect(listGpsCells(ctx.db, { kinds: ['video'] })).toEqual([]);
+  });
+  test('NO_PLACE は、どの写真にも合わない', () => {
+    expect(countFilteredPhotos(ctx.db, { places: [NO_PLACE] })).toBe(0);
   });
 });

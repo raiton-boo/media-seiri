@@ -1,5 +1,6 @@
 import { existsSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
+import { cityLabel, nearestCity } from '@file-seiri/core';
 import {
   countFilteredPhotos,
   getPhotoDetail,
@@ -12,7 +13,8 @@ import type {
   PhotoStripResponse,
   SlideshowResponse,
 } from '../api-types.ts';
-import { parseAlbumFilter, parseId } from './query.ts';
+import { albumFilterOf } from './filter.ts';
+import { parseId } from './query.ts';
 import type { ViewerSource } from './source.ts';
 
 /** ブラウザが、そのまま表示できる形(拡張子 → 種類と、Content-Type)。HEIC・RAW などは、入れない(サムネイルを見せる) */
@@ -80,16 +82,19 @@ const parseRange = (
  */
 export const registerPhotoRoutes = (app: Hono, source: ViewerSource): void => {
   const { db } = source.ledger;
-  const filterOf = (context: Context) =>
-    parseAlbumFilter((name) => context.req.queries(name));
+  const filterOf = (context: Context) => albumFilterOf(db, context);
 
   app.get('/api/album/photo/:id', (context) => {
     const id = parseId(context.req.param('id'));
     const photo = id === undefined ? undefined : getPhotoDetail(db, id);
     if (!photo) return context.json({ error: 'not found' }, 404);
     const displayable = DISPLAYABLE[extname(photo.relPath).toLowerCase()];
+    const city = photo.gps
+      ? nearestCity(photo.gps.lat, photo.gps.lon)
+      : undefined;
     const body: PhotoDetailResponse = {
       photo,
+      place: city ? { label: cityLabel(city), ref: `city:${city.id}` } : null,
       original: {
         viewKind: displayable?.kind ?? null,
         available: originalPath(source, photo.relPath) !== undefined,

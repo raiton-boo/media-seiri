@@ -1,0 +1,15 @@
+export {
+  type AreaRef,
+  areaLabel,
+  areaRefsOf,
+  type City,
+  cityLabel,
+  countryName,
+  describeNearest,
+  distanceBetweenKm,
+  getCity,
+  MAX_PLACE_KM,
+  nearestCity,
+  prefectureName,
+  searchAreas,
+} from './geo.ts';
