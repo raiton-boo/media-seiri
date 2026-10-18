@@ -2,10 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { describeError, ERROR_CODES, isErrorCode } from './codes.ts';
 
 describe('エラーコード(仕様書 §14)', () => {
-  test('14 個のコードがあり、重複がない', () => {
+  test('15 個のコードがあり、重複がない', () => {
     const codes = ERROR_CODES.map((entry) => entry.code);
-    expect(codes).toHaveLength(14);
-    expect(new Set(codes).size).toBe(14);
+    expect(codes).toHaveLength(15);
+    expect(new Set(codes).size).toBe(15);
   });
 
   test('破損のコードは、CORRUPTED(修復は未実施)と REPAIR_FAILED(修復を試みて失敗)', () => {
@@ -17,11 +17,11 @@ describe('エラーコード(仕様書 §14)', () => {
     );
   });
 
-  test('WARN になるのは、ZIP_DEPTH_EXCEEDED だけ', () => {
+  test('WARN になるのは、ZIP_DEPTH_EXCEEDED と ZIP_DUPLICATE_ENTRY だけ', () => {
     const warnings = ERROR_CODES.filter((entry) => entry.level === 'WARN').map(
       (entry) => entry.code
     );
-    expect(warnings).toEqual(['ZIP_DEPTH_EXCEEDED']);
+    expect(warnings).toEqual(['ZIP_DEPTH_EXCEEDED', 'ZIP_DUPLICATE_ENTRY']);
   });
 
   test('isErrorCode は、既知のコードだけを通す', () => {

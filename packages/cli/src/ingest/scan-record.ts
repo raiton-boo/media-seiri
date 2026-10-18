@@ -121,9 +121,12 @@ export const recordScan = (
 
   // 空ファイル・読めなかった場所は、エラー一覧に記録する(仕様書 §1-2)。再開で、記録済みの空ファイルは、記録し直さない
   write(() => {
-    // ZIP のこと: 暗号化・危険なパス・壊れた ZIP は、エラー。入れ子が深すぎるものは、警告(開かない)
+    // ZIP のこと: 暗号化・危険なパス・壊れた ZIP は、エラー。入れ子が深すぎるもの・同じ名前が重なったもの(連番を付けて取り込む)は、警告
     for (const problem of scan.archive?.problems ?? []) {
-      if (problem.code === 'ZIP_DEPTH_EXCEEDED') {
+      if (
+        problem.code === 'ZIP_DEPTH_EXCEEDED' ||
+        problem.code === 'ZIP_DUPLICATE_ENTRY'
+      ) {
         recordEvent(db, {
           runId,
           level: 'WARN',
