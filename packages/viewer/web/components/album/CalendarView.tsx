@@ -101,7 +101,6 @@ export function CalendarView() {
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button href={albumHref()}>← アルバムへ</Button>
             {calendar.data.years.length > 0 ? (
               <div className="seg y">
                 {calendar.data.years.map((item) => (

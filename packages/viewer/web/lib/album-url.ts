@@ -45,22 +45,3 @@ export const albumHref = (location: AlbumLocation = {}): string =>
     small: location.small ? 1 : undefined,
     more: location.more,
   })}`;
-
-/** カレンダーの場所(アルバムとは別のページ) */
-export type CalendarLocation = {
-  y?: number;
-  /** 選んだ日(`YYYY-MM-DD`) */
-  d?: string;
-  /** 絞り込みの条件(移っても、引き継ぐ) */
-  filter?: FilterState;
-  drawer?: boolean;
-};
-
-/** カレンダーの URL。年・選んだ日・条件は、クエリ文字列で表す */
-export const calendarHref = (location: CalendarLocation = {}): string =>
-  `/calendar${queryString({
-    y: location.y,
-    d: location.d,
-    ...(location.filter ? filterParams(location.filter) : {}),
-    drawer: location.drawer ? 1 : undefined,
-  })}`;

@@ -13,7 +13,6 @@ import {
 import {
   type AlbumLocation,
   albumHref as buildHref,
-  calendarHref,
 } from '../../lib/album-url';
 import {
   useAlbumEvent,
@@ -274,9 +273,6 @@ function AlbumBrowser() {
               ) : null}
             </h1>
           </div>
-          <Button href={calendarHref({ y: year, filter, drawer })}>
-            カレンダー
-          </Button>
         </div>
 
         <div data-motion="block">
