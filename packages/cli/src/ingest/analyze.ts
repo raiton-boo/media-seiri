@@ -1,5 +1,5 @@
 import type { Database } from 'bun:sqlite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import {
   type DateInput,
   type DateOptions,
@@ -16,6 +16,12 @@ import {
   parseTakeoutJson,
   type TakeoutMetadata,
 } from '../metadata/index.ts';
+import {
+  type AttemptLog,
+  describeAttempts,
+  type RepairTools,
+  repairFile,
+} from '../repair/index.ts';
 import {
   type Materialized,
   materializeFile,
@@ -45,7 +51,22 @@ export type FileAnalysis = {
   warning: string | undefined;
   /** このファイルに起きた問題。1 つだけ記録する */
   problem: { code: ErrorCode; detail: string } | undefined;
+  /**
+   * 破損の検査・修復の結果(疑わしいファイルだけ。破損でなければ、なし)。
+   * - `repaired`: 修復できた。`file` は、修復後のファイル(`repaired/`)に差し替え、`content`・`details`・`resolution` も、修復後のもの。元の場所は、`file.relPath` のまま。
+   * - `unreadable`: 直せなかった(`REPAIR_FAILED`)、または、修復を試みなかった(`CORRUPTED`)。元のバイトのまま、`_unknown/読み取り不可/` へ。
+   */
+  corruption: CorruptionOutcome | undefined;
 };
+
+export type CorruptionOutcome =
+  | { verdict: 'repaired'; attempts: AttemptLog[]; detail: string }
+  | {
+      verdict: 'unreadable';
+      code: 'REPAIR_FAILED' | 'CORRUPTED';
+      attempts: AttemptLog[];
+      detail: string;
+    };
 
 export type AnalyzeEnvironment = {
   db: Database;
@@ -54,6 +75,14 @@ export type AnalyzeEnvironment = {
   dateOptions: DateOptions;
   rehash: boolean;
   now: () => Date;
+  /** 破損の検査と修復(なければ、行わない)。検査は、メタデータが読めない・ExifTool の警告があるファイルだけに行う */
+  repair?: {
+    tools: RepairTools;
+    /** 修復で作る別ファイルを置くフォルダ(`data/libraries/<ID>/repaired/`) */
+    outputDir: string;
+    /** dry-run は、修復を試みない(破損と分かっても、`CORRUPTED` の記録だけ) */
+    dryRun: boolean;
+  };
   /** フォルダ(ソースからの相対。ZIP の中も)ごとの、json のファイル(Takeout)。写真・動画に対応する json を探す */
   jsonFilesByDirectory: ReadonlyMap<string, ReadonlyMap<string, ScannedFile>>;
 };
@@ -124,6 +153,7 @@ export const analyzeFile = async (
   environment: AnalyzeEnvironment
 ): Promise<FileAnalysis> => {
   const mtime = new Date(file.mtimeMs);
+  let currentFile = file;
   let dateInput: DateInput = { fileName: file.fileName, mtime };
   let details: MediaDetails = {};
   let metadataError: string | undefined;
@@ -131,6 +161,7 @@ export const analyzeFile = async (
   let problem: FileAnalysis['problem'];
   let content: Content | undefined;
   let fromCache = false;
+  let corruption: CorruptionOutcome | undefined;
 
   // ZIP の中のファイルは、一時領域に取り出して読む(終わったら、すぐ消す)。取り出せなければ、読めないものとして扱う
   let materialized: Materialized | undefined;
@@ -142,46 +173,127 @@ export const analyzeFile = async (
 
   if (materialized) {
     try {
-      if (file.kind !== 'xmp') {
+      const takeout =
+        file.kind === 'xmp' ? {} : await readTakeout(file, environment);
+      /** メタデータ(日付以外も)と、日付の入力を読む。読めなくても、Takeout の json があれば、日付に使う */
+      const readMetadata = async (path: string) => {
         const read = await environment.metadataReader.read(
-          materialized.path,
+          path,
           file.kind === 'video'
         );
-        const takeout = await readTakeout(file, environment);
+        const takeoutDate =
+          takeout.photoTakenEpochSeconds === undefined
+            ? {}
+            : { takeoutPhotoTakenEpochSeconds: takeout.photoTakenEpochSeconds };
         if (read.ok) {
-          dateInput = {
+          return {
+            dateInput: {
+              fileName: file.fileName,
+              mtime,
+              ...read.metadata.dates,
+              ...takeoutDate,
+            } as DateInput,
+            details: withTakeoutGps(read.metadata.details, takeout),
+            metadataError: undefined as string | undefined,
+            warning: read.metadata.warning,
+          };
+        }
+        return {
+          dateInput: {
             fileName: file.fileName,
             mtime,
-            ...read.metadata.dates,
-            ...(takeout.photoTakenEpochSeconds === undefined
-              ? {}
-              : {
-                  takeoutPhotoTakenEpochSeconds: takeout.photoTakenEpochSeconds,
-                }),
-          };
-          details = withTakeoutGps(read.metadata.details, takeout);
-          warning = read.metadata.warning;
-        } else {
-          metadataError = read.error;
-          // 読めなかった場合も、Takeout の json があれば、日付に使う
-          if (takeout.photoTakenEpochSeconds !== undefined) {
-            dateInput = {
-              ...dateInput,
-              takeoutPhotoTakenEpochSeconds: takeout.photoTakenEpochSeconds,
+            ...takeoutDate,
+          } as DateInput,
+          details: withTakeoutGps({}, takeout),
+          metadataError: read.error as string | undefined,
+          warning: undefined as string | undefined,
+        };
+      };
+
+      if (file.kind !== 'xmp') {
+        ({ dateInput, details, metadataError, warning } = await readMetadata(
+          materialized.path
+        ));
+      }
+
+      // 破損の検査: メタデータが読めない・ExifTool の警告があるファイルだけ(全部に、デコードをかけると、遅いため)。
+      // 読めないだけでは、破損としない。デコード・ストリーム・プレビューの検査で、確かめる(仕様書 §10-2)
+      let hashPath = materialized.path;
+      const repairKind =
+        file.kind === 'photo' || file.kind === 'raw' || file.kind === 'video'
+          ? file.kind
+          : undefined;
+      if (environment.repair && repairKind && (metadataError || warning)) {
+        const { tools, outputDir, dryRun } = environment.repair;
+        const check = await tools.check(
+          materialized.path,
+          repairKind,
+          file.ext
+        );
+        if (check.status === 'corrupt') {
+          if (dryRun) {
+            corruption = {
+              verdict: 'unreadable',
+              code: 'CORRUPTED',
+              attempts: [],
+              detail: `破損しています(${check.detail})。dry-run のため、修復は試みていません`,
             };
+          } else {
+            const outcome = await repairFile({
+              tools,
+              kind: repairKind,
+              ext: file.ext,
+              sourcePath: materialized.path,
+              outputDir,
+              baseName: `${sourceFileId}-${file.fileName}`,
+            });
+            if (outcome.verdict === 'repaired') {
+              const stats = statSync(outcome.outputPath);
+              ({ dateInput, details, metadataError, warning } =
+                await readMetadata(outcome.outputPath));
+              // 修復後のファイルに差し替える(元の場所の記録は、元のソースのパスのまま)
+              currentFile = {
+                ...file,
+                absolutePath: outcome.outputPath,
+                materialize: undefined,
+                sizeBytes: stats.size,
+                mtimeMs: stats.mtimeMs,
+              };
+              hashPath = outcome.outputPath;
+              corruption = {
+                verdict: 'repaired',
+                attempts: outcome.attempts,
+                detail: `修復しました(${describeAttempts(outcome.attempts)})`,
+              };
+            } else {
+              const skipped = outcome.skipped;
+              corruption = {
+                verdict: 'unreadable',
+                code:
+                  outcome.verdict === 'not-attempted'
+                    ? 'CORRUPTED'
+                    : 'REPAIR_FAILED',
+                attempts: outcome.attempts,
+                detail:
+                  outcome.verdict === 'not-attempted'
+                    ? `破損しています(${check.detail})。修復の道具が使えないため、試みていません(${describeAttempts([], skipped)})`
+                    : `破損しています(${check.detail})。修復できませんでした: ${describeAttempts(outcome.attempts, skipped)}`,
+              };
+            }
           }
-          details = withTakeoutGps({}, takeout);
         }
       }
 
       try {
+        const stats = statSync(hashPath);
         const resolved = await resolveContent(environment.db, {
           volumeId: environment.volumeId,
-          relPath: file.relPath,
-          absolutePath: materialized.path,
-          sizeBytes: file.sizeBytes,
-          mtimeMs: file.mtimeMs,
-          rehash: environment.rehash,
+          relPath: currentFile.relPath,
+          absolutePath: hashPath,
+          sizeBytes: currentFile === file ? file.sizeBytes : stats.size,
+          mtimeMs: currentFile === file ? file.mtimeMs : stats.mtimeMs,
+          // 修復後のファイルは、毎回、新しく作るので、キャッシュを使わない
+          rehash: environment.rehash || currentFile !== file,
           now: environment.now,
         });
         content = resolved.content;
@@ -196,7 +308,7 @@ export const analyzeFile = async (
   }
 
   return {
-    file,
+    file: currentFile,
     sourceFileId,
     resolution: resolveDate(dateInput, environment.dateOptions),
     details,
@@ -205,5 +317,6 @@ export const analyzeFile = async (
     metadataError,
     warning,
     problem,
+    corruption,
   };
 };

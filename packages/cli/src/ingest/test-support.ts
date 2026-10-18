@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { openLedger } from '@file-seiri/ledger';
 import { ExifTool } from 'exiftool-vendored';
 import { ledgerPathFor } from '../config/paths.ts';
+import type { RepairTools } from '../repair/index.ts';
 import { type RunEnvironment, run } from '../run.ts';
 import { makeTempDir } from '../test-helpers.ts';
 import type { ThumbnailMaker, ThumbnailRequest } from '../thumbs/maker.ts';
@@ -78,6 +79,15 @@ export const makeWorld = (
 
 export type CliResult = { code: number; stdout: string[]; stderr: string[] };
 
+/** 外のコマンドを使わない、検査・修復の代役。どのファイルも、壊れていない(検査は、いつも ok) */
+export const healthyRepairTools = (): RepairTools => ({
+  check: async () => ({ status: 'ok' }),
+  remuxVideo: async () => ({ ok: false, skipped: true, detail: '試験' }),
+  rewriteMetadata: async () => ({ ok: false, skipped: true, detail: '試験' }),
+  salvageImage: async () => ({ ok: false, skipped: true, detail: '試験' }),
+  close: async () => {},
+});
+
 /** 外のコマンドを使わない、サムネイルの代役。作った依頼を記録する。`fail` が理由を返したものは、失敗にする */
 export const fakeThumbnailMaker = (
   fail: (request: ThumbnailRequest) => string | undefined = () => undefined
@@ -114,6 +124,8 @@ export const runIn = async (
     useColor: false,
     sleep: async () => {},
     thumbnailMaker: () => fakeThumbnailMaker(),
+    // 外のコマンドを使わない(どのファイルも、壊れていない)。破損の試験は、`repairTools` を差し替える
+    repairTools: () => healthyRepairTools(),
     resolveVolume: (path) =>
       path.startsWith(world.srcRoot) ? world.sourceVolume : world.destVolume,
     ...options,

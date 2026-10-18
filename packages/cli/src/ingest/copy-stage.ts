@@ -211,6 +211,7 @@ export const executeCopies = async (
             runId,
             relPath: filePlan.destinationPath,
             bucket: filePlan.bucket,
+            isRepaired: analysis.corruption?.verdict === 'repaired',
             createdAt: at(),
           });
           setSourceFileState(db, sourceFileId, 'done');

@@ -208,6 +208,15 @@ export const tally = (
       bump(analysis.problem.code);
       summary.errorFiles += 1;
     }
+    // 破損: 修復できたものは、通常の取り込み。直せなかった・試みなかったものは、読み取り不可へ(エラー一覧にも、記録する)
+    if (analysis.corruption) {
+      summary.corrupted += 1;
+      if (analysis.corruption.verdict === 'repaired') summary.repaired += 1;
+      else {
+        bump(analysis.corruption.code);
+        summary.errorFiles += 1;
+      }
+    }
     switch (filePlan?.action) {
       case 'copy': {
         summary.copyFiles += 1;

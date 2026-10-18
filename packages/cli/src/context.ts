@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { IngestHooks } from './ingest/copy-stage.ts';
+import type { RepairTools } from './repair/index.ts';
 import type { ThumbnailMaker } from './thumbs/maker.ts';
 import type { VolumeInfo } from './volume/index.ts';
 
@@ -34,6 +35,8 @@ export type CommandContext = {
   sleep: (milliseconds: number) => Promise<void>;
   /** サムネイルを作るもの(sips・ffmpeg・ExifTool を使う)。使い終わったら、`close` を呼ぶ。テストでは、差し替える */
   thumbnailMaker: () => ThumbnailMaker;
+  /** 破損の検査と修復に使う道具(ffmpeg・sips・ExifTool)。使い終わったら、`close` を呼ぶ。テストでは、差し替える */
+  repairTools: () => RepairTools;
   /** 画面(ビューア)の静的ファイルの場所。テストでは、差し替える */
   viewerWebDir: string;
   /** テストで、取り込みの途中に割り込むための差し込み口 */

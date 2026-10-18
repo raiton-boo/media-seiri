@@ -1,4 +1,4 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
   createSnapshot,
@@ -26,6 +26,7 @@ import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { exportRunLog } from '../log/export.ts';
 import type { MetadataReader } from '../metadata/index.ts';
+import type { RepairTools } from '../repair/index.ts';
 import { collectScan, type ScannedFile } from '../scan/index.ts';
 import { runThumbnailStage } from '../thumbs/index.ts';
 import { recordVolume, type VolumeInfo } from '../volume/index.ts';
@@ -55,6 +56,12 @@ import type { WriteTransaction } from './transaction.ts';
 
 const PROGRESS_INTERVAL = 1000;
 
+/** 修復で作る別ファイルを置くフォルダを、用意する */
+const ensureRepairedDir = (path: string): string => {
+  mkdirSync(path, { recursive: true });
+  return path;
+};
+
 export type IngestOptions = {
   sources: string[];
   destination: string;
@@ -73,6 +80,8 @@ export type IngestSession = {
   library: OpenedLibrary;
   destinationVolume: VolumeInfo;
   metadataReader: MetadataReader;
+  /** 破損の検査と修復に使う道具(終えるのは、呼び出し側) */
+  repairTools: RepairTools;
   options: IngestOptions;
   write: WriteTransaction;
   /** 本実行のロック(dry-run では、undefined) */
@@ -109,6 +118,7 @@ export const ingestSource = async (
     library,
     destinationVolume,
     metadataReader,
+    repairTools,
     options,
     write,
     lock,
@@ -293,6 +303,14 @@ export const ingestSource = async (
       dateOptions: { now: context.now(), timeZone: context.timeZone },
       rehash: options.rehash,
       now: context.now,
+      // 破損の検査と修復。修復で作る別ファイルは、作業用の領域の `repaired/` に置く
+      repair: {
+        tools: repairTools,
+        outputDir: ensureRepairedDir(
+          join(libraryWorkDir(context.dataDir, library.libraryId), 'repaired')
+        ),
+        dryRun: options.dryRun,
+      },
       jsonFilesByDirectory,
     };
     let analyzed = 0;
