@@ -50,6 +50,24 @@ const oneOf = <T extends string>(
     (allowed as readonly string[]).includes(value)
   );
 
+/** `南,西,北,東`(度)を、範囲にする。数でない・範囲外・向きが逆なら、undefined */
+export const parseBbox = (
+  value: string | undefined
+): { south: number; west: number; north: number; east: number } | undefined => {
+  const parts = (value ?? '').split(',').map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part)))
+    return undefined;
+  const [south, west, north, east] = parts as [number, number, number, number];
+  const valid =
+    south >= -90 &&
+    north <= 90 &&
+    west >= -180 &&
+    east <= 180 &&
+    south <= north &&
+    west <= east;
+  return valid ? { south, west, north, east } : undefined;
+};
+
 /**
  * アルバムの絞り込みの条件を、クエリから読む(`kind`・`camera`・`gps`・`year`・`precision`・`source`・`volume`)。
  * 同じ名前を、くり返して、複数の値を渡せる(`kind=photo&kind=video`)。知らない値・不正な値は、無視する。
@@ -81,6 +99,8 @@ export const parseAlbumFilter = (
   ];
   const eventId = parseId(list('event')[0]);
   const livePhotos = list('live')[0] === '1';
+  // 範囲は、カンマ区切りの 4 つの数なので、カンマで割らず、そのまま渡す
+  const bbox = parseBbox(queries('bbox')?.[0]);
   const names = (queries('name') ?? []).filter(Boolean);
   const places = list('place').flatMap((value) => {
     const [lat, lon] = value.split(':').map(Number);
@@ -102,6 +122,7 @@ export const parseAlbumFilter = (
     ...(dateSources.length > 0 ? { dateSources } : {}),
     ...(volumeIds.length > 0 ? { volumeIds } : {}),
     ...(livePhotos ? { livePhotos } : {}),
+    ...(bbox ? { bbox } : {}),
     ...(eventId !== undefined ? { eventId } : {}),
     ...(dates.length > 0 ? { dates } : {}),
     ...(names.length > 0 ? { names } : {}),

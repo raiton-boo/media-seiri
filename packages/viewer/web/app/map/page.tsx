@@ -1,5 +1,10 @@
-import { ComingSoon } from '../../components/ComingSoon';
+import { AppShell } from '../../components/AppShell';
+import { MapLoader } from '../../components/map/MapLoader';
 
-export default function Page() {
-  return <ComingSoon kicker="MAP" title="地図" />;
+export default function MapPage() {
+  return (
+    <AppShell>
+      <MapLoader />
+    </AppShell>
+  );
 }

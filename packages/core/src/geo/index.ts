@@ -1,5 +1,7 @@
 export {
   type AreaRef,
+  areaBounds,
+  areaCenter,
   areaLabel,
   areaRefsOf,
   type City,
@@ -7,6 +9,7 @@ export {
   countryName,
   describeNearest,
   distanceBetweenKm,
+  type GeoBounds,
   getCity,
   MAX_PLACE_KM,
   nearestCity,
