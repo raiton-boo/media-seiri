@@ -12,6 +12,8 @@ export type FilterState = {
   dates: string[];
   names: string[];
   places: string[];
+  /** 地域(地名・都道府県・国)の指定。`city:<ID>`・`pref:<2 桁>`・`country:<国コード>` */
+  areas: string[];
 };
 
 export const EMPTY_FILTER: FilterState = {
@@ -24,6 +26,7 @@ export const EMPTY_FILTER: FilterState = {
   dates: [],
   names: [],
   places: [],
+  areas: [],
 };
 
 /** 複数の値をとる項目と、URL のクエリでの名前 */
@@ -37,6 +40,7 @@ export const LIST_KEYS = {
   dates: 'date',
   names: 'name',
   places: 'place',
+  areas: 'area',
 } as const satisfies Record<string, string>;
 
 export type ListField = keyof typeof LIST_KEYS;
@@ -55,6 +59,7 @@ export const readFilter = (getAll: (key: string) => string[]): FilterState => {
     dates: getAll(LIST_KEYS.dates),
     names: getAll(LIST_KEYS.names),
     places: getAll(LIST_KEYS.places),
+    areas: getAll(LIST_KEYS.areas),
   };
 };
 
@@ -72,6 +77,7 @@ export const filterParams = (
   [LIST_KEYS.dates]: filter.dates,
   [LIST_KEYS.names]: filter.names,
   [LIST_KEYS.places]: filter.places,
+  [LIST_KEYS.areas]: filter.areas,
 });
 
 /** 絞り込み(引き出しの項目)の条件の数。複数の値を選んでいても、項目で 1 件。検索の条件は、数えない */
@@ -92,7 +98,10 @@ export const toggleValue = (list: string[], value: string): string[] =>
 
 /** 検索の条件の数(札になるもの。1 つずつ数える) */
 export const countSearch = (filter: FilterState): number =>
-  filter.dates.length + filter.names.length + filter.places.length;
+  filter.dates.length +
+  filter.names.length +
+  filter.places.length +
+  filter.areas.length;
 
 /** 絞り込みか検索の、どれかの条件が、あるか */
 export const isFiltered = (filter: FilterState): boolean =>

@@ -25,6 +25,9 @@ export type AlbumFilter = {
   places?: { lat: number; lon: number }[];
 };
 
+/** どの写真にも合わない場所(「地名に合う写真が、1 枚もない」を、条件で表すとき。条件の配列が空だと、絞らないことになるため) */
+export const NO_PLACE = { lat: 999, lon: 999 } as const;
+
 /** 場所の格子(度)。地名への変換はしないので、座標のまとまりで探す */
 export const PLACE_CELL_DEGREES = 0.1;
 

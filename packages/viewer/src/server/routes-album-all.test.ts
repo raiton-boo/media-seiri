@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { areaLabel, nearestCity } from '@file-seiri/core';
 import {
   getOrCreateContent,
   insertFileGroup,
@@ -9,6 +10,7 @@ import {
 import type {
   AlbumSectionPhotosResponse,
   AlbumSectionsResponse,
+  AreaLabelsResponse,
   SearchPhotosResponse,
   SearchSuggestResponse,
 } from '../api-types.ts';
@@ -179,5 +181,71 @@ describe('検索', () => {
     ).json()) as SearchPhotosResponse;
     expect(found).toMatchObject({ total: 3, limit: 2, offset: 0 });
     expect(found.photos).toHaveLength(2);
+  });
+});
+
+describe('地名(地域)の検索', () => {
+  // 試験データの GPS(北緯 35 度・東経 139 度)の、近くの地名
+  const city = nearestCity(35, 139) as NonNullable<
+    ReturnType<typeof nearestCity>
+  >;
+
+  test('入力が空: よく撮った地域(地名・都道府県・国)を、件数つきで出す。座標の候補は、出さない', async () => {
+    const app = createViewerApp(seed());
+    const body = (await (
+      await get(app, '/api/album/search/suggest?q=')
+    ).json()) as SearchSuggestResponse;
+    const areas = body.suggestions.filter((item) => item.type === 'area');
+    expect(areas).toContainEqual({
+      type: 'area',
+      value: `city:${city.id}`,
+      label: areaLabel(`city:${city.id}`) as string,
+      count: 1,
+    });
+    expect(areas.map((item) => item.value)).toContain('country:JP');
+    expect(body.suggestions.some((item) => item.type === 'place')).toBe(false);
+  });
+
+  test('名前で探す: 国名・都道府県。写真のない地域は、出さない', async () => {
+    const app = createViewerApp(seed());
+    const suggest = async (q: string) =>
+      (
+        (await (
+          await get(app, `/api/album/search/suggest?q=${encodeURIComponent(q)}`)
+        ).json()) as SearchSuggestResponse
+      ).suggestions;
+    expect(await suggest('日本')).toContainEqual({
+      type: 'area',
+      value: 'country:JP',
+      label: '日本',
+      count: 1,
+    });
+    expect(await suggest('フランス')).toEqual([]);
+  });
+
+  test('area の条件: その地域の写真だけ。ほかの国は、0 枚。不正な指定は、無視', async () => {
+    const app = createViewerApp(seed());
+    const total = async (query: string) =>
+      (
+        (await (
+          await get(app, `/api/album/search/photos${query}`)
+        ).json()) as SearchPhotosResponse
+      ).total;
+    expect(await total(`?area=city:${city.id}`)).toBe(1);
+    expect(await total('?area=country:JP')).toBe(1);
+    expect(await total('?area=country:FR')).toBe(0);
+    expect(await total('?area=bogus')).toBe(4);
+  });
+
+  test('札の名前と、拡大表示の地名', async () => {
+    const source = seed();
+    const app = createViewerApp(source);
+    const labels = (await (
+      await get(app, '/api/album/areas?area=pref:40&area=country:JP&area=bogus')
+    ).json()) as AreaLabelsResponse;
+    expect(labels.labels).toEqual({
+      'pref:40': '東京都',
+      'country:JP': '日本',
+    });
   });
 });

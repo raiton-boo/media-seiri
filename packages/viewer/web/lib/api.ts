@@ -12,6 +12,7 @@ import type {
   AlbumSectionPhotosResponse,
   AlbumSectionsResponse,
   AlbumYearResponse,
+  AreaLabelsResponse,
   DashboardResponse,
   DupeDetailResponse,
   DupesResponse,
@@ -318,5 +319,18 @@ export const usePhotoStrip = (
         `/api/album/photo/${id}/strip${queryString({ order, event: eventId, ...filterParams(filter) })}`
       ),
     enabled: id !== undefined,
+    placeholderData: keepPreviousData,
+  });
+
+/** 地域の札の名前(URL の指定から)。指定がなければ、読まない */
+export const useAreaLabels = (areas: string[]) =>
+  useQuery({
+    queryKey: ['album-area-labels', areas],
+    queryFn: () =>
+      fetchJson<AreaLabelsResponse>(
+        `/api/album/areas${queryString({ area: areas })}`
+      ),
+    enabled: areas.length > 0,
+    staleTime: Number.POSITIVE_INFINITY,
     placeholderData: keepPreviousData,
   });

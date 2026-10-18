@@ -2,26 +2,31 @@
 
 import type { SearchSuggestion } from '@file-seiri/ledger';
 import { useEffect, useId, useRef, useState } from 'react';
+import type { AreaSuggestion } from '../../../src/api-types.ts';
 import type { FilterState } from '../../lib/album-filter';
 import {
   describeDate,
   describePlace,
   placeValue,
 } from '../../lib/album-search';
-import { useSearchSuggest } from '../../lib/api';
+import { useAreaLabels, useSearchSuggest } from '../../lib/api';
 import { formatCount } from '../../lib/format';
 
 /** 入力が止まってから、候補を取りに行くまでの間(ms) */
 const DEBOUNCE_MS = 200;
 
-const TYPE_LABELS: Record<SearchSuggestion['type'], string> = {
+type Candidate = SearchSuggestion | AreaSuggestion;
+
+const TYPE_LABELS: Record<Candidate['type'], string> = {
+  area: '場所',
   date: '日付',
   name: '名前',
   camera: 'カメラ',
   place: '場所',
 };
 /** 候補の種類の色(文字は、黒) */
-const TYPE_CLASS: Record<SearchSuggestion['type'], string> = {
+const TYPE_CLASS: Record<Candidate['type'], string> = {
+  area: 'chip g',
   date: 'chip p',
   name: 'chip b',
   camera: 'chip o',
@@ -29,10 +34,7 @@ const TYPE_CLASS: Record<SearchSuggestion['type'], string> = {
 };
 
 /** 候補を選んだあとの条件 */
-const withSuggestion = (
-  filter: FilterState,
-  item: SearchSuggestion
-): FilterState => {
+const withSuggestion = (filter: FilterState, item: Candidate): FilterState => {
   const add = (list: string[], value: string) =>
     list.includes(value) ? list : [...list, value];
   switch (item.type) {
@@ -42,6 +44,8 @@ const withSuggestion = (
       return { ...filter, names: add(filter.names, item.value) };
     case 'camera':
       return { ...filter, cameras: add(filter.cameras, item.value) };
+    case 'area':
+      return { ...filter, areas: add(filter.areas, item.value) };
     case 'place':
       return { ...filter, places: add(filter.places, placeValue(item.value)) };
   }
@@ -81,9 +85,10 @@ export function SearchBox({ filter, onPick, onRemove }: Props) {
   }, []);
 
   const { data } = useSearchSuggest(debounced, filter, open);
+  const areaLabels = useAreaLabels(filter.areas).data?.labels ?? {};
   const suggestions = data?.suggestions ?? [];
 
-  const pick = (item: SearchSuggestion) => {
+  const pick = (item: Candidate) => {
     onPick(withSuggestion(filter, item));
     setText('');
     setDebounced('');
@@ -100,6 +105,11 @@ export function SearchBox({ filter, onPick, onRemove }: Props) {
       key: `n${value}`,
       label: `名前: ${value}`,
       remove: { ...filter, names: filter.names.filter((v) => v !== value) },
+    })),
+    ...filter.areas.map((value) => ({
+      key: `a${value}`,
+      label: areaLabels[value] ?? '…',
+      remove: { ...filter, areas: filter.areas.filter((v) => v !== value) },
     })),
     ...filter.places.map((value) => ({
       key: `p${value}`,

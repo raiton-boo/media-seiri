@@ -164,17 +164,23 @@ export function PhotoViewer() {
   const position = strip.data?.position ?? null;
   const total = strip.data?.total ?? 0;
   const scope = eventId ? 'できごと' : '全体';
+  const place = detail.data.place;
+  // 近い地名があれば、その地名の写真。なければ、座標のまとまり(0.1 度)の写真
   const placeHref = photo.gps
     ? albumHref({
         view: 'search',
         filter: {
           ...EMPTY_FILTER,
-          places: [
-            placeValue({
-              lat: placeCell(photo.gps.lat),
-              lon: placeCell(photo.gps.lon),
-            }),
-          ],
+          ...(place
+            ? { areas: [place.ref] }
+            : {
+                places: [
+                  placeValue({
+                    lat: placeCell(photo.gps.lat),
+                    lon: placeCell(photo.gps.lon),
+                  }),
+                ],
+              }),
         },
         drawer: false,
       })
@@ -368,6 +374,11 @@ export function PhotoViewer() {
               {photo.gps ? (
                 <div className="card s flex flex-col gap-2">
                   <div className="kicker">GPS</div>
+                  {place ? (
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>
+                      {place.label} 付近
+                    </div>
+                  ) : null}
                   <div className="mono" style={{ fontSize: 13 }}>
                     {photo.gps.lat.toFixed(4)}, {photo.gps.lon.toFixed(4)}
                   </div>
@@ -380,7 +391,9 @@ export function PhotoViewer() {
                 <div className="kicker">もっと見る</div>
                 {placeHref ? (
                   <Button block href={placeHref}>
-                    <span>この場所の写真</span>
+                    <span>
+                      {place ? `${place.label} の写真` : 'この場所の写真'}
+                    </span>
                     <span>→</span>
                   </Button>
                 ) : null}

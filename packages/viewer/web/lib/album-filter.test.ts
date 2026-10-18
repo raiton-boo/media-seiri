@@ -42,9 +42,14 @@ describe('album-filter', () => {
   });
 
   test('検索の条件は、絞り込みの数に入れず、1 つずつ数える', () => {
-    const filter = { ...EMPTY_FILTER, dates: ['2014-04'], names: ['a', 'b'] };
+    const filter = {
+      ...EMPTY_FILTER,
+      dates: ['2014-04'],
+      names: ['a', 'b'],
+      areas: ['city:1'],
+    };
     expect(countFilter(filter)).toBe(0);
-    expect(countSearch(filter)).toBe(3);
+    expect(countSearch(filter)).toBe(4);
     expect(isFiltered(filter)).toBe(true);
     expect(isFiltered(EMPTY_FILTER)).toBe(false);
   });

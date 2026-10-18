@@ -1,4 +1,6 @@
+import { areaLabel } from '@file-seiri/core';
 import {
+  type AlbumFilter,
   type AlbumOrder,
   countFilteredPhotos,
   getEventDetail,
@@ -23,10 +25,13 @@ import type {
   AlbumSectionPhotosResponse,
   AlbumSectionsResponse,
   AlbumYearResponse,
+  AreaLabelsResponse,
   SearchPhotosResponse,
   SearchSuggestResponse,
 } from '../api-types.ts';
-import { parseAlbumFilter, parseId } from './query.ts';
+import { parseAreaRefs, suggestAreas } from './areas.ts';
+import { albumFilterOf } from './filter.ts';
+import { parseId } from './query.ts';
 import type { ViewerSource } from './source.ts';
 
 /** 「小さなできごと」の境(この枚数より少ないものは、まとめる。仕様書 §16-6) */
@@ -77,8 +82,18 @@ const parseDate = (
 export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
   const { db } = source.ledger;
   // どの画面にも、同じ絞り込みの条件(URL のクエリ)が効く
-  const filterOf = (context: Context) =>
-    parseAlbumFilter((name) => context.req.queries(name));
+  const filterOf = (context: Context) => albumFilterOf(db, context);
+  // 日付の候補・地域の候補・ほか(名前・カメラ)の順。座標の候補は、地名の候補に置きかえる
+  const suggestWithAreas = (text: string, filter: AlbumFilter) => {
+    const base = suggestSearch(db, text, filter).filter(
+      (item) => item.type !== 'place'
+    );
+    return [
+      ...base.filter((item) => item.type === 'date'),
+      ...suggestAreas(db, text, filter),
+      ...base.filter((item) => item.type !== 'date'),
+    ];
+  };
 
   app.get('/api/album/overview', (context) => {
     const order = orderOf(context.req.query('order'));
@@ -203,8 +218,19 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
     // 入力は、長すぎる文字を切る(重い検索を、避ける)
     const text = (context.req.query('q') ?? '').slice(0, MAX_QUERY_LENGTH);
     const body: SearchSuggestResponse = {
-      suggestions: suggestSearch(db, text, filterOf(context)),
+      suggestions: suggestWithAreas(text, filterOf(context)),
     };
+    return context.json(body);
+  });
+
+  // 札に出す、地域の名前(URL の指定から)
+  app.get('/api/album/areas', (context) => {
+    const labels: Record<string, string> = {};
+    for (const ref of parseAreaRefs(context.req.queries('area'))) {
+      const label = areaLabel(ref);
+      if (label) labels[ref] = label;
+    }
+    const body: AreaLabelsResponse = { labels };
     return context.json(body);
   });
 
