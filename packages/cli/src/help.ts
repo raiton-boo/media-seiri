@@ -251,7 +251,7 @@ export const renderOverview = (color: boolean): string => {
     '',
     p.title('ヘルプ'),
     `  ${p.cmd('seiri <コマンド> --help')}   そのコマンドの、くわしい説明と例を見る(例: seiri ingest --help)`,
-    `  ${p.cmd('seiri --version')}          バージョンを見る`,
+    `  ${p.cmd('seiri -v, --version')}     バージョンを見る`,
     '',
     p.dim('元のファイルは、変えません。取り込みは、コピーです。'),
   ];
