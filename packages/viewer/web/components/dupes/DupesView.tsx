@@ -119,10 +119,7 @@ export function DupesView() {
           style={{ gridTemplateColumns: 'minmax(0,4fr) minmax(0,8fr)' }}
         >
           <div className="flex flex-col gap-4">
-            <RevealCards
-              key={`${volume}|${run}|${q}|${offset}`}
-              className="flex flex-col gap-4"
-            >
+            <RevealCards className="flex flex-col gap-4">
               {data.items.map((group) => (
                 <div key={group.adoptedLibraryFileId} data-motion="card">
                   <Button

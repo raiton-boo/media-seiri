@@ -4,6 +4,11 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query';
 import type {
+  AlbumEventResponse,
+  AlbumMemoriesResponse,
+  AlbumMonthResponse,
+  AlbumOverviewResponse,
+  AlbumYearResponse,
   DashboardResponse,
   DupeDetailResponse,
   DupesResponse,
@@ -130,4 +135,72 @@ export const useDupeDetail = (id: number | undefined) =>
     queryKey: ['dupe', id],
     queryFn: () => fetchJson<DupeDetailResponse>(`/api/dupes/${id}`),
     enabled: id !== undefined,
+  });
+
+/** アルバムの並び順(`new` は、URL では省く) */
+export type AlbumOrderParam = 'new' | 'old';
+
+export const useAlbumOverview = (order: AlbumOrderParam) =>
+  useQuery({
+    queryKey: ['album-overview', order],
+    queryFn: () =>
+      fetchJson<AlbumOverviewResponse>(
+        `/api/album/overview${queryString({ order })}`
+      ),
+    placeholderData: keepPreviousData,
+  });
+
+export const useAlbumYear = (
+  year: number | undefined,
+  order: AlbumOrderParam
+) =>
+  useQuery({
+    queryKey: ['album-year', year, order],
+    queryFn: () =>
+      fetchJson<AlbumYearResponse>(
+        `/api/album/year${queryString({ y: year, order })}`
+      ),
+    enabled: year !== undefined,
+    placeholderData: keepPreviousData,
+  });
+
+export const useAlbumMonth = (
+  year: number | undefined,
+  month: number | undefined,
+  order: AlbumOrderParam
+) =>
+  useQuery({
+    queryKey: ['album-month', year, month, order],
+    queryFn: () =>
+      fetchJson<AlbumMonthResponse>(
+        `/api/album/month${queryString({ y: year, m: month, order })}`
+      ),
+    enabled: year !== undefined && month !== undefined,
+    placeholderData: keepPreviousData,
+  });
+
+/** できごとの写真は、先頭から `limit` 枚(「もっと広げる」で、増やす) */
+export const useAlbumEvent = (
+  id: number | undefined,
+  order: AlbumOrderParam,
+  limit: number
+) =>
+  useQuery({
+    queryKey: ['album-event', id, order, limit],
+    queryFn: () =>
+      fetchJson<AlbumEventResponse>(
+        `/api/album/event/${id}${queryString({ order, limit })}`
+      ),
+    enabled: id !== undefined,
+    placeholderData: keepPreviousData,
+  });
+
+export const useAlbumMemories = (date: string, salt: number) =>
+  useQuery({
+    queryKey: ['album-memories', date, salt],
+    queryFn: () =>
+      fetchJson<AlbumMemoriesResponse>(
+        `/api/album/memories${queryString({ date, salt: salt || undefined })}`
+      ),
+    placeholderData: keepPreviousData,
   });

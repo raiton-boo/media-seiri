@@ -24,6 +24,7 @@ function Picture({
       <div className="ph c1" style={{ aspectRatio: '16/10' }}>
         {thumbRelPath ? (
           <img
+            draggable={false}
             src={thumbUrl(thumbRelPath)}
             alt={label}
             loading="lazy"

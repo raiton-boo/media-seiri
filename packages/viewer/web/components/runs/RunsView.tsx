@@ -78,10 +78,7 @@ export function RunsView() {
           style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
         >
           <div className="flex flex-col gap-4">
-            <RevealCards
-              key={`${filter}|${offset}`}
-              className="flex flex-col gap-4"
-            >
+            <RevealCards className="flex flex-col gap-4">
               <div className="listhead runhead" aria-hidden="true">
                 <span>実行</span>
                 <span>ソース / 採用・重複・フォールバック・エラー</span>

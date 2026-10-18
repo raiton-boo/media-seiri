@@ -37,6 +37,7 @@ export function ErrorDetail({ id }: { id: number }) {
       <div className="ph c3" style={{ aspectRatio: '16/9' }}>
         {error.source?.thumbRelPath ? (
           <img
+            draggable={false}
             src={thumbUrl(error.source.thumbRelPath)}
             alt={fileName}
             style={{

@@ -73,3 +73,22 @@ export const revealDetail = (card: Element | null): Cleanup =>
       clearProps: CLEAR,
     });
   });
+
+/** 机のポラロイド(`data-motion="pol"`)が、少しずつ遅れて、上から落ちて、傾きに収まる(design.md §7)。先頭の 12 枚だけ */
+export const revealDesk = (scope: Element | null): Cleanup =>
+  run(scope, () => {
+    const pols = gsap.utils
+      .toArray<Element>("[data-motion='pol']")
+      .slice(0, FIRST_CARDS);
+    if (pols.length > 0) {
+      gsap.from(pols, {
+        y: -36,
+        rotation: '+=7',
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.04,
+        ease: EASE,
+        clearProps: CLEAR,
+      });
+    }
+  });

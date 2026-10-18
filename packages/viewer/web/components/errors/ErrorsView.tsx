@@ -120,10 +120,7 @@ export function ErrorsView() {
           style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
         >
           <div className="flex flex-col gap-4">
-            <RevealCards
-              key={`${code}|${run}|${offset}`}
-              className="flex flex-col gap-3"
-            >
+            <RevealCards className="flex flex-col gap-3">
               <div className="listhead errhead" aria-hidden="true">
                 <span>コード</span>
                 <span>ファイル</span>

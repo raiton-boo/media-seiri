@@ -1,0 +1,262 @@
+'use client';
+
+import Link from 'next/link';
+import { eventTitle } from '../../lib/album';
+import { albumHref } from '../../lib/album-url';
+import {
+  useAlbumEvent,
+  useAlbumMonth,
+  useAlbumOverview,
+  useAlbumYear,
+} from '../../lib/api';
+import { formatCount } from '../../lib/format';
+import { useUrlState } from '../../lib/query-state';
+import { Button } from '../Button';
+import { ListSkeleton } from '../ListSkeleton';
+import { LoadError } from '../motion/LoadError';
+import { RevealPage } from '../motion/Reveal';
+import { EventDesk } from './EventDesk';
+import { Memories } from './Memories';
+import { MonthDesk } from './MonthDesk';
+import { TimeRuler } from './TimeRuler';
+import { YearDesk } from './YearDesk';
+
+/** できごとの机で、最初に広げる枚数と、「もっと広げる」で増やす枚数 */
+const EVENT_STEP = 12;
+
+const toInt = (value: string | undefined): number | undefined => {
+  const number = Number(value);
+  return value !== undefined && Number.isInteger(number) && number > 0
+    ? number
+    : undefined;
+};
+
+/**
+ * アルバム: 入口(最新の年の机)→ 年 → 月 → できごと、の机。
+ * 場所は、URL のクエリで表す(`view`・`y`・`m`・`e`・`order`・`small`・`more`)。`view` がなければ、入口。
+ */
+export function AlbumView() {
+  const url = useUrlState();
+  const view = (['year', 'month', 'event'] as const).find(
+    (candidate) => candidate === url.get('view')
+  );
+  const order = url.get('order') === 'old' ? 'old' : 'new';
+  const yearParam = toInt(url.get('y'));
+  const monthParam = toInt(url.get('m'));
+  const eventId = view === 'event' ? toInt(url.get('e')) : undefined;
+  const more = toInt(url.get('more')) ?? EVENT_STEP;
+  const showSmall = url.get('small') === '1';
+
+  const overview = useAlbumOverview(order);
+  const event = useAlbumEvent(eventId, order, more);
+  const eventStart = event.data?.startAt;
+  // いま開いている年(定規の開く年): できごとなら、その年。入口は、最新の年
+  const eventYear = eventStart ? Number(eventStart.slice(0, 4)) : undefined;
+  const year =
+    view === 'event'
+      ? eventYear
+      : (yearParam ?? overview.data?.latestYear ?? undefined);
+  const yearData = useAlbumYear(year, order);
+  const monthData = useAlbumMonth(
+    view === 'month' ? year : undefined,
+    view === 'month' ? monthParam : undefined,
+    order
+  );
+
+  const failed =
+    overview.isError || yearData.isError || monthData.isError || event.isError;
+  if (failed) {
+    return (
+      <div className="page">
+        <LoadError>アルバムを読み込めませんでした。</LoadError>
+      </div>
+    );
+  }
+  if (!overview.data) return <ListSkeleton />;
+  if (overview.data.total === 0) {
+    return (
+      <div className="page">
+        <div className="card g">
+          <div className="h2">まだ、写真が、ありません</div>
+        </div>
+      </div>
+    );
+  }
+  if (year === undefined || !yearData.data) return <ListSkeleton />;
+
+  const zoom = view ?? 'year';
+  const eventMonth = eventStart ? Number(eventStart.slice(5, 7)) : undefined;
+  // 定規には、手元にあるデータの年・月を渡す(新しいデータが届くまで、前のデータを見せ続けるため。URL の年・月と、棒のデータが、ずれないように)
+  const rulerYear = yearData.data.year;
+  const month =
+    view === 'month' ? (monthData.data?.month ?? monthParam) : eventMonth;
+  const monthEvents = monthData.data;
+  const firstEventId =
+    monthEvents?.events[0]?.albumEventId ?? monthEvents?.small[0]?.albumEventId;
+  const eventHref =
+    view === 'event'
+      ? albumHref({ view: 'event', e: eventId, order })
+      : firstEventId
+        ? albumHref({ view: 'event', e: firstEventId, order })
+        : undefined;
+
+  // 並び順の切り替え: 新しい順(既定)は、URL から消す
+  const toggleOrder = (): void =>
+    url.set({ order: order === 'new' ? 'old' : undefined });
+
+  const entrance = view === undefined;
+  const heading =
+    view === 'event' && eventStart
+      ? eventTitle(eventStart)
+      : view === 'month' && monthParam
+        ? `${year}年${monthParam}月`
+        : `${year}年`;
+  const kicker =
+    view === 'event'
+      ? 'EVENT / 机の上に広げる'
+      : view === 'month'
+        ? 'MONTH / できごとの束'
+        : entrance
+          ? `入口 / 最新の年の机 / ${order === 'new' ? '新しい順' : '古い順'}`
+          : `YEAR / ${order === 'new' ? '新しい順' : '古い順'}`;
+
+  return (
+    <RevealPage className="page">
+      <div
+        className="flex flex-wrap items-end justify-between gap-6"
+        data-motion="title"
+      >
+        <div>
+          {view ? (
+            <div className="mono" style={{ fontSize: 14, fontWeight: 700 }}>
+              <Link
+                href={albumHref({ order })}
+                style={{ textDecoration: 'underline' }}
+              >
+                アルバム
+              </Link>
+              {' ▸ '}
+              <Link
+                href={albumHref({ view: 'year', y: year, order })}
+                style={
+                  view === 'year' ? undefined : { textDecoration: 'underline' }
+                }
+              >
+                {year}年
+              </Link>
+              {view !== 'year' && month ? (
+                <>
+                  {' ▸ '}
+                  <Link
+                    href={albumHref({
+                      view: 'month',
+                      y: year,
+                      m: month,
+                      order,
+                    })}
+                    style={
+                      view === 'month'
+                        ? undefined
+                        : { textDecoration: 'underline' }
+                    }
+                  >
+                    {month}月
+                  </Link>
+                </>
+              ) : null}
+              {view === 'event' ? ' ▸ できごと' : ''}
+            </div>
+          ) : (
+            <div className="kicker">{kicker}</div>
+          )}
+          <h1 className="h1" style={view ? { paddingTop: 8 } : undefined}>
+            {heading}{' '}
+            {entrance && year === overview.data.latestYear ? (
+              <span
+                className="chip y"
+                style={{ fontSize: 14, verticalAlign: 'middle' }}
+              >
+                最新
+              </span>
+            ) : null}
+          </h1>
+        </div>
+      </div>
+
+      {entrance ? <Memories /> : null}
+
+      <div data-motion="block">
+        <TimeRuler
+          overview={overview.data}
+          order={order}
+          zoom={zoom}
+          year={rulerYear}
+          months={yearData.data.months}
+          month={month}
+          eventHref={eventHref}
+          onToggleOrder={toggleOrder}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3" data-motion="block">
+        <span className="mono" style={{ fontSize: 13, fontWeight: 700 }}>
+          {zoom === 'year' &&
+            `${formatCount(yearData.data.total)} 枚 / 月ごとの代表を広げている`}
+          {zoom === 'month' &&
+            monthEvents &&
+            `${formatCount(monthEvents.total)} 枚 / できごと ${formatCount(monthEvents.events.length + monthEvents.small.length)} 件(束)`}
+          {zoom === 'event' &&
+            event.data &&
+            `${formatCount(event.data.fileCount)} 枚 / ${formatCount(event.data.photos.length)} 枚を広げている`}
+        </span>
+      </div>
+
+      {zoom === 'year' ? <YearDesk data={yearData.data} /> : null}
+      {zoom === 'month' && monthEvents ? (
+        <MonthDesk
+          data={monthEvents}
+          showSmall={showSmall}
+          onToggleSmall={() => url.set({ small: showSmall ? undefined : '1' })}
+        />
+      ) : null}
+      {zoom === 'event' && event.data ? (
+        <>
+          <EventDesk
+            data={event.data}
+            title={eventTitle(event.data.startAt)}
+            onMore={() => url.set({ more: String(more + EVENT_STEP) })}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {event.data.previous ? (
+              <Button
+                href={albumHref({
+                  view: 'event',
+                  e: event.data.previous.albumEventId,
+                  order,
+                })}
+              >
+                ← 前のできごと({eventTitle(event.data.previous.startAt)})
+              </Button>
+            ) : (
+              <Button disabled>← 前のできごと</Button>
+            )}
+            {event.data.next ? (
+              <Button
+                variant="y"
+                href={albumHref({
+                  view: 'event',
+                  e: event.data.next.albumEventId,
+                  order,
+                })}
+              >
+                次のできごと({eventTitle(event.data.next.startAt)}) →
+              </Button>
+            ) : (
+              <Button disabled>次のできごと →</Button>
+            )}
+          </div>
+        </>
+      ) : null}
+    </RevealPage>
+  );
+}

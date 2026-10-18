@@ -1,5 +1,10 @@
-import { ComingSoon } from '../../components/ComingSoon';
+import { AppShell } from '../../components/AppShell';
+import { AlbumLoader } from '../../components/album/AlbumLoader';
 
-export default function Page() {
-  return <ComingSoon kicker="ALBUM" title="アルバム" />;
+export default function AlbumPage() {
+  return (
+    <AppShell>
+      <AlbumLoader />
+    </AppShell>
+  );
 }
