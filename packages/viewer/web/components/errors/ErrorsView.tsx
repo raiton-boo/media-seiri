@@ -3,9 +3,9 @@
 import type { BrowsedError } from '@file-seiri/ledger';
 import { errorsCsvUrl, useErrors } from '../../lib/api';
 import {
+  describeLocation,
   formatCount,
   formatDateTimeSeconds,
-  shortenPath,
 } from '../../lib/format';
 import { useUrlState } from '../../lib/query-state';
 import { Button } from '../Button';
@@ -18,21 +18,13 @@ import { RUN_KIND_LABELS } from '../RunLabels';
 import { CsvButton } from './CsvButton';
 import { ErrorDetail } from './ErrorDetail';
 
-/** エラーになったファイルの表示(`ドライブ名/パス`、ZIP の中身なら ` ! 中のパス`) */
-export const describeSource = (source: BrowsedError['source']): string => {
-  if (!source) return '(ファイルなし)';
-  const path = `${source.volumeLabel ?? ''}/${source.relPath}`;
-  return source.entryPath ? `${path} ! ${source.entryPath}` : path;
-};
+/** エラーになったファイルの表示(全体) */
+export const describeSource = (source: BrowsedError['source']): string =>
+  describeLocation(source, false);
 
 /** 表では、長いパスを、ドライブ名と最後の 2 つのフォルダ・ファイル名に省く(全体は、ホバーと、右の詳細に出す) */
-export const shortenSource = (source: BrowsedError['source']): string => {
-  if (!source) return '(ファイルなし)';
-  const path = source.entryPath
-    ? `${source.relPath} ! ${source.entryPath}`
-    : source.relPath;
-  return `${source.volumeLabel ?? ''}/${shortenPath(path)}`;
-};
+export const shortenSource = (source: BrowsedError['source']): string =>
+  describeLocation(source, true);
 
 /** エラー一覧: コード・実行で絞り込み、行を選ぶと、右に詳細(サムネイル・内容・修復の経過) */
 export function ErrorsView() {

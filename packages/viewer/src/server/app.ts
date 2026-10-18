@@ -8,7 +8,9 @@ import {
 import { Hono } from 'hono';
 import type { DashboardResponse, ViewerInfo } from '../api-types.ts';
 import { guardRequest } from './guard.ts';
+import { registerDupeRoutes } from './routes-dupes.ts';
 import { registerErrorRoutes } from './routes-errors.ts';
+import { registerFallbackRoutes } from './routes-fallback.ts';
 import { registerRunRoutes } from './routes-runs.ts';
 import type { ViewerSource } from './source.ts';
 
@@ -25,6 +27,8 @@ const THUMB_FILE = /^[0-9a-f]{64}\.jpg$/;
  * - `GET /api/thumbs/<2 文字>/<ハッシュ>.jpg`: サムネイル
  * - `GET /api/errors`・`/api/errors/:id`・`/api/errors.csv`: エラー一覧(コード・実行で絞り込み)
  * - `GET /api/runs`・`/api/runs/:id`: 実行履歴
+ * - `GET /api/fallback`: 日付フォールバック一覧
+ * - `GET /api/dupes`・`/api/dupes/:id`: 重複比較
  */
 export const createViewerApp = (source: ViewerSource): Hono => {
   const app = new Hono();
@@ -77,6 +81,8 @@ export const createViewerApp = (source: ViewerSource): Hono => {
 
   registerErrorRoutes(app, source);
   registerRunRoutes(app, source);
+  registerFallbackRoutes(app, source);
+  registerDupeRoutes(app, source);
 
   app.all('/api/*', (context) => context.json({ error: 'not found' }, 404));
   return app;

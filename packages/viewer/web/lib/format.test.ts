@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  baseName,
+  describeLocation,
   describePlace,
   estimatePace,
   formatBytes,
@@ -9,6 +11,7 @@ import {
   formatPeriodEnd,
   formatShortDateTime,
   shortenPath,
+  shortHash,
   splitBytes,
 } from './format.ts';
 
@@ -93,5 +96,31 @@ describe('format', () => {
       `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
     );
     expect(formatShortDateTime('不明')).toBe('不明');
+  });
+
+  test('describeLocation: ドライブ名/パス。ZIP の中身は ! で続ける。short は省く', () => {
+    const location = {
+      volumeLabel: 'Backup',
+      relPath: 'A/B/C/d.zip',
+      entryPath: 'in/f.jpg',
+    };
+    expect(describeLocation(location, false)).toBe(
+      'Backup/A/B/C/d.zip ! in/f.jpg'
+    );
+    expect(describeLocation(location, true)).toBe('Backup/…/d.zip ! in/f.jpg');
+    expect(
+      describeLocation(
+        { volumeLabel: null, relPath: 'x.jpg', entryPath: null },
+        true
+      )
+    ).toBe('/x.jpg');
+    expect(describeLocation(null, true)).toBe('(ファイルなし)');
+  });
+
+  test('shortHash・baseName', () => {
+    expect(shortHash('9f2c0000000000000000a41b')).toBe('9f2c…a41b');
+    expect(shortHash('abc')).toBe('abc');
+    expect(baseName('2014/04/a.jpg')).toBe('a.jpg');
+    expect(baseName('a.jpg')).toBe('a.jpg');
   });
 });

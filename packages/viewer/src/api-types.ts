@@ -1,6 +1,10 @@
 import type {
   BrowsedError,
   DashboardSummary,
+  DuplicateGroup,
+  DuplicateGroupDetail,
+  FallbackRow,
+  FallbackSource,
   MediaKind,
   RepairAttempt,
   RunDetail,
@@ -61,3 +65,24 @@ export type RunDetailResponse = {
   run: RunDetail;
   library: LibraryInfo;
 };
+
+/** ソースのドライブの選択肢 */
+export type VolumeOption = { volumeId: number; label: string | null };
+
+export type FallbackResponse = Page & {
+  items: FallbackRow[];
+  /** 取得元ごとの件数(絞り込みは、反映しない。カードに、全体を出すため) */
+  counts: Record<FallbackSource, number>;
+  volumes: VolumeOption[];
+};
+
+export type DupesResponse = Page & {
+  items: DuplicateGroup[];
+  /** 絞り込みに合う、スキップしたファイルの数 */
+  totalSkipped: number;
+  volumes: VolumeOption[];
+  /** 実行の選択肢(新しい順) */
+  runs: RunSummary[];
+};
+
+export type DupeDetailResponse = DuplicateGroupDetail;

@@ -21,6 +21,13 @@ export {
   type RunSummary,
 } from './dashboard.ts';
 export {
+  browseDuplicateGroups,
+  type DuplicateFilter,
+  type DuplicateGroup,
+  type DuplicateGroupDetail,
+  getDuplicateGroup,
+} from './duplicate-browse.ts';
+export {
   type DuplicateLink,
   findDuplicateLinkBySource,
   insertDuplicateLink,
@@ -48,6 +55,17 @@ export {
   listEventsAfter,
   recordEvent,
 } from './events.ts';
+export {
+  browseDateFallbacks,
+  countDateFallbacks,
+  DATE_PRECISIONS,
+  type DatePrecisionFilter,
+  FALLBACK_SOURCES,
+  type FallbackFilter,
+  type FallbackRow,
+  type FallbackSource,
+  listSourceVolumes,
+} from './fallback-browse.ts';
 export {
   type FileGroupRecord,
   getFileGroup,

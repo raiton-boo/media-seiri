@@ -1,5 +1,10 @@
-import { ComingSoon } from '../../components/ComingSoon';
+import { AppShell } from '../../components/AppShell';
+import { DupesLoader } from '../../components/dupes/DupesLoader';
 
-export default function Page() {
-  return <ComingSoon kicker="DUPLICATES" title="重複比較" />;
+export default function DupesPage() {
+  return (
+    <AppShell>
+      <DupesLoader />
+    </AppShell>
+  );
 }
