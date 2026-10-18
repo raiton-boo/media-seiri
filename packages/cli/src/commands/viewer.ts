@@ -18,6 +18,7 @@ import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { describeLedgerOpenError } from '../ledger-error.ts';
 import { chooseLibraryRoot, libraryIdOf } from '../library/choose.ts';
+import { showReport } from '../present/index.ts';
 import { libraryThumbsDir, thumbsDirFor } from '../thumbs/index.ts';
 
 export type ViewerArguments = {
@@ -131,10 +132,38 @@ export const viewerCommand = async (
       webDir: context.viewerWebDir,
       port,
     });
-    context.stdout(
-      `ビューアを起動しました(${source.source === 'working' ? 'この Mac の台帳' : 'スナップショット'}): ${running.url}`
-    );
-    context.stdout('終わるときは、Ctrl-C を押してください。');
+    if (context.fancy) {
+      showReport(context, {
+        title: 'ビューア',
+        badge: { label: '起動中', tone: 'ok' },
+        sections: [
+          {
+            title: 'ブラウザで開く',
+            tone: 'ok',
+            rows: [
+              { label: 'アドレス', value: running.url, tone: 'info' },
+              {
+                label: '見ているもの',
+                value:
+                  source.source === 'working'
+                    ? 'この Mac の台帳'
+                    : 'スナップショット',
+              },
+              {
+                label: '公開範囲',
+                value: 'この Mac の 127.0.0.1 だけ(閲覧専用)',
+              },
+            ],
+          },
+        ],
+        hint: '終わるときは、Ctrl-C を押してください',
+      });
+    } else {
+      context.stdout(
+        `ビューアを起動しました(${source.source === 'working' ? 'この Mac の台帳' : 'スナップショット'}): ${running.url}`
+      );
+      context.stdout('終わるときは、Ctrl-C を押してください。');
+    }
     while (!context.shouldStop()) await context.sleep(200);
     running.stop();
     return EXIT_CODES.ok;

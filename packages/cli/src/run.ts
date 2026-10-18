@@ -27,6 +27,7 @@ import {
   type LiveController,
 } from './live/controller.ts';
 import { neverPaused, noopProgress } from './live/progress.ts';
+import { ansi } from './live/theme.ts';
 import { askYesNo } from './prompt.ts';
 import { createRepairTools, type RepairTools } from './repair/index.ts';
 import { didYouMean } from './suggest.ts';
@@ -81,6 +82,21 @@ const usageErrorMessage = (message: string): string => {
   return `${message}\n使い方は、seiri --help で見られます。`;
 };
 
+/** 失敗の表示。端末では、赤い札と、黄色の「もしかして」で、見つけやすくする */
+const styleError = (message: string, fancy: boolean): string => {
+  if (!fancy) return `エラー: ${message}`;
+  const [first = '', ...rest] = message.split('\n');
+  const lines = rest.map((line) =>
+    line.startsWith('もしかして:')
+      ? `${ansi(' もしかして ', { bg: 'yellow', fg: 'ink', bold: true })} ${ansi(line.slice('もしかして:'.length).trim(), { fg: 'yellow', bold: true })}`
+      : ansi(line, { fg: 'subtle' })
+  );
+  return [
+    `${ansi(' エラー ', { bg: 'red', fg: 'paper', bold: true })} ${ansi(first, { fg: 'red', bold: true })}`,
+    ...lines,
+  ].join('\n');
+};
+
 export type RunEnvironment = {
   env: Record<string, string | undefined>;
   stdout: (text: string) => void;
@@ -91,6 +107,7 @@ export type RunEnvironment = {
   listVolumes?: () => VolumeInfo[];
   timeZone?: string;
   isInteractive?: boolean;
+  fancy?: boolean;
   ask?: Asker;
   confirm?: (question: string) => Promise<boolean>;
   shouldStop?: () => boolean;
@@ -112,6 +129,9 @@ export const run = async (
   argv: readonly string[],
   environment: RunEnvironment
 ): Promise<ExitCode> => {
+  const errorFancy =
+    environment.fancy ??
+    Boolean(process.stderr.isTTY && !environment.env.NO_COLOR);
   try {
     const { values, positionals } = parseArgs({
       args: [...argv],
@@ -155,6 +175,9 @@ export const run = async (
       listVolumes: environment.listVolumes ?? (() => listMountedVolumes()),
       timeZone: environment.timeZone ?? systemTimeZone(),
       isInteractive: interactive,
+      fancy:
+        environment.fancy ??
+        Boolean(process.stdout.isTTY && !environment.env.NO_COLOR),
       // 端末なら、矢印キーで選ぶ色つきの画面。そうでなければ(TERM=dumb など)、番号入力
       ask:
         environment.ask ??
@@ -257,7 +280,7 @@ export const run = async (
       return EXIT_CODES.interrupted;
     }
     if (error instanceof CliError) {
-      environment.stderr(`エラー: ${error.message}`);
+      environment.stderr(styleError(error.message, errorFancy));
       return EXIT_CODES.failed;
     }
     // parseArgs の、使い方の誤り(知らないオプションなど)
@@ -266,7 +289,9 @@ export const run = async (
       'code' in error &&
       String(error.code).startsWith('ERR_PARSE_ARGS')
     ) {
-      environment.stderr(`エラー: ${usageErrorMessage(error.message)}`);
+      environment.stderr(
+        styleError(usageErrorMessage(error.message), errorFancy)
+      );
       return EXIT_CODES.failed;
     }
     throw error;

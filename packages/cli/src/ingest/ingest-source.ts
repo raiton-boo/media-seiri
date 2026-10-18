@@ -90,6 +90,8 @@ export type IngestSession = {
   lock: WriteLock | undefined;
   /** ロックを引き継いだときの、前の保持者。最初のソースの実行に、記録する */
   takeover: { previous: LockInfo; interruptedRuns: number[] } | undefined;
+  /** 取り込み元ごとの、結果のまとめ(複数の取り込み元のとき、最後に、合計を出す) */
+  collected: IngestSummary[];
 };
 
 /** 解析の途中で、中断の要求(Ctrl-C・ロックを失った)を受けた */
@@ -98,6 +100,12 @@ class StopRequested extends Error {
     super(`中断: ${reason}`);
   }
 }
+
+import { renderReport } from '../present/report-view.tsx';
+import { copyResultReport, summaryReport } from '../present/summary-report.ts';
+
+const DEFAULT_COLUMNS = 100;
+const terminalColumns = (): number => process.stdout.columns ?? DEFAULT_COLUMNS;
 
 /** 取り込みの結果(サマリー)を出す。ライブ表示の間は、画面を閉じてから、まとめて出す(`context.report`) */
 const reportLines = (
@@ -427,15 +435,20 @@ export const ingestSource = async (
         : summary.errorFiles + summary.emptyFiles > 0
           ? EXIT_CODES.completedWithErrors
           : EXIT_CODES.ok;
-    const showSummary = (): void =>
+    const showSummary = (): void => {
+      session.collected.push(summary);
+      const shown = {
+        source: describeVolume(sourceVolume),
+        destination: describeVolume(destinationVolume),
+        isDryRun: options.dryRun,
+      };
       reportLines(
         context,
-        formatSummary(summary, {
-          source: describeVolume(sourceVolume),
-          destination: describeVolume(destinationVolume),
-          isDryRun: options.dryRun,
-        })
+        context.fancy
+          ? [renderReport(summaryReport(summary, shown), terminalColumns())]
+          : formatSummary(summary, shown)
       );
+    };
 
     if (options.dryRun) {
       conclude('completed');
@@ -479,7 +492,14 @@ export const ingestSource = async (
           summary,
         })
       : undefined;
-    if (summary.copy) reportLines(context, formatCopyResult(summary.copy));
+    if (summary.copy) {
+      reportLines(
+        context,
+        context.fancy
+          ? [renderReport(copyResultReport(summary.copy), terminalColumns())]
+          : formatCopyResult(summary.copy)
+      );
+    }
     if (reason) return stopped(reason);
 
     // サムネイル(コピーの最後に、まとめて作る。作れなくても、取り込みは失敗にしない)

@@ -22,6 +22,7 @@ import { acquireLockSession } from '../ingest/lock-session.ts';
 import { formatBytes } from '../ingest/preflight.ts';
 import { chooseLibraryRoot } from '../library/choose.ts';
 import { exportRunLog } from '../log/export.ts';
+import { type Report, showReport } from '../present/index.ts';
 import { parseSampleRatio } from '../verify/sample.ts';
 import {
   type FileProblem,
@@ -56,6 +57,118 @@ const printProblems = (
   }
 };
 
+/** 検査の結果を、色つきの枠にする(文字だけの表示と、同じ内容) */
+const verifyReport = (
+  report: VerifyReport,
+  root: string,
+  sampled: string,
+  seconds: number
+): Report => {
+  const bad =
+    report.mismatched.length + report.missing.length + report.unreadable.length;
+  const problemLines = (title: string, problems: readonly FileProblem[]) =>
+    problems.length === 0
+      ? []
+      : [
+          `${title}(${problems.length} 件)`,
+          ...problems
+            .slice(0, SHOWN_PROBLEMS)
+            .map((problem) => `  ${problem.relPath}: ${problem.detail}`),
+          ...(problems.length > SHOWN_PROBLEMS
+            ? [
+                `  ほか ${problems.length - SHOWN_PROBLEMS} 件(全件は、エラー一覧に記録しました)`,
+              ]
+            : []),
+        ];
+  const rate =
+    report.bytesRead > 0 && seconds >= 0.1
+      ? ` / ${formatBytes(report.bytesRead / seconds)}/秒`
+      : '';
+  const sections: Report['sections'] = [
+    {
+      title: '照合',
+      tone: bad > 0 ? 'error' : 'ok',
+      rows: [
+        { label: '対象', value: root },
+        {
+          label: '台帳のファイル',
+          value: `${report.ledgerFiles} 件${sampled}`,
+        },
+        {
+          label: '一致',
+          value: `${report.matched} 件`,
+          tone: 'ok',
+          ratio: report.checked === 0 ? 0 : report.matched / report.checked,
+        },
+        {
+          label: '不一致',
+          value: `${report.mismatched.length} 件`,
+          tone: report.mismatched.length > 0 ? 'error' : undefined,
+        },
+        {
+          label: '欠落',
+          value: `${report.missing.length} 件(台帳にあるが、ファイルがない)`,
+          tone: report.missing.length > 0 ? 'error' : undefined,
+        },
+        {
+          label: '読み取り不可',
+          value: `${report.unreadable.length} 件`,
+          tone: report.unreadable.length > 0 ? 'error' : undefined,
+        },
+        {
+          label: '未登録',
+          value: report.stopped
+            ? '(中断したため、調べていません)'
+            : `${report.unregistered.length} 件(ファイルはあるが、台帳にない。報告のみ)`,
+          tone: report.unregistered.length > 0 ? 'warn' : 'dim',
+        },
+        {
+          label: '読んだ量',
+          value: `${formatBytes(report.bytesRead)}(${seconds.toFixed(1)} 秒${rate})`,
+          tone: 'dim',
+        },
+      ],
+    },
+  ];
+  const lines = [
+    ...problemLines('不一致', report.mismatched),
+    ...problemLines('欠落', report.missing),
+    ...problemLines('読み取り不可', report.unreadable),
+  ];
+  if (report.ledgerFiles === 0) {
+    lines.push(
+      '台帳に、ライブラリのファイルがありません(まだ取り込んでいない、または、別のライブラリを指していませんか)。'
+    );
+  }
+  if (lines.length > 0)
+    sections.push({ title: '問題のファイル', tone: 'error', lines });
+  if (!report.stopped && report.unregistered.length > 0) {
+    sections.push({
+      title: `未登録 ${report.unregistered.length} 件`,
+      tone: 'warn',
+      lines: [
+        ...report.unregistered
+          .slice(0, SHOWN_PROBLEMS)
+          .map((path) => `  ${path}`),
+        ...(report.unregistered.length > SHOWN_PROBLEMS
+          ? [
+              `  ほか ${report.unregistered.length - SHOWN_PROBLEMS} 件(全件は、イベントに記録しました)`,
+            ]
+          : []),
+      ],
+    });
+  }
+  return {
+    title: '検査の結果',
+    badge: report.stopped
+      ? { label: '中断', tone: 'warn' }
+      : bad > 0
+        ? { label: `問題 ${bad} 件`, tone: 'error' }
+        : { label: '問題なし', tone: 'ok' },
+    sections,
+  };
+};
+
 const printReport = (
   context: CommandContext,
   report: VerifyReport,
@@ -65,6 +178,10 @@ const printReport = (
 ): void => {
   const sampled =
     sampleRatio < 1 ? `(抜き取り ${report.checked} 件を検査)` : '';
+  if (context.fancy) {
+    showReport(context, verifyReport(report, root, sampled, seconds));
+    return;
+  }
   context.stdout(`${report.stopped ? '[中断] ' : ''}検査の結果: ${root}`);
   context.stdout(`  台帳のファイル: ${report.ledgerFiles} 件${sampled}`);
   context.stdout(`  一致: ${report.matched} 件`);

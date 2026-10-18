@@ -12,6 +12,7 @@ import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { openLibraryForIngest } from '../ingest/library.ts';
 import { acquireLockSession } from '../ingest/lock-session.ts';
 import { chooseLibraryRoot } from '../library/choose.ts';
+import { showReport } from '../present/index.ts';
 
 export type EventsArguments = {
   library: string | undefined;
@@ -52,9 +53,31 @@ export const eventsCommand = async (
       const revision = incrementRevision(db);
       return { ...rebuildAlbumEvents(db, revision), revision };
     });
-    context.stdout(
-      `アルバムのできごとを計算しました: ${result.events} 件(対象 ${result.files} 枚。リビジョン ${getRevision(db)})`
-    );
+    if (context.fancy) {
+      showReport(context, {
+        title: 'アルバムのできごと',
+        badge: { label: '完了', tone: 'ok' },
+        sections: [
+          {
+            title: '計算の結果',
+            tone: 'ok',
+            rows: [
+              { label: 'できごと', value: `${result.events} 件`, tone: 'ok' },
+              { label: '対象の写真', value: `${result.files} 枚` },
+              {
+                label: 'リビジョン',
+                value: String(getRevision(db)),
+                tone: 'dim',
+              },
+            ],
+          },
+        ],
+      });
+    } else {
+      context.stdout(
+        `アルバムのできごとを計算しました: ${result.events} 件(対象 ${result.files} 枚。リビジョン ${getRevision(db)})`
+      );
+    }
     try {
       createSnapshot(library.ledger, library.snapshotPath);
     } catch (error) {

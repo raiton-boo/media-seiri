@@ -1,3 +1,5 @@
+import { ansi } from './live/theme.ts';
+
 /** `seiri --help` と、`seiri <コマンド> --help` の説明。コマンドごとに、意味・オプション・例を持つ */
 
 type Option = { flag: string; text: string };
@@ -213,13 +215,12 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
   },
 ];
 
-const ESC = '\u001b[';
-
 const painter = (color: boolean) => ({
-  title: (text: string) => (color ? `${ESC}1;33m${text}${ESC}0m` : text),
-  name: (text: string) => (color ? `${ESC}1m${text}${ESC}0m` : text),
-  dim: (text: string) => (color ? `${ESC}2m${text}${ESC}0m` : text),
-  cmd: (text: string) => (color ? `${ESC}36m${text}${ESC}0m` : text),
+  title: (text: string) =>
+    color ? ansi(text, { fg: 'yellow', bold: true }) : text,
+  name: (text: string) => (color ? ansi(text, { bold: true }) : text),
+  dim: (text: string) => (color ? ansi(text, { fg: 'subtle' }) : text),
+  cmd: (text: string) => (color ? ansi(text, { fg: 'cyan' }) : text),
 });
 
 /** 左の列の幅をそろえる(全角は 2 つ分として数える) */

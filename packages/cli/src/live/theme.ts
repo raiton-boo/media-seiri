@@ -103,3 +103,49 @@ export const mixColor = (
   );
   return `#${mixed.map((value) => value.toString(HEX_RADIX).padStart(HEX_DIGITS_PER_CHANNEL, '0')).join('')}`;
 };
+
+const BASIC_CODES: Record<string, number> = {
+  black: 30,
+  red: 31,
+  green: 32,
+  yellow: 33,
+  blue: 34,
+  magenta: 35,
+  cyan: 36,
+  white: 37,
+  gray: 90,
+  greenBright: 92,
+  yellowBright: 93,
+  magentaBright: 95,
+  cyanBright: 96,
+};
+
+const BACKGROUND_OFFSET = 10;
+
+/**
+ * 色つきの文字列にする(Ink を使わない、1 行ずつの出力用。ログの行など)。
+ * 色を使わないとき(`NO_COLOR`)は、そのまま返す。配色は、ライブ表示・結果の枠と、同じ。
+ */
+export const ansi = (
+  text: string,
+  style: { fg?: ColorName; bg?: ColorName; bold?: boolean }
+): string => {
+  if (colorMode === 'none') return text;
+  const codes: string[] = [];
+  if (style.bold) codes.push('1');
+  const add = (name: ColorName | undefined, offset: number): void => {
+    if (!name) return;
+    const entry = PALETTE[name];
+    if (colorMode === 'truecolor') {
+      const [red, green, blue] = toChannels(entry.hex);
+      codes.push(`${38 + offset};2;${red};${green};${blue}`);
+    } else {
+      codes.push(String((BASIC_CODES[entry.basic] ?? 37) + offset));
+    }
+  };
+  add(style.fg, 0);
+  add(style.bg, BACKGROUND_OFFSET);
+  return codes.length === 0
+    ? text
+    : `\u001b[${codes.join(';')}m${text}\u001b[0m`;
+};

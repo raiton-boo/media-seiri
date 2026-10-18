@@ -16,6 +16,7 @@ import {
   readMarker,
   writeMarker,
 } from '../library/marker.ts';
+import { showReport } from '../present/index.ts';
 
 /** `a` が、`b` と同じ場所か、`b` の中か */
 const isSameOrInside = (a: string, b: string): boolean => {
@@ -88,6 +89,25 @@ export const libraryInit = (
     throw error;
   }
 
+  if (context.fancy) {
+    showReport(context, {
+      title: 'ライブラリを作りました',
+      badge: { label: '完了', tone: 'ok' },
+      sections: [
+        {
+          title: 'ライブラリ',
+          tone: 'ok',
+          rows: [
+            { label: '場所', value: root },
+            { label: 'ID', value: libraryId },
+            { label: '台帳', value: ledgerPathFor(context.dataDir, libraryId) },
+          ],
+        },
+      ],
+      hint: 'つぎは、seiri ingest で、写真を取り込みます',
+    });
+    return EXIT_CODES.ok;
+  }
   context.stdout(`ライブラリを作りました: ${root}`);
   context.stdout(`  ID: ${libraryId}`);
   context.stdout(`  台帳: ${ledgerPathFor(context.dataDir, libraryId)}`);
