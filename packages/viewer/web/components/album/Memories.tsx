@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { parseTakenAt } from '../../lib/album';
+import { useAlbumHref } from '../../lib/album-context';
 import { albumHref } from '../../lib/album-url';
 import { useAlbumMemories } from '../../lib/api';
 import { SwapLabel } from '../motion/SwapLabel';
@@ -25,6 +26,7 @@ export function Memories() {
   const [date] = useState(todayText);
   const [salt, setSalt] = useState(0);
   const { data } = useAlbumMemories(date, salt);
+  const photoHref = useAlbumHref();
   if (!data) return null;
   const [, month, day] = date.split('-');
   const { onThisDay, photoOfDay } = data;
@@ -98,6 +100,7 @@ export function Memories() {
             motion={false}
             style={{ ...SMALL, height: 130 }}
             caption={[photoOfDay.takenAt?.slice(0, 10) ?? '', '']}
+            href={photoHref({ view: 'photo', p: photoOfDay.libraryFileId })}
           />
         </div>
       ) : null}
