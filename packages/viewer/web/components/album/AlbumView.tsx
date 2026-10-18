@@ -263,7 +263,7 @@ function AlbumBrowser() {
                   : undefined
               }
             >
-              {heading}{' '}
+              アルバム<span className="h1-sub"> - {heading}</span>{' '}
               {entrance && year === overview.data.latestYear ? (
                 <span
                   className="chip y"

@@ -93,7 +93,12 @@ export function CalendarView() {
         >
           <div>
             <div className="kicker">CALENDAR</div>
-            <h1 className="h1">カレンダー</h1>
+            <h1 className="h1">
+              カレンダー
+              {year === undefined ? null : (
+                <span className="h1-sub"> - {year}年</span>
+              )}
+            </h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button href={albumHref({ view: undefined })}>← アルバムへ</Button>

@@ -105,6 +105,11 @@ a {
   margin: 0;
   letter-spacing: 0.01em;
 }
+/* 見出しの「 - 年」など、いま見ている場所(名前より、一回り小さく) */
+.h1-sub {
+  font-size: 0.62em;
+  letter-spacing: 0;
+}
 .h2 {
   font-family: var(--disp);
   font-size: 24px;
