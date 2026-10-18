@@ -2,7 +2,9 @@
 
 import type { AlbumPhoto, AlbumSection } from '@file-seiri/ledger';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAlbumHref } from '../../lib/album-context';
 import type { FilterState } from '../../lib/album-filter';
 import {
   type AlbumOrderParam,
@@ -33,12 +35,22 @@ const sectionTitle = (section: AlbumSection): string =>
 const ratioOf = (photo: AlbumPhoto): number =>
   photo.width && photo.height ? photo.width / photo.height : 4 / 3;
 
-function Tile({ photo, index }: { photo: AlbumPhoto; index: number }) {
+function Tile({
+  photo,
+  index,
+  order,
+}: {
+  photo: AlbumPhoto;
+  index: number;
+  order: AlbumOrderParam;
+}) {
+  const albumHref = useAlbumHref();
   const name = photo.relPath.split('/').pop() ?? photo.relPath;
   return (
-    <div
+    <Link
+      href={albumHref({ view: 'photo', p: photo.libraryFileId, order })}
       className={`ph c${(index % 7) + 1}`}
-      style={{ aspectRatio: String(ratioOf(photo)) }}
+      style={{ aspectRatio: String(ratioOf(photo)), display: 'block' }}
     >
       {photo.thumbRelPath ? (
         <img
@@ -50,11 +62,19 @@ function Tile({ photo, index }: { photo: AlbumPhoto; index: number }) {
       ) : (
         <div className="lb">{name} — サムネイルなし</div>
       )}
-    </div>
+    </Link>
   );
 }
 
-function Rows({ photos, width }: { photos: AlbumPhoto[]; width: number }) {
+function Rows({
+  photos,
+  width,
+  order,
+}: {
+  photos: AlbumPhoto[];
+  width: number;
+  order: AlbumOrderParam;
+}) {
   const rows = useMemo(
     () =>
       layoutRows(
@@ -74,7 +94,7 @@ function Rows({ photos, width }: { photos: AlbumPhoto[]; width: number }) {
               key={photo.libraryFileId}
               style={{ width: ratioOf(photo) * row.height, flex: '0 0 auto' }}
             >
-              <Tile photo={photo} index={row.start + i} />
+              <Tile photo={photo} index={row.start + i} order={order} />
             </div>
           ))}
         </div>
@@ -117,11 +137,16 @@ function Section({
           <div className="note">この区画を読み込めませんでした。</div>
         ) : data ? (
           layout === 'rows' ? (
-            <Rows photos={data.photos} width={width} />
+            <Rows photos={data.photos} width={width} order={order} />
           ) : (
             <div className="msn">
               {data.photos.map((photo, i) => (
-                <Tile key={photo.libraryFileId} photo={photo} index={i} />
+                <Tile
+                  key={photo.libraryFileId}
+                  photo={photo}
+                  index={i}
+                  order={order}
+                />
               ))}
             </div>
           )

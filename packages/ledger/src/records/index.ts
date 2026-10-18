@@ -41,6 +41,13 @@ export {
   UNKNOWN_CAMERA,
 } from './album-filter.ts';
 export {
+  type GroupMember,
+  getPhotoDetail,
+  getPhotoStrip,
+  type PhotoDetail,
+  type PhotoStrip,
+} from './album-photo.ts';
+export {
   countFilteredPhotos,
   describeDate,
   describePlace,

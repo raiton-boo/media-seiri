@@ -12,6 +12,7 @@ import { registerAlbumRoutes } from './routes-album.ts';
 import { registerDupeRoutes } from './routes-dupes.ts';
 import { registerErrorRoutes } from './routes-errors.ts';
 import { registerFallbackRoutes } from './routes-fallback.ts';
+import { registerPhotoRoutes } from './routes-photo.ts';
 import { registerRunRoutes } from './routes-runs.ts';
 import type { ViewerSource } from './source.ts';
 
@@ -26,6 +27,7 @@ const THUMB_FILE = /^[0-9a-f]{64}\.jpg$/;
  * - `GET /api/info`: ライブラリ・台帳の鮮度(上のナビのチップ)
  * - `GET /api/dashboard`: ダッシュボード
  * - `GET /api/thumbs/<2 文字>/<ハッシュ>.jpg`: サムネイル
+ * - `GET /api/files/<ID>`: 原本(拡大表示。ライブラリが接続中のときだけ)
  * - `GET /api/errors`・`/api/errors/:id`・`/api/errors.csv`: エラー一覧(コード・実行で絞り込み)
  * - `GET /api/runs`・`/api/runs/:id`: 実行履歴
  * - `GET /api/fallback`: 日付フォールバック一覧
@@ -86,6 +88,7 @@ export const createViewerApp = (source: ViewerSource): Hono => {
   registerFallbackRoutes(app, source);
   registerDupeRoutes(app, source);
   registerAlbumRoutes(app, source);
+  registerPhotoRoutes(app, source);
 
   app.all('/api/*', (context) => context.json({ error: 'not found' }, 404));
   return app;

@@ -15,6 +15,8 @@ export type AlbumFilter = {
   dateSources?: string[];
   /** ソースのドライブ(コピーしたソースのファイルの、ドライブ) */
   volumeIds?: number[];
+  /** できごと(拡大表示で、できごとの中を、前後に動くときの範囲) */
+  eventId?: number;
   /** 検索: 日付(`YYYY` / `YYYY-MM` / `YYYY-MM-DD`)。撮影日時が、その日付で始まるもの。複数なら、どれか */
   dates?: string[];
   /** 検索: ファイル名に含む文字(大文字・小文字は、区別しない)。複数なら、どれか */
@@ -120,6 +122,10 @@ export const albumFilterSql = (
         .join(' OR ')})`
     );
     for (const place of filter.places) params.push(place.lat, place.lon);
+  }
+  if (filter.eventId !== undefined) {
+    parts.push('f.album_event_id = ?');
+    params.push(filter.eventId);
   }
   return {
     sql: parts.map((part) => ` AND ${part}`).join(''),

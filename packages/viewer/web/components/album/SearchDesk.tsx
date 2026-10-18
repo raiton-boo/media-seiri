@@ -1,5 +1,6 @@
 import type { SearchPhotosResponse } from '../../../src/api-types.ts';
 import { formatClip } from '../../lib/album';
+import { useAlbumHref } from '../../lib/album-context';
 import { formatCount } from '../../lib/format';
 import { RevealDesk } from '../motion/Reveal';
 import { Polaroid, photoCaption } from './Polaroid';
@@ -15,6 +16,7 @@ export function SearchDesk({
   data: SearchPhotosResponse;
   onMore: () => void;
 }) {
+  const albumHref = useAlbumHref();
   if (data.total === 0) {
     return (
       <div className="card">
@@ -44,6 +46,11 @@ export function SearchDesk({
           photo={photo}
           index={index}
           caption={photoCaption(photo, formatClip)}
+          href={albumHref({
+            view: 'photo',
+            p: photo.libraryFileId,
+            order: data.order,
+          })}
         />
       ))}
       {data.total > shown ? (

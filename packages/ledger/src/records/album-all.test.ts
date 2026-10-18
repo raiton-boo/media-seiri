@@ -7,6 +7,7 @@ import {
   countAlbumFilters,
   UNKNOWN_CAMERA,
 } from './album-filter.ts';
+import { getPhotoDetail, getPhotoStrip } from './album-photo.ts';
 import {
   countFilteredPhotos,
   describePlace,
@@ -377,5 +378,117 @@ describe('suggestSearch(候補)', () => {
     expect(suggestSearch(ctx.db, 'cano', { kinds: ['video'] })).toEqual([
       { type: 'camera', value: 'Canon', label: 'Canon', count: 1 },
     ]);
+  });
+});
+
+describe('拡大表示(getPhotoDetail・getPhotoStrip)', () => {
+  const ctx = build(SPECS);
+  const id = (rel: string) => ctx.ids.get(rel) as number;
+
+  test('情報: メタデータ・GPS・内容(ハッシュ・大きさ)。ないものは、null', () => {
+    expect(getPhotoDetail(ctx.db, id('a1.jpg'))).toMatchObject({
+      relPath: 'a1.jpg',
+      kind: 'photo',
+      takenAt: '2016-12-24T18:00:00',
+      datePrecision: 'full',
+      dateSource: 'exif',
+      cameraModel: 'Canon',
+      width: 1200,
+      gps: { lat: 35, lon: 139 },
+      sizeBytes: 1,
+      event: null,
+    });
+    expect(getPhotoDetail(ctx.db, id('b1.jpg'))?.gps).toBeNull();
+    expect(getPhotoDetail(ctx.db, 99999)).toBeUndefined();
+  });
+
+  test('同名グループ: 自分を含め、写真・RAW・サイドカーの順', () => {
+    const base = getPhotoDetail(ctx.db, id('a1.jpg'));
+    const groupId = (
+      ctx.db
+        .query<{ g: number }, [number]>(
+          'SELECT group_id AS g FROM library_files WHERE library_file_id = ?'
+        )
+        .get(id('a1.jpg')) as { g: number }
+    ).g;
+    for (const [rel, n] of [
+      ['a1.xmp', 'x'],
+      ['a1.cr3', 'r'],
+    ] as const) {
+      const { content } = getOrCreateContent(ctx.db, {
+        hash: n.repeat(64),
+        sizeBytes: 5,
+      });
+      insertLibraryFile(ctx.db, {
+        contentId: content.contentId,
+        groupId,
+        runId: 1,
+        relPath: rel,
+        bucket: 'full',
+        createdAt: T0,
+      });
+    }
+    expect(base).not.toBeNull();
+    expect(
+      getPhotoDetail(ctx.db, id('a1.jpg'))?.group.map((m) => [
+        m.relPath,
+        m.kind,
+      ])
+    ).toEqual([
+      ['a1.jpg', 'photo'],
+      ['a1.cr3', 'raw'],
+      ['a1.xmp', 'xmp'],
+    ]);
+  });
+
+  test('前後の並び: 位置・前後 radius 枚。日付なしは最後。条件に合わない写真は、位置なし', () => {
+    const strip = getPhotoStrip(ctx.db, id('b1.jpg'), {}, 'new', 1);
+    // 新しい順: a3(12/31) a2(12/24 18:10) a1 b1 b2 y1 n1
+    expect(strip.total).toBe(7);
+    expect(strip.position).toBe(4);
+    expect(strip.photos.map((p) => p.relPath)).toEqual([
+      'a1.jpg',
+      'b1.jpg',
+      'b2.jpg',
+    ]);
+    const first = getPhotoStrip(ctx.db, id('a3.cr3'), {}, 'new', 2);
+    expect(first.position).toBe(1);
+    expect(first.photos).toHaveLength(3);
+    const old = getPhotoStrip(ctx.db, id('y1.jpg'), {}, 'old', 1);
+    // 古い順: y1('2014') b2('2014-04-06') b1 …(y1 が、いちばん最初)
+    expect(old.position).toBe(1);
+    expect(old.photos.map((p) => p.relPath)).toEqual(['y1.jpg', 'b2.jpg']);
+    const filtered = getPhotoStrip(
+      ctx.db,
+      id('b1.jpg'),
+      { kinds: ['video'] },
+      'new',
+      1
+    );
+    expect(filtered).toEqual({ total: 1, position: null, photos: [] });
+  });
+
+  test('できごとの範囲', () => {
+    ctx.db
+      .query(
+        "INSERT INTO album_events (start_at, end_at, file_count, cover_library_file_id, rule, computed_revision) VALUES (?, ?, 2, NULL, '4h', 1)"
+      )
+      .run('2016-12-24T18:00:00', '2016-12-24T18:10:00');
+    const eventId = ctx.db
+      .query<{ i: number }, []>(
+        'SELECT max(album_event_id) AS i FROM album_events'
+      )
+      .get()?.i as number;
+    ctx.db
+      .query(
+        'UPDATE library_files SET album_event_id = ? WHERE library_file_id IN (?, ?)'
+      )
+      .run(eventId, id('a1.jpg'), id('a2.mp4'));
+    const strip = getPhotoStrip(ctx.db, id('a1.jpg'), { eventId }, 'new', 5);
+    expect(strip).toMatchObject({ total: 2, position: 2 });
+    expect(getPhotoDetail(ctx.db, id('a1.jpg'))?.event).toMatchObject({
+      albumEventId: eventId,
+      fileCount: 2,
+    });
   });
 });

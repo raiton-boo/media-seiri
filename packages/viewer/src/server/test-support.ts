@@ -22,7 +22,9 @@ const tempDir = (): string => {
 
 export const makeSource = (
   overrides: Partial<ViewerSource> = {}
-): ViewerSource & { thumbsDir: string } => {
+): ViewerSource & { thumbsDir: string; libraryRoot: string } => {
+  const libraryRoot = join(tempDir(), 'library');
+  mkdirSync(libraryRoot, { recursive: true });
   const thumbsDir = join(tempDir(), 'thumbs');
   mkdirSync(join(thumbsDir, HASH.slice(0, 2)), { recursive: true });
   writeFileSync(join(thumbsDir, HASH.slice(0, 2), `${HASH}.jpg`), 'jpeg-bytes');
@@ -35,6 +37,7 @@ export const makeSource = (
     },
     source: 'snapshot',
     ledger: openLedger(IN_MEMORY, { libraryId: 'lib-1' }),
+    libraryRoot,
     thumbsDir,
     asOf: () => NOW,
     disk: () => ({ totalBytes: 2000, freeBytes: 500 }),
