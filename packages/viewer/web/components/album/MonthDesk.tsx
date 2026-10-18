@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import type { AlbumMonthResponse } from '../../../src/api-types.ts';
 import { eventLabel, parseTakenAt, stickerColor } from '../../lib/album';
-import { albumHref } from '../../lib/album-url';
+import { useAlbumHref } from '../../lib/album-context';
 import { formatCount } from '../../lib/format';
 import { RevealDesk } from '../motion/Reveal';
 import { Polaroid } from './Polaroid';
@@ -28,6 +28,7 @@ function Stack({
   month: number;
 }) {
   const parts = parseTakenAt(stack.startAt);
+  const albumHref = useAlbumHref();
   // 後ろから前へ(先頭の写真が、いちばん手前)。写真が足りなければ、層を減らす
   const photos = stack.photos.slice(0, 3);
   const back = photos.slice(1).reverse();

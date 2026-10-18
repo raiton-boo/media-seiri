@@ -1436,3 +1436,29 @@ img {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* 絞り込みの引き出しの行(押せる) */
+.fdr button.rw {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 3px 0;
+  cursor: pointer;
+  color: var(--ink);
+}
+.fdr button.rw:hover .bx2 {
+  background: var(--y);
+}
+.fdr button.rw.off {
+  color: #6b6558;
+}
+.fdr button.rw.off .bx2 {
+  border-style: dashed;
+}
+.fdr {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}

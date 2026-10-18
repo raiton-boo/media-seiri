@@ -1,3 +1,4 @@
+import { type FilterState, filterParams } from './album-filter';
 import { queryString } from './api';
 
 export type AlbumLocation = {
@@ -11,6 +12,10 @@ export type AlbumLocation = {
   order?: 'new' | 'old';
   /** 「すべて」の配置。`masonry`(既定)は、URL に出さない */
   layout?: 'masonry' | 'rows';
+  /** 絞り込みの条件(移っても、引き継ぐ)。省くと、条件なし */
+  filter?: FilterState;
+  /** 絞り込みの引き出しを開く */
+  drawer?: boolean;
   /** 月の机で、小さなできごとも出す */
   small?: boolean;
   /** できごとの机で、広げた写真の数(既定は、12 枚) */
@@ -26,6 +31,8 @@ export const albumHref = (location: AlbumLocation = {}): string =>
     e: location.e,
     order: location.order === 'old' ? 'old' : undefined,
     layout: location.layout === 'rows' ? 'rows' : undefined,
+    ...(location.filter ? filterParams(location.filter) : {}),
+    drawer: location.drawer ? 1 : undefined,
     small: location.small ? 1 : undefined,
     more: location.more,
   })}`;

@@ -3,15 +3,17 @@ import {
   getEventDetail,
   listAlbumSections,
   listEventStacks,
+  listFilterOptions,
   listMonthSummaries,
   listOnThisDay,
   listSectionPhotos,
   listYearCounts,
   pickPhotoOfDay,
 } from '@file-seiri/ledger';
-import type { Hono } from 'hono';
+import type { Context, Hono } from 'hono';
 import type {
   AlbumEventResponse,
+  AlbumFiltersResponse,
   AlbumMemoriesResponse,
   AlbumMonthResponse,
   AlbumOverviewResponse,
@@ -58,15 +60,19 @@ const parseDate = (
  * - `GET /api/album/month?y=&m=`: 1 か月の、できごと(束)
  * - `GET /api/album/event/:id`: できごとの写真(ページ送り)と、前後のできごと
  * - `GET /api/album/all/sections`・`/api/album/all/photos?y=&m=`: 「すべて」(区画の一覧と、区画ごとの写真。絞り込みの条件つき)
+ * - `GET /api/album/filters`: 絞り込みの選択肢と件数
  * - `GET /api/album/memories?date=&salt=`: 去年の今日・今日の一枚
  * どれも `order=new|old`(既定は new)で、並び順を変えられる。
  */
 export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
   const { db } = source.ledger;
+  // どの画面にも、同じ絞り込みの条件(URL のクエリ)が効く
+  const filterOf = (context: Context) =>
+    parseAlbumFilter((name) => context.req.queries(name));
 
   app.get('/api/album/overview', (context) => {
     const order = orderOf(context.req.query('order'));
-    const counts = listYearCounts(db, order);
+    const counts = listYearCounts(db, order, filterOf(context));
     const body: AlbumOverviewResponse = {
       order,
       ...counts,
@@ -85,7 +91,7 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
       return context.json({ error: 'bad year' }, 400);
     }
     const order = orderOf(context.req.query('order'));
-    const months = listMonthSummaries(db, year, order);
+    const months = listMonthSummaries(db, year, order, filterOf(context));
     const body: AlbumYearResponse = {
       year,
       order,
@@ -109,10 +115,11 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
       return context.json({ error: 'bad month' }, 400);
     }
     const order = orderOf(context.req.query('order'));
-    const stacks = listEventStacks(db, year, month, order);
+    const stacks = listEventStacks(db, year, month, order, filterOf(context));
     const total =
-      listMonthSummaries(db, year, 'old').find((item) => item.month === month)
-        ?.count ?? 0;
+      listMonthSummaries(db, year, 'old', filterOf(context)).find(
+        (item) => item.month === month
+      )?.count ?? 0;
     const body: AlbumMonthResponse = {
       year,
       month,
@@ -135,7 +142,7 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
     const detail =
       id === undefined
         ? undefined
-        : getEventDetail(db, id, order, { limit, offset });
+        : getEventDetail(db, id, order, { limit, offset }, filterOf(context));
     if (!detail) return context.json({ error: 'not found' }, 404);
     const body: AlbumEventResponse = { ...detail, order, limit, offset };
     return context.json(body);
@@ -144,11 +151,7 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
   // 「すべて」: 区画(年月)の一覧と、区画ごとの写真。見えている区画だけ、画面が取りに来る(仮想スクロール)
   app.get('/api/album/all/sections', (context) => {
     const order = orderOf(context.req.query('order'));
-    const sections = listAlbumSections(
-      db,
-      parseAlbumFilter((name) => context.req.queries(name)),
-      order
-    );
+    const sections = listAlbumSections(db, filterOf(context), order);
     const body: AlbumSectionsResponse = {
       order,
       total: sections.reduce((sum, section) => sum + section.count, 0),
@@ -170,12 +173,18 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
       order,
       photos: listSectionPhotos(
         db,
-        parseAlbumFilter((name) => context.req.queries(name)),
+        filterOf(context),
         { year, month },
         order,
         SECTION_PHOTO_LIMIT
       ),
     };
+    return context.json(body);
+  });
+
+  // 絞り込みの引き出し: 選択肢と件数(いまの条件のもとで、項目ごとに数える)
+  app.get('/api/album/filters', (context) => {
+    const body: AlbumFiltersResponse = listFilterOptions(db, filterOf(context));
     return context.json(body);
   });
 

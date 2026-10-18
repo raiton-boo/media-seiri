@@ -10,6 +10,7 @@ import type {
   EventStack,
   FallbackRow,
   FallbackSource,
+  FilterOptions,
   MediaKind,
   MonthSummary,
   OnThisDay,
@@ -150,3 +151,6 @@ export type AlbumSectionPhotosResponse = {
   order: AlbumOrder;
   photos: AlbumPhoto[];
 };
+
+/** 絞り込みの引き出し: 項目ごとの選択肢と件数 */
+export type AlbumFiltersResponse = FilterOptions;

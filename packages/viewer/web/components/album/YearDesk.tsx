@@ -1,6 +1,6 @@
 import type { AlbumYearResponse } from '../../../src/api-types.ts';
 import { stickerColor } from '../../lib/album';
-import { albumHref } from '../../lib/album-url';
+import { useAlbumHref } from '../../lib/album-context';
 import { formatCount } from '../../lib/format';
 import { RevealDesk } from '../motion/Reveal';
 import { Polaroid } from './Polaroid';
@@ -10,6 +10,7 @@ import { Polaroid } from './Polaroid';
  * 月の写真を押すと、その月の机へ。枚数のない月は、置かない。
  */
 export function YearDesk({ data }: { data: AlbumYearResponse }) {
+  const albumHref = useAlbumHref();
   const months = data.months.filter((item) => item.cover !== null);
   const biggest = months.reduce<number>(
     (best, item) => Math.max(best, item.count),

@@ -4,7 +4,7 @@ import type { MonthSummary } from '@file-seiri/ledger';
 import Link from 'next/link';
 import { useRef } from 'react';
 import type { AlbumOverviewResponse } from '../../../src/api-types.ts';
-import { albumHref } from '../../lib/album-url';
+import { useAlbumHref } from '../../lib/album-context';
 import type { AlbumOrderParam } from '../../lib/api';
 import { formatCount } from '../../lib/format';
 import { SwapLabel } from '../motion/SwapLabel';
@@ -44,6 +44,7 @@ export function TimeRuler({
   eventHref,
   onToggleOrder,
 }: Props) {
+  const albumHref = useAlbumHref();
   // 年・「すべて」は、月を決めない(つまみは、真ん中)
   const atYear = zoom === 'year' || zoom === 'all';
   const maxCount = Math.max(1, ...months.map((item) => item.count));
