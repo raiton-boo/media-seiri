@@ -8,6 +8,7 @@ dist/
 
 # --- 自動生成するファイル
 packages/cli/src/embedded/assets.generated.ts
+packages/cli/src/embedded/viewer-assets.generated.ts
 *.tsbuildinfo
 poc/viewer-embed/src/assets.ts
 next-env.d.ts

@@ -78,6 +78,9 @@ function NoticeBands() {
         <div className="card l band">
           <span>
             <b>最後の snapshot の内容です({formatDateTime(data.asOf)})。</b>{' '}
+            {staleDays(data.asOf) >= STALE_DAYS ? (
+              <b>最終の更新は {staleDays(data.asOf)} 日前です。 </b>
+            ) : null}
             新しい取り込みは、この Mac で行います。
           </span>
         </div>
@@ -85,6 +88,12 @@ function NoticeBands() {
     </div>
   );
 }
+
+/** これより古い snapshot には、「何日前か」を、添える(日数) */
+const STALE_DAYS = 30;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const staleDays = (asOf: string): number =>
+  Math.floor((Date.now() - new Date(asOf).getTime()) / MS_PER_DAY);
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

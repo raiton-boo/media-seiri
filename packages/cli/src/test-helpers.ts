@@ -30,6 +30,7 @@ export const runCli = async (
     stderr: (text) => stderr.push(text),
     now: () => FIXED_NOW,
     fancy: false,
+    viewerBundleDir: undefined,
     newLibraryId: options.newLibraryId ?? (() => 'lib-1'),
   };
   const code = await run(['--data-dir', options.dataDir, ...argv], environment);

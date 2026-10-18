@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { systemTimeZone } from '@file-seiri/core';
 import { DEFAULT_WEB_DIR } from '@file-seiri/viewer';
@@ -13,8 +14,10 @@ import { statusCommand } from './commands/status.ts';
 import { thumbsCommand } from './commands/thumbs.ts';
 import { verifyCommand } from './commands/verify.ts';
 import { viewerCommand } from './commands/viewer.ts';
+import { viewerInstallCommand } from './commands/viewer-install.ts';
 import { resolveDataDir } from './config/paths.ts';
 import { type CommandContext, newLibraryId } from './context.ts';
+import { isStandalone } from './embedded/registry.ts';
 import { EXIT_CODES, type ExitCode } from './exit-codes.ts';
 import {
   COMMAND_NAMES,
@@ -32,6 +35,7 @@ import { askYesNo } from './prompt.ts';
 import { createRepairTools, type RepairTools } from './repair/index.ts';
 import { didYouMean } from './suggest.ts';
 import { createThumbnailMaker, type ThumbnailMaker } from './thumbs/index.ts';
+import { resolveBundleDir } from './viewer-bundle/install.ts';
 import {
   listMountedVolumes,
   resolveVolume as resolveRealVolume,
@@ -82,6 +86,9 @@ const usageErrorMessage = (message: string): string => {
   return `${message}\n使い方は、seiri --help で見られます。`;
 };
 
+/** リポジトリの根(開発のときの、ビューアの実行ファイル一式 `dist/viewer/` を探す) */
+const REPOSITORY_ROOT = resolve(import.meta.dir, '../../..');
+
 /** 失敗の表示。端末では、赤い札と、黄色の「もしかして」で、見つけやすくする */
 const styleError = (message: string, fancy: boolean): string => {
   if (!fancy) return `エラー: ${message}`;
@@ -118,6 +125,7 @@ export type RunEnvironment = {
   repairTools?: () => RepairTools;
   liveController?: () => LiveController;
   viewerWebDir?: string;
+  viewerBundleDir?: string | undefined;
   ingestHooks?: CommandContext['ingestHooks'];
 };
 
@@ -204,6 +212,15 @@ export const run = async (
       progress: noopProgress,
       pause: neverPaused,
       viewerWebDir: environment.viewerWebDir ?? DEFAULT_WEB_DIR,
+      viewerBundleDir:
+        'viewerBundleDir' in environment
+          ? environment.viewerBundleDir
+          : resolveBundleDir(
+              environment.env,
+              process.execPath,
+              isStandalone(),
+              REPOSITORY_ROOT
+            ),
       ingestHooks: environment.ingestHooks,
     };
     if (positionals.length === 0) {
@@ -253,6 +270,9 @@ export const run = async (
         library: values.library,
         restoreSnapshot: values['restore-snapshot'] ?? false,
       });
+    }
+    if (command === 'viewer-install' && positionals.length === 1) {
+      return viewerInstallCommand(context, values.library);
     }
     if (command === 'viewer' && positionals.length === 1) {
       return await viewerCommand(context, {

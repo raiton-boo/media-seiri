@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { WriteLock } from '@file-seiri/ledger';
+import cliPackage from '../../package.json' with { type: 'json' };
 import { CliError } from '../cli-error.ts';
 import type { CommandContext } from '../context.ts';
 import {
@@ -12,6 +13,7 @@ import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { createMetadataReader } from '../metadata/index.ts';
 import { renderReport } from '../present/report-view.tsx';
 import { formatTotals, totalsReport } from '../present/summary-report.ts';
+import { installViewerBundle } from '../viewer-bundle/install.ts';
 import {
   type IngestOptions,
   type IngestSession,
@@ -34,6 +36,27 @@ const useLiveDisplay = (
   context: CommandContext,
   options: IngestOptions
 ): boolean => !options.plain && context.isInteractive;
+
+/** ビューアの実行ファイル一式が見つかれば、ライブラリの viewer/ へ置く。失敗は、警告だけ */
+const placeViewer = (context: CommandContext, libraryRoot: string): void => {
+  if (!context.viewerBundleDir) return;
+  try {
+    const result = installViewerBundle({
+      bundleDir: context.viewerBundleDir,
+      libraryRoot,
+      version: cliPackage.version,
+    });
+    if (result && result.installed.length > 0) {
+      context.stdout(
+        `ビューアを、ドライブに置きました: ${result.directory}(${result.installed.length} ファイル)`
+      );
+    }
+  } catch (error) {
+    context.stderr(
+      `警告: ビューアを、ドライブに置けませんでした: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+};
 
 /**
  * `ingest` を実行する。ソースは、1 つずつ順番に処理する(同じハブの USB の帯域を奪い合わないため。仕様書 §9-1)。
@@ -124,6 +147,10 @@ const runIngestInner = async (
       if (code > worst) worst = code;
       // ロックを失ったら、ほかのソースには、進まない
       if (lock?.isLost()) break;
+    }
+    // 本実行の最後に、閲覧専用ビューアを、ドライブの viewer/ へ置く(置けなくても、取り込みは、成功のまま)
+    if (!options.dryRun && !lock?.isLost()) {
+      placeViewer(context, library.root);
     }
     if (session.collected.length > 1) {
       if (context.fancy) {
