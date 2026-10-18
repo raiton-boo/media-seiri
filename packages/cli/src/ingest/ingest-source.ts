@@ -13,6 +13,7 @@ import {
   startRun,
   type WriteLock,
 } from '@file-seiri/ledger';
+import { rebuildAlbumEvents } from '../album/rebuild.ts';
 import { CliError } from '../cli-error.ts';
 import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
@@ -190,6 +191,15 @@ export const ingestSource = async (
         finishedAt: context.now(),
         revisionAfter: revision,
       });
+      // アルバムのできごとを、全体、計算し直す(本実行のみ。仕様書 §16-6)。リビジョンの記録と、同じトランザクション
+      if (!options.dryRun) {
+        const album = rebuildAlbumEvents(db, revision);
+        log(
+          'INFO',
+          'ALBUM_EVENTS',
+          `アルバムのできごとを計算しました: ${album.events} 件(対象 ${album.files} 枚)`
+        );
+      }
       log('INFO', 'RUN_END', `${label}を終えました(${status})`);
     });
     // ログのファイル(実行ごとに 1 つ)。書き出せなくても、台帳には残っているため、警告だけ(要件 L-02)
