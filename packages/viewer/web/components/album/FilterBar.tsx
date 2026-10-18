@@ -75,6 +75,15 @@ const describe = (
     ...list('precisions', '日付の精度', (v) => PRECISION_LABELS[v] ?? v),
     ...list('sources', '取得元', (v) => SOURCE_LABELS[v] ?? v),
     ...list('volumes', 'ソース', (v) => volumeLabels.get(v) ?? `#${v}`),
+    ...(filter.from || filter.to
+      ? [
+          {
+            key: 'period',
+            label: `期間: ${filter.from ?? '…'} 〜 ${filter.to ?? '…'}`,
+            clear: { from: undefined, to: undefined },
+          },
+        ]
+      : []),
     ...(filter.bbox
       ? [{ key: 'bbox', label: '地図の範囲', clear: { bbox: undefined } }]
       : []),

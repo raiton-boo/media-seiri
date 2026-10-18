@@ -15,6 +15,10 @@ export type AlbumFilter = {
   dateSources?: string[];
   /** ソースのドライブ(コピーしたソースのファイルの、ドライブ) */
   volumeIds?: number[];
+  /** 期間: 開始日(`YYYY-MM-DD`。この日を含む)。日まで分かる写真だけが、対象 */
+  from?: string;
+  /** 期間: 終了日(`YYYY-MM-DD`。この日を含む) */
+  to?: string;
   /** 地図の範囲(南・西・北・東の度)。範囲の中に GPS のある写真 */
   bbox?: { south: number; west: number; north: number; east: number };
   /** ライブフォト: 同名グループに、写真と動画の両方があるもの(その写真も動画も) */
@@ -130,6 +134,18 @@ export const albumFilterSql = (
     );
     for (const place of filter.places) params.push(place.lat, place.lon);
   }
+  if (filter.from || filter.to) {
+    // 年・月だけの写真は、日が分からないので、期間では、数えない
+    parts.push('length(m.taken_at) >= 10');
+    if (filter.from) {
+      parts.push('substr(m.taken_at, 1, 10) >= ?');
+      params.push(filter.from);
+    }
+    if (filter.to) {
+      parts.push('substr(m.taken_at, 1, 10) <= ?');
+      params.push(filter.to);
+    }
+  }
   if (filter.bbox) {
     const { south, west, north, east } = filter.bbox;
     parts.push('m.gps_lat BETWEEN ? AND ? AND m.gps_lon BETWEEN ? AND ?');
@@ -172,6 +188,7 @@ export const countAlbumFilters = (filter: AlbumFilter): number =>
     filter.volumeIds?.length,
     filter.livePhotos ? 1 : 0,
     filter.bbox ? 1 : 0,
+    filter.from || filter.to ? 1 : 0,
     filter.dates?.length,
     filter.names?.length,
     filter.places?.length,

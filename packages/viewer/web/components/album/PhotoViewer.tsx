@@ -1,6 +1,8 @@
 'use client';
 
 import type { GroupMember } from '@file-seiri/ledger';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlbumFilterProvider, useAlbumHref } from '../../lib/album-context';
@@ -11,12 +13,19 @@ import {
   thumbUrl,
   usePhotoDetail,
   usePhotoStrip,
+  useSameDay,
+  useViewerInfo,
 } from '../../lib/api';
 import { formatBytes, formatCount } from '../../lib/format';
 import { formatPhotoDate, placeCell, viewKindOf } from '../../lib/photo';
 import { useUrlState } from '../../lib/query-state';
 import { Button } from '../Button';
 import { LoadError } from '../motion/LoadError';
+
+// 地図は、重いので、GPS のある写真を開いたときだけ読み込む
+const MiniMap = dynamic(() => import('./MiniMap').then((m) => m.MiniMap), {
+  ssr: false,
+});
 
 const KIND_LABELS: Record<string, string> = {
   photo: '写真',
@@ -35,36 +44,56 @@ const extensionLabel = (member: GroupMember): string => {
 const nameOf = (relPath: string): string => relPath.split('/').pop() ?? relPath;
 
 /** 画面の主役の 1 枚(または動画)。原本が読めなければ、サムネイル */
-function Stage({ member }: { member: GroupMember }) {
+function Stage({
+  member,
+  fromSource,
+  sourceLabel,
+  libraryName,
+}: {
+  member: GroupMember;
+  /** ライブラリの原本がなく、ソース側のコピーを見せている */
+  fromSource: boolean;
+  sourceLabel: string | null;
+  libraryName: string;
+}) {
   const viewKind = viewKindOf(member.relPath);
   // 原本が読めなかった(ドライブが外れている・形式が違う)ときは、サムネイルに切り替える
   const [failed, setFailed] = useState(false);
   const useOriginal = viewKind !== null && !failed;
-  if (useOriginal && viewKind === 'video') {
-    return (
-      // biome-ignore lint/a11y/useMediaCaption: 家族の動画。字幕は、ない
-      <video
-        key={member.libraryFileId}
-        className="vw-media"
-        src={originalUrl(member.libraryFileId)}
-        controls
-        autoPlay
-        playsInline
-        poster={member.thumbRelPath ? thumbUrl(member.thumbRelPath) : undefined}
-        onError={() => setFailed(true)}
-      />
-    );
-  }
   if (useOriginal) {
     return (
-      <img
-        key={member.libraryFileId}
-        draggable={false}
-        className="vw-media"
-        src={originalUrl(member.libraryFileId)}
-        alt={nameOf(member.relPath)}
-        onError={() => setFailed(true)}
-      />
+      <>
+        {viewKind === 'video' ? (
+          // biome-ignore lint/a11y/useMediaCaption: 家族の動画。字幕は、ない
+          <video
+            key={member.libraryFileId}
+            className="vw-media"
+            src={originalUrl(member.libraryFileId)}
+            controls
+            autoPlay
+            playsInline
+            poster={
+              member.thumbRelPath ? thumbUrl(member.thumbRelPath) : undefined
+            }
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <img
+            key={member.libraryFileId}
+            draggable={false}
+            className="vw-media"
+            src={originalUrl(member.libraryFileId)}
+            alt={nameOf(member.relPath)}
+            onError={() => setFailed(true)}
+          />
+        )}
+        {fromSource ? (
+          <div className="vw-note chip o">
+            ソース側のコピーを表示中{sourceLabel ? `(${sourceLabel})` : ''}—
+            ライブラリの「{libraryName}」は、接続されていません
+          </div>
+        ) : null}
+      </>
     );
   }
   return (
@@ -84,7 +113,7 @@ function Stage({ member }: { member: GroupMember }) {
       <div className="vw-note chip o">
         {viewKind === null
           ? 'この形式は、ブラウザで表示できないため、サムネイルを表示中'
-          : '原本を読み込めないため、サムネイルを表示中(ドライブが、接続されていますか)'}
+          : `原本を読み込めないため、サムネイルを表示中(「${libraryName}」のドライブを、接続してください)`}
       </div>
     </>
   );
@@ -108,6 +137,8 @@ export function PhotoViewer() {
   useEffect(() => setMemberId(undefined), [id]);
 
   const detail = usePhotoDetail(id);
+  const sameDay = useSameDay(id);
+  const viewerInfo = useViewerInfo();
   const strip = usePhotoStrip(id, order, filter, eventId);
 
   const stripPhotos = strip.data?.photos ?? [];
@@ -240,7 +271,13 @@ export function PhotoViewer() {
         >
           <div className="vw-main">
             <div className="vw-stage">
-              <Stage key={shown.libraryFileId} member={shown} />
+              <Stage
+                key={shown.libraryFileId}
+                member={shown}
+                fromSource={detail.data.original.from === 'source'}
+                sourceLabel={detail.data.original.sourceLabel}
+                libraryName={viewerInfo.data?.library.name ?? 'ライブラリ'}
+              />
               <button
                 type="button"
                 className="vw-nav l"
@@ -390,6 +427,47 @@ export function PhotoViewer() {
                   ) : null}
                   <div className="mono" style={{ fontSize: 13 }}>
                     {photo.gps.lat.toFixed(4)}, {photo.gps.lon.toFixed(4)}
+                  </div>
+                  <MiniMap lat={photo.gps.lat} lon={photo.gps.lon} />
+                </div>
+              ) : null}
+              {sameDay.data && sameDay.data.years.length > 0 ? (
+                <div className="card s flex flex-col gap-2">
+                  <div className="kicker">
+                    この日の他の年
+                    {sameDay.data.monthDay
+                      ? ` ／ ${Number(sameDay.data.monthDay.slice(0, 2))}月${Number(sameDay.data.monthDay.slice(3))}日`
+                      : ''}
+                  </div>
+                  <div className="sd-list">
+                    {sameDay.data.years.map((item) => (
+                      <Link
+                        key={item.year}
+                        className="sd-item"
+                        draggable={false}
+                        href={albumHref({
+                          view: 'search',
+                          filter: {
+                            ...EMPTY_FILTER,
+                            dates: [`${item.year}-${sameDay.data.monthDay}`],
+                          },
+                          drawer: false,
+                        })}
+                      >
+                        {item.thumbRelPath ? (
+                          <img
+                            draggable={false}
+                            src={thumbUrl(item.thumbRelPath)}
+                            alt=""
+                          />
+                        ) : (
+                          <span className="sd-none mono">なし</span>
+                        )}
+                        <span className="mono" style={{ fontSize: 13 }}>
+                          {item.year}年 ／ {formatCount(item.count)} 枚
+                        </span>
+                      </Link>
+                    ))}
                   </div>
                 </div>
               ) : null}

@@ -18,6 +18,11 @@ export type ViewerSource = {
   asOf: () => Date;
   /** ライブラリのドライブの容量(接続されていなければ、null) */
   disk: () => DiskUsage | null;
+  /**
+   * いま接続されているドライブの、根の場所(ドライブの固有 ID → 根)。ソース側のコピーから原本を探すのに使う。
+   * 省くと、ソース側は探さない。呼び出しのたびに、最新を返してよい(呼び出し側で、短く覚えておく)。
+   */
+  mountedRoots?: () => ReadonlyMap<string, string>;
   /** 現在の時刻(テストで差し替える) */
   now: () => Date;
 };

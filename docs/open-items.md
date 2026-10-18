@@ -55,9 +55,9 @@
 | RAW+JPEG の数え方        | 統計での数え方(仮)                                                        | [statistics](features/statistics.md)    | 実装時   |
 | カメラのメーカー名       | 正規化の規則(仮)                                                          | [statistics](features/statistics.md)    | 実データ |
 | 統計の月別の表示         | 年を選ぶか、全期間を連続して表示するか(仮)                                | [statistics](features/statistics.md)    | 実装時   |
-| 統計の絞り込み           | 種別・ソース(実行)で絞り込む(仮)                                          | [statistics](features/statistics.md)    | 実装時   |
+| 統計の絞り込み           | 種別・ソース(取り込み元のドライブ)で絞り込む(実装済み。実行ごとの絞り込みは、していない)                                          | [statistics](features/statistics.md)    | 実装時   |
 | 集計結果の保持           | 方法(技術選定のあとで)                                                    | [statistics](features/statistics.md)    | 実装時   |
-| 地図の期間指定           | 指定の方法(仮)                                                            | [map](features/map.md)                  | 実装時   |
+| 地図の期間指定           | 絞り込みの引き出しの「期間」(開始〜終了の日付)。実装済み                                                            | [map](features/map.md)                  | 実装時   |
 | 地図のタイル             | 表示の確認                                                                | [tech-selection §10](tech-selection.md) | PoC      |
 
 ## 5. アルバム・Web・デザイン
