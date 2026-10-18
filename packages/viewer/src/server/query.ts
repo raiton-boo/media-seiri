@@ -79,6 +79,7 @@ export const parseAlbumFilter = (
         .filter((value): value is string => value !== undefined)
     ),
   ];
+  const eventId = parseId(list('event')[0]);
   const names = (queries('name') ?? []).filter(Boolean);
   const places = list('place').flatMap((value) => {
     const [lat, lon] = value.split(':').map(Number);
@@ -99,6 +100,7 @@ export const parseAlbumFilter = (
     ...(precisions.length > 0 ? { precisions } : {}),
     ...(dateSources.length > 0 ? { dateSources } : {}),
     ...(volumeIds.length > 0 ? { volumeIds } : {}),
+    ...(eventId !== undefined ? { eventId } : {}),
     ...(dates.length > 0 ? { dates } : {}),
     ...(names.length > 0 ? { names } : {}),
     ...(places.length > 0 ? { places } : {}),

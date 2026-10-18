@@ -10,6 +10,8 @@ export type ViewerSource = {
   source: LedgerSource;
   /** 読み取り専用で開いた台帳 */
   ledger: Ledger;
+  /** ライブラリの根(原本の場所。ドライブが接続されていなければ、存在しない) */
+  libraryRoot: string;
   /** サムネイルの置き場(`<ID>/` の下の `thumbs/`、または、ライブラリの `.file-seiri/thumbs/`) */
   thumbsDir: string;
   /** 台帳の鮮度 */

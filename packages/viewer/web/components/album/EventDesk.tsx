@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { AlbumEventResponse } from '../../../src/api-types.ts';
 import { clockOf, formatClip } from '../../lib/album';
+import { useAlbumHref } from '../../lib/album-context';
 import { formatCount } from '../../lib/format';
 import { RevealDesk } from '../motion/Reveal';
 import { Polaroid, photoCaption } from './Polaroid';
@@ -32,6 +33,7 @@ export function EventDesk({
   title: string;
   onMore: () => void;
 }) {
+  const albumHref = useAlbumHref();
   const start = clockOf(data.startAt);
   const end = clockOf(data.endAt);
   const range = start && end ? `${start} → ${end}` : '';
@@ -76,6 +78,12 @@ export function EventDesk({
             index={index}
             big={index === 0}
             caption={photoCaption(photo, formatClip)}
+            href={albumHref({
+              view: 'photo',
+              p: photo.libraryFileId,
+              e: data.albumEventId,
+              order: data.order,
+            })}
           >
             {tape ? <div className="tape" style={tape} /> : null}
           </Polaroid>

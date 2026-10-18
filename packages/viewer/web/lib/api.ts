@@ -18,6 +18,8 @@ import type {
   ErrorDetailResponse,
   ErrorsResponse,
   FallbackResponse,
+  PhotoDetailResponse,
+  PhotoStripResponse,
   RunDetailResponse,
   RunsResponse,
   SearchPhotosResponse,
@@ -287,5 +289,34 @@ export const useSearchPhotos = (
         `/api/album/search/photos${queryString({ order, limit, ...filterParams(filter) })}`
       ),
     enabled,
+    placeholderData: keepPreviousData,
+  });
+
+/** 原本(拡大表示)。ライブラリが接続中で、ブラウザで表示できる形のときだけ、取れる */
+export const originalUrl = (libraryFileId: number): string =>
+  `${API_BASE}/api/files/${libraryFileId}`;
+
+export const usePhotoDetail = (id: number | undefined) =>
+  useQuery({
+    queryKey: ['album-photo', id],
+    queryFn: () => fetchJson<PhotoDetailResponse>(`/api/album/photo/${id}`),
+    enabled: id !== undefined,
+    placeholderData: keepPreviousData,
+  });
+
+/** 前後の写真。できごとの中だけで動くときは、`eventId` */
+export const usePhotoStrip = (
+  id: number | undefined,
+  order: AlbumOrderParam,
+  filter: FilterState,
+  eventId: number | undefined
+) =>
+  useQuery({
+    queryKey: ['album-photo-strip', id, order, filter, eventId],
+    queryFn: () =>
+      fetchJson<PhotoStripResponse>(
+        `/api/album/photo/${id}/strip${queryString({ order, event: eventId, ...filterParams(filter) })}`
+      ),
+    enabled: id !== undefined,
     placeholderData: keepPreviousData,
   });

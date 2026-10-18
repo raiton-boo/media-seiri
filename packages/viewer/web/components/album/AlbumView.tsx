@@ -36,6 +36,7 @@ import { FilterBar } from './FilterBar';
 import { FilterDrawer } from './FilterDrawer';
 import { Memories } from './Memories';
 import { MonthDesk } from './MonthDesk';
+import { PhotoViewer } from './PhotoViewer';
 import { SearchBox } from './SearchBox';
 import { SearchDesk } from './SearchDesk';
 import { TimeRuler } from './TimeRuler';
@@ -57,7 +58,7 @@ const toInt = (value: string | undefined): number | undefined => {
  * アルバム: 入口(最新の年の机)→ 年 → 月 → できごと、の机。
  * 場所は、URL のクエリで表す(`view`・`y`・`m`・`e`・`order`・`small`・`more`)。`view` がなければ、入口。
  */
-export function AlbumView() {
+function AlbumBrowser() {
   const url = useUrlState();
   const view = (['year', 'month', 'event', 'all', 'search'] as const).find(
     (candidate) => candidate === url.get('view')
@@ -466,4 +467,10 @@ export function AlbumView() {
       </RevealPage>
     </AlbumFilterProvider>
   );
+}
+
+/** アルバム: 机・すべて・検索結果は、`AlbumBrowser`。写真の拡大表示(`view=photo`)は、別の画面(全面の暗い画面) */
+export function AlbumView() {
+  const url = useUrlState();
+  return url.get('view') === 'photo' ? <PhotoViewer /> : <AlbumBrowser />;
 }

@@ -14,6 +14,8 @@ import type {
   MediaKind,
   MonthSummary,
   OnThisDay,
+  PhotoDetail,
+  PhotoStrip,
   RepairAttempt,
   RunDetail,
   RunningProgress,
@@ -167,3 +169,17 @@ export type SearchPhotosResponse = {
   offset: number;
   photos: AlbumPhoto[];
 };
+
+/** 拡大表示の情報。原本をブラウザで表示できるか(`original`)も添える */
+export type PhotoDetailResponse = {
+  photo: PhotoDetail;
+  original: {
+    /** ブラウザで表示できる形か: 画像・動画・なし(HEIC・RAW など) */
+    viewKind: 'image' | 'video' | null;
+    /** ライブラリの原本が、いま読めるか(ドライブが接続されているか) */
+    available: boolean;
+  };
+};
+
+/** 前後の並び(フィルムストリップ) */
+export type PhotoStripResponse = PhotoStrip & { order: AlbumOrder };

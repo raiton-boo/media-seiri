@@ -98,6 +98,7 @@ const openViewerSource = (
     },
     source: useWorking ? 'working' : 'snapshot',
     ledger: openReadOnly(path, libraryId),
+    libraryRoot: root,
     thumbsDir: useWorking
       ? thumbsDirFor(context.dataDir, libraryId)
       : libraryThumbsDir(root),
