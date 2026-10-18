@@ -1,12 +1,5 @@
 import { gsap } from 'gsap';
-import {
-  BLOCK_DELAY,
-  BLOCK_STAGGER,
-  CLEAR,
-  type Cleanup,
-  EASE,
-  run,
-} from './core';
+import { CLEAR, type Cleanup, EASE, run } from './core';
 
 /** 一覧のカードを、先頭から、この数だけ動かす(数千件を、いっぺんに動かさない) */
 const FIRST_CARDS = 12;
@@ -36,8 +29,8 @@ export const revealPage = (scope: Element | null): Cleanup =>
         y: 20,
         opacity: 0,
         duration: 0.55,
-        delay: BLOCK_DELAY,
-        stagger: BLOCK_STAGGER,
+        delay: 0.1,
+        stagger: 0.07,
         ease: EASE,
         clearProps: CLEAR,
       });
