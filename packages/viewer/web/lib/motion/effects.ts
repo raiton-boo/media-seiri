@@ -61,12 +61,28 @@ export const growBar = (
   };
 };
 
+/**
+ * 数字ごとの、開始の遅れ(秒)と、長さ(秒)。数字ごとに違う(一斉に、同じ速さで終わらないように)。
+ * 毎回ばらばらにならないよう、乱数ではなく、その数字の値と、画面での並び順(`index`)から決める。
+ */
+export const countTiming = (
+  value: number,
+  index: number
+): { delay: number; duration: number } => {
+  const seed = Math.abs(Math.round(value));
+  return {
+    delay: ((index * 3 + seed) % 6) * 0.07,
+    duration: 0.65 + ((index * 2 + seed) % 5) * 0.14,
+  };
+};
+
 /** 数字を、いまの値から、新しい値へ、数え上げる(動きなしのときは、すぐ、その値) */
 export const countUp = (
   element: HTMLElement | null,
   to: number,
   from: number,
-  format: (value: number) => string
+  format: (value: number) => string,
+  timing: { delay?: number; duration?: number } = {}
 ): Cleanup => {
   if (!element) return NOOP;
   if (!isMotionEnabled() || from === to) {
@@ -77,7 +93,8 @@ export const countUp = (
   element.textContent = format(from);
   const tween = gsap.to(state, {
     value: to,
-    duration: 0.9,
+    duration: timing.duration ?? 0.9,
+    delay: timing.delay ?? 0,
     ease: EASE,
     onUpdate: () => {
       element.textContent = format(Math.round(state.value));
