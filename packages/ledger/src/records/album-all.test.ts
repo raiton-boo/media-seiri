@@ -18,6 +18,7 @@ import {
   NO_PLACE,
   UNKNOWN_CAMERA,
 } from './album-filter.ts';
+import { countMapPhotos, listMapClusters } from './album-map.ts';
 import { getPhotoDetail, getPhotoStrip } from './album-photo.ts';
 import {
   countFilteredPhotos,
@@ -678,5 +679,66 @@ describe('listDateGaps(日付が不明なもの)', () => {
         count: 1,
       },
     ]);
+  });
+});
+
+describe('地図(クラスタ・範囲)', () => {
+  const ctx = build([
+    {
+      rel: 'a.jpg',
+      takenAt: '2016-01-01T00:00:00',
+      camera: 'Canon',
+      gps: true,
+    },
+    {
+      rel: 'b.jpg',
+      takenAt: '2016-01-02T00:00:00',
+      camera: 'Canon',
+      gps: true,
+    },
+    { rel: 'c.mp4', takenAt: '2016-01-03T00:00:00', gps: true },
+    { rel: 'd.jpg', takenAt: '2016-01-04T00:00:00' },
+  ]);
+  const move = (rel: string, lat: number, lon: number) =>
+    ctx.db
+      .query(
+        'UPDATE media_metadata SET gps_lat = ?, gps_lon = ? WHERE content_id = (SELECT content_id FROM library_files WHERE rel_path = ?)'
+      )
+      .run(lat, lon, rel);
+  // a・b は、同じ場所(東京)の近く。c は、遠く(札幌)
+  move('a.jpg', 35.68, 139.76);
+  move('b.jpg', 35.69, 139.77);
+  move('c.mp4', 43.06, 141.35);
+
+  test('粗い格子(1 度)では、近い写真を束ねる。細かい格子(0.001 度)では、別々', () => {
+    const coarse = listMapClusters(ctx.db, {}, 1);
+    expect(coarse.total).toBe(3);
+    expect(coarse.clusters.map((c) => c.count)).toEqual([2, 1]);
+    const tokyo = coarse.clusters[0];
+    expect(tokyo).toMatchObject({
+      minLat: 35.68,
+      maxLat: 35.69,
+      minLon: 139.76,
+      maxLon: 139.77,
+    });
+    expect(tokyo?.lat).toBeCloseTo(35.685);
+    expect(
+      listMapClusters(ctx.db, {}, 0.001).clusters.map((c) => c.count)
+    ).toEqual([1, 1, 1]);
+  });
+
+  test('範囲・種別の条件が効く。(0, 0)は、無効', () => {
+    const inTokyo = { bbox: { south: 35, west: 139, north: 36, east: 140 } };
+    expect(listMapClusters(ctx.db, inTokyo, 1).total).toBe(2);
+    expect(
+      listMapClusters(ctx.db, { kinds: ['video'] }, 1).clusters
+    ).toHaveLength(1);
+    move('b.jpg', 0, 0);
+    expect(listMapClusters(ctx.db, {}, 1).total).toBe(2);
+    move('b.jpg', 35.69, 139.77);
+  });
+
+  test('地図に出せる枚数と、GPS のない枚数', () => {
+    expect(countMapPhotos(ctx.db)).toEqual({ withGps: 3, withoutGps: 1 });
   });
 });

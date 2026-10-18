@@ -22,6 +22,8 @@ import type {
   ErrorDetailResponse,
   ErrorsResponse,
   FallbackResponse,
+  MapClustersResponse,
+  MapConfigResponse,
   PhotoDetailResponse,
   PhotoStripResponse,
   RunDetailResponse,
@@ -389,5 +391,29 @@ export const useAutoAlbums = (limit: number) =>
     queryKey: ['album-auto', limit],
     queryFn: () =>
       fetchJson<AutoAlbumsResponse>(`/api/album/auto${queryString({ limit })}`),
+    placeholderData: keepPreviousData,
+  });
+
+/** 背景地図の設定(提供元・出典)。変わらないので、1 回だけ読む */
+export const useMapConfig = () =>
+  useQuery({
+    queryKey: ['map-config'],
+    queryFn: () => fetchJson<MapConfigResponse>('/api/map/config'),
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+
+/** 表示範囲(`南,西,北,東`)・ズームでの、地図のまとまり(クラスタ)。条件が効く */
+export const useMapClusters = (
+  view: string | undefined,
+  zoom: number,
+  filter: FilterState
+) =>
+  useQuery({
+    queryKey: ['map-clusters', view, Math.round(zoom * 10), filter],
+    queryFn: () =>
+      fetchJson<MapClustersResponse>(
+        `/api/map/clusters${queryString({ view, zoom: zoom.toFixed(1), ...filterParams(filter) })}`
+      ),
+    enabled: view !== undefined,
     placeholderData: keepPreviousData,
   });

@@ -1754,3 +1754,126 @@ img {
   padding: 10px 14px;
   box-shadow: var(--shs);
 }
+
+/* 地図 */
+.map-box {
+  position: relative;
+  height: 560px;
+  overflow: hidden;
+  border: var(--bd);
+  box-shadow: var(--shs);
+  background-color: var(--map);
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--ink) 9%, transparent) 2px,
+      transparent 2px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ink) 9%, transparent) 2px,
+      transparent 2px
+    );
+  background-size: 80px 80px;
+}
+/* maplibre が、`position: relative` を付けるので、より強い指定で、枠いっぱいに置く(下は、出典の帯の分を空ける) */
+.map-box .map-canvas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 30px;
+}
+.map-zoom {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 3;
+}
+.map-source {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  z-index: 3;
+}
+.map-credit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  background: var(--paper);
+  border-top: var(--bd);
+  padding: 4px 14px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.map-fail {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+}
+.mk-cluster {
+  border: var(--bd);
+  border-radius: 50%;
+  box-shadow: var(--shs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--disp);
+  cursor: pointer;
+  color: var(--ink);
+  padding: 0;
+}
+.mk-cluster.p {
+  background: var(--p);
+}
+.mk-cluster.y {
+  background: var(--y);
+}
+.mk-cluster.b {
+  background: var(--b);
+}
+.mk-cluster.g {
+  background: var(--g);
+}
+.mk-cluster.sel,
+.mk-pin.sel {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+.mk-pin {
+  width: 24px;
+  height: 24px;
+  border: var(--bd);
+  background: var(--o);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  cursor: pointer;
+  padding: 0;
+  /* ピンの先(左下の角)が位置になるよう、ずらす */
+  margin-bottom: 6px;
+}
+.maplibregl-canvas {
+  outline: none;
+}
+.map-popup {
+  position: absolute;
+  left: 14%;
+  top: 12px;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 4;
+}

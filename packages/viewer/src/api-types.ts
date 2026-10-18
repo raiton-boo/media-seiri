@@ -16,6 +16,7 @@ import type {
   FallbackRow,
   FallbackSource,
   FilterOptions,
+  MapCluster,
   MediaKind,
   MonthSummary,
   OnThisDay,
@@ -234,4 +235,25 @@ export type AutoAlbumsResponse = {
   albums: AutoAlbum[];
   /** 日付が不明なものの、区分ごとの枚数 */
   dateGaps: DateGap[];
+};
+
+/** 地図: 表示範囲のまとまり(クラスタ)と、GPS のある・ない枚数 */
+export type MapClustersResponse = {
+  clusters: MapCluster[];
+  /** 条件・表示範囲に合う、GPS のある写真の枚数 */
+  total: number;
+  /** 全体の、GPS のある・ない枚数(絞り込みの条件は、効かない) */
+  withGps: number;
+  withoutGps: number;
+};
+
+/** 背景地図(オンラインの地図タイル)の設定 */
+export type MapConfigResponse = {
+  /** タイルの URL(`{z}`・`{x}`・`{y}`) */
+  tileUrl: string;
+  /** 出典の表記(画面に出す) */
+  attribution: string;
+  /** 画面に出す、背景の名前 */
+  label: string;
+  maxZoom: number;
 };

@@ -15,6 +15,8 @@ export type AlbumFilter = {
   dateSources?: string[];
   /** ソースのドライブ(コピーしたソースのファイルの、ドライブ) */
   volumeIds?: number[];
+  /** 地図の範囲(南・西・北・東の度)。範囲の中に GPS のある写真 */
+  bbox?: { south: number; west: number; north: number; east: number };
   /** ライブフォト: 同名グループに、写真と動画の両方があるもの(その写真も動画も) */
   livePhotos?: boolean;
   /** できごと(拡大表示で、できごとの中を、前後に動くときの範囲) */
@@ -128,6 +130,11 @@ export const albumFilterSql = (
     );
     for (const place of filter.places) params.push(place.lat, place.lon);
   }
+  if (filter.bbox) {
+    const { south, west, north, east } = filter.bbox;
+    parts.push('m.gps_lat BETWEEN ? AND ? AND m.gps_lon BETWEEN ? AND ?');
+    params.push(south, north, west, east);
+  }
   if (filter.livePhotos) {
     const likes = (kind: 'photo' | 'video'): string =>
       EXTENSIONS_BY_KIND[kind]
@@ -164,6 +171,7 @@ export const countAlbumFilters = (filter: AlbumFilter): number =>
     filter.dateSources?.length,
     filter.volumeIds?.length,
     filter.livePhotos ? 1 : 0,
+    filter.bbox ? 1 : 0,
     filter.dates?.length,
     filter.names?.length,
     filter.places?.length,

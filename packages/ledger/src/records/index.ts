@@ -58,6 +58,12 @@ export {
   UNKNOWN_CAMERA,
 } from './album-filter.ts';
 export {
+  countMapPhotos,
+  listMapClusters,
+  MAX_MAP_CLUSTERS,
+  type MapCluster,
+} from './album-map.ts';
+export {
   type GroupMember,
   getPhotoDetail,
   getPhotoStrip,
