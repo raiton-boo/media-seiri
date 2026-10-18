@@ -211,6 +211,7 @@ export function DupesView() {
             </div>
             <div className="dupes-pager">
               <Pager
+                stacked
                 total={data.total}
                 limit={data.limit}
                 offset={data.offset}

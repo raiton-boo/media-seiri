@@ -345,6 +345,8 @@ a {
   font-family: var(--disp);
   font-size: 56px;
   line-height: 1;
+  /* 1 行のまま。はみ出す分は、NumFit が縮める */
+  white-space: nowrap;
 }
 .num.m {
   font-size: 38px;
@@ -2112,4 +2114,26 @@ img {
   .dupes-detail {
     overflow: visible;
   }
+}
+
+/* ページ送り(狭い欄用): 件数は 1 行目、前へ・次へは、2 行目に半分ずつ */
+.pager-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pager-stacked > span {
+  white-space: nowrap;
+}
+.pager-buttons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.pager-buttons .btn {
+  width: 100%;
+}
+.pager-buttons .btn .face {
+  justify-content: center;
+  min-height: 44px;
 }

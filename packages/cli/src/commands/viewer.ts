@@ -10,6 +10,7 @@ import {
   DEFAULT_PORT,
   type DiskUsage,
   embeddedWeb,
+  type RunningViewer,
   startViewer,
   type ViewerSource,
 } from '@file-seiri/viewer';
@@ -132,6 +133,72 @@ const openViewerSource = async (
   };
 };
 
+/** ポートが使用中のエラーか(Bun.serve は、`EADDRINUSE` か、「in use」を含む文で、知らせる) */
+const isAddressInUse = (error: unknown): boolean =>
+  error instanceof Error &&
+  (('code' in error && error.code === 'EADDRINUSE') ||
+    /in use|EADDRINUSE/i.test(error.message));
+
+/** そのポートで、ビューアが動いているか(`/api/info` に答えれば、ビューア。ライブラリの ID を返す) */
+const probeViewer = async (
+  port: number
+): Promise<{ libraryId: string } | undefined> => {
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/api/info`, {
+      signal: AbortSignal.timeout(1000),
+    });
+    if (!response.ok) return undefined;
+    const body = (await response.json()) as { library?: { id?: unknown } };
+    return typeof body.library?.id === 'string'
+      ? { libraryId: body.library.id }
+      : undefined;
+  } catch {
+    // つながらない・ビューアではない: 「ビューアではない」として扱う
+    return undefined;
+  }
+};
+
+type Launched =
+  | { kind: 'started'; running: RunningViewer }
+  | { kind: 'reused'; url: string };
+
+/**
+ * ビューアを起動する。ポートが使用中のときは:
+ * - 同じライブラリのビューアが動いている → 起動せず、そのアドレスを返す(二重に起動しない)
+ * - 別のライブラリのビューア、または、別のプログラム → `--port` の指定がなければ、空いているポートで起動する。指定があれば、わかる言葉で、止まる
+ */
+const launchViewer = async (
+  context: CommandContext,
+  source: ViewerSource,
+  args: ViewerArguments,
+  port: number
+): Promise<Launched> => {
+  const start = (target: number): RunningViewer =>
+    startViewer({ source, webDir: context.viewerWebDir, port: target });
+  try {
+    return { kind: 'started', running: start(port) };
+  } catch (error) {
+    if (!isAddressInUse(error) || port === 0) throw error;
+    const existing = await probeViewer(port);
+    if (existing?.libraryId === source.library.id) {
+      return { kind: 'reused', url: `http://127.0.0.1:${port}/` };
+    }
+    if (args.port !== undefined) {
+      throw new CliError(
+        existing
+          ? `ポート ${port} では、別のライブラリのビューアが動いています。別のポートを指定してください(--port 0 で、空いているものを自動で選びます)。`
+          : `ポート ${port} は、ほかのプログラムが使っています。別のポートを指定してください(--port 0 で、空いているものを自動で選びます)。`
+      );
+    }
+    context.stdout(
+      existing
+        ? `ポート ${port} では、別のライブラリのビューアが動いているため、空いているポートで起動します。`
+        : `ポート ${port} は、ほかのプログラムが使っているため、空いているポートで起動します。`
+    );
+    return { kind: 'started', running: start(0) };
+  }
+};
+
 /**
  * `file-seiri viewer [--library <パス>] [--port <番号>] [--snapshot]`: ライブラリを、ブラウザで見る。
  * 台帳もサムネイルも、読むだけ(閲覧専用)。本機(127.0.0.1)だけで配信し、Ctrl-C で終わる。
@@ -150,11 +217,18 @@ export const viewerCommand = async (
   }
   const source = await openViewerSource(context, args);
   try {
-    const running = startViewer({
-      source,
-      webDir: context.viewerWebDir,
-      port,
-    });
+    const launched = await launchViewer(context, source, args, port);
+    if (launched.kind === 'reused') {
+      // すでに同じものが動いている: 新しく起動せず、そのアドレスを、開く
+      context.stdout(`すでに起動しています(同じライブラリ): ${launched.url}`);
+      context.stdout(
+        'そのまま、ブラウザで開けます(終わらせるには、動いているほうの Ctrl-C)。'
+      );
+      if (!args.noOpen && context.isInteractive)
+        context.openBrowser(launched.url);
+      return EXIT_CODES.ok;
+    }
+    const running = launched.running;
     if (context.fancy) {
       showReport(context, {
         title: 'ビューア',
