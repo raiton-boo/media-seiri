@@ -141,6 +141,15 @@ export const summaryReport = (
       value: `計算 ${count(summary.hashComputed)} / キャッシュ ${count(summary.hashFromCache)}`,
       tone: 'dim',
     },
+    ...(summary.previous
+      ? [
+          {
+            label: 'このソースの履歴',
+            value: `これまでに ${count(summary.previous.runs)} 回、${count(summary.previous.filesDone)} ファイルを取り込み済み(最後 ${summary.previous.lastStartedAt.slice(0, 10)})`,
+            tone: 'info' as const,
+          },
+        ]
+      : []),
     {
       label: context.isDryRun ? '所要時間' : '解析の時間',
       value: formatElapsed(summary.elapsedMs),
@@ -212,6 +221,40 @@ export const summaryReport = (
   };
 };
 
+/** 抜き取り照合の結果を、色つきの枠にする */
+export const spotCheckReport = (
+  checked: number,
+  matched: number,
+  problems: readonly { relPath: string; detail: string }[]
+): Report => ({
+  title: '抜き取り照合',
+  badge:
+    problems.length > 0
+      ? { label: `問題 ${problems.length} 件`, tone: 'error' }
+      : { label: '一致', tone: 'ok' },
+  sections: [
+    {
+      title: 'コピーしたファイルの、一部を読み直しました',
+      tone: problems.length > 0 ? 'error' : 'ok',
+      rows: [
+        { label: '読み直し', value: `${count(checked)} ファイル` },
+        {
+          label: '一致',
+          value: `${count(matched)} ファイル`,
+          tone: 'ok',
+          ratio: checked === 0 ? 0 : matched / checked,
+        },
+        {
+          label: '問題',
+          value: `${count(problems.length)} ファイル`,
+          tone: problems.length > 0 ? 'error' : undefined,
+        },
+      ],
+      lines: problems.map((p) => `${p.relPath}: ${p.detail}`),
+    },
+  ],
+});
+
 /** コピーの結果を、色つきの枠にする(文字だけの `formatCopyResult` と、同じ内容) */
 export const copyResultReport = (result: CopyResult): Report => {
   const stopped = result.stopReason !== undefined;
@@ -240,6 +283,18 @@ export const copyResultReport = (result: CopyResult): Report => {
           value: formatElapsed(result.elapsedMs),
           tone: 'dim',
         },
+        ...(result.spotCheck
+          ? [
+              {
+                label: '抜き取り照合',
+                value: `${count(result.spotCheck.checked)} ファイルを読み直し → 一致 ${count(result.spotCheck.matched)}${result.spotCheck.problems > 0 ? ` / 不一致・読めない ${count(result.spotCheck.problems)}` : ''}`,
+                tone:
+                  result.spotCheck.problems > 0
+                    ? ('error' as const)
+                    : ('ok' as const),
+              },
+            ]
+          : []),
         ...(formatSpeed(result.copiedBytes, result.elapsedMs)
           ? [
               {

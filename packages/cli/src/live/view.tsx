@@ -364,7 +364,11 @@ export const LiveView = ({
         : '実行中';
   const mainLine = inCopy
     ? `${formatNumber(counts.copied)}/${formatNumber(counts.copyTotal)} files · ${formatGigabytes(bytes.copied)}/${formatGigabytes(bytes.copyTotal)}`
-    : `${snapshot.phase} ${formatNumber(counts.analyzed)}/${formatNumber(counts.analyzeTotal)} files`;
+    : `${snapshot.phase} ${formatNumber(counts.analyzed)}/${formatNumber(counts.analyzeTotal)} files${
+        counts.analyzed > 0 && elapsed >= 1000
+          ? ` · ${((counts.analyzed / elapsed) * 1000).toFixed(1)} files/s`
+          : ''
+      }`;
 
   return (
     <Box flexDirection="column" width={total}>

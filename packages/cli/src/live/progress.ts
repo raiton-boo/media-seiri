@@ -40,7 +40,8 @@ export type IngestProgress = {
   analyzeTotal: (total: number) => void;
   /** 解析を始めた / 終えた(同時に、複数) */
   analyzeStart: (file: string) => void;
-  analyzeDone: (file: string) => void;
+  /** 解析を終えた(`sizeBytes`: 読んだ大きさ。解析中の速さ(MB/s)に使う) */
+  analyzeDone: (file: string, sizeBytes?: number) => void;
   /** 計画ができた(コピーする数・サイズ) */
   planned: (copyFiles: number, copyBytes: number) => void;
   copyStart: (file: string, sizeBytes: number, hash: string) => void;

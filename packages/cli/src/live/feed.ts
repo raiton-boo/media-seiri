@@ -104,6 +104,8 @@ export const createFeed = (): LiveFeed => {
     verifyFailed: 0,
   };
   const bytes = { copied: 0, copyTotal: 0 };
+  /** 解析で読んだ(ハッシュを計算した)大きさ。解析の間の、速さの表示に使う */
+  let analyzedBytes = 0;
   const types = { photo: 0, video: 0, raw: 0, zip: 0 };
   const analyzing = new Map<string, number>();
   let analyzingOrder: string[] = [];
@@ -177,6 +179,7 @@ export const createFeed = (): LiveFeed => {
         verifyFailed: 0,
       });
       Object.assign(bytes, { copied: 0, copyTotal: 0 });
+      analyzedBytes = 0;
       lastEventId = 0;
       analyzing.clear();
       analyzingOrder = [];
@@ -206,7 +209,8 @@ export const createFeed = (): LiveFeed => {
       const zip = zipPartOf(file);
       if (zip) currentZip = zip;
     },
-    analyzeDone: (file) => {
+    analyzeDone: (file, sizeBytes) => {
+      analyzedBytes += sizeBytes ?? 0;
       analyzing.delete(file);
       analyzingOrder = analyzingOrder.filter((item) => item !== file);
       counts.analyzed += 1;
@@ -279,14 +283,16 @@ export const createFeed = (): LiveFeed => {
       const now = Date.now();
       if (lastSampleAt === undefined) {
         lastSampleAt = now;
-        lastSampleBytes = bytes.copied;
+        lastSampleBytes = bytes.copied + analyzedBytes;
         return;
       }
       const seconds = Math.max((now - lastSampleAt) / 1000, 0.001);
-      speeds.push((bytes.copied - lastSampleBytes) / seconds);
+      // 解析の間は、ファイルを読んで計算した速さ。コピーの間は、書いた速さ(解析は、終わっている)
+      const processed = bytes.copied + analyzedBytes;
+      speeds.push((processed - lastSampleBytes) / seconds);
       if (speeds.length > 240) speeds.shift();
       lastSampleAt = now;
-      lastSampleBytes = bytes.copied;
+      lastSampleBytes = processed;
     },
     speeds: () => speeds,
     logsAll: () => {

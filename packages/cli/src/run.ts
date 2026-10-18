@@ -5,6 +5,7 @@ import { DEFAULT_WEB_DIR } from '@file-seiri/viewer';
 import cliPackage from '../package.json' with { type: 'json' };
 import { type Asker, createAsker, PromptCancelled } from './ask.ts';
 import { CliError } from './cli-error.ts';
+import { backupCommand } from './commands/backup.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { drivesCommand } from './commands/drives.ts';
 import { eventsCommand } from './commands/events.ts';
@@ -14,7 +15,9 @@ import { libraryList } from './commands/library-list.ts';
 import { libraryForget, libraryRemove } from './commands/library-manage.ts';
 import { libraryPrune } from './commands/library-prune.ts';
 import { logsCommand } from './commands/logs.ts';
+import { sourcesCommand } from './commands/sources.ts';
 import { statusCommand } from './commands/status.ts';
+import { statusWatch } from './commands/status-watch.ts';
 import { thumbsCommand } from './commands/thumbs.ts';
 import { verifyCommand } from './commands/verify.ts';
 import { viewerCommand } from './commands/viewer.ts';
@@ -70,6 +73,14 @@ export const PARSE_OPTIONS = {
   yes: { type: 'boolean', short: 'y' },
   fix: { type: 'boolean' },
   'no-open': { type: 'boolean' },
+  watch: { type: 'boolean', short: 'w' },
+  to: { type: 'string' },
+  'with-thumbs': { type: 'boolean' },
+  list: { type: 'boolean' },
+  report: { type: 'string' },
+  'include-paths': { type: 'boolean' },
+  interval: { type: 'string' },
+  'no-spot-check': { type: 'boolean' },
   deep: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
@@ -248,12 +259,25 @@ export const run = async (
     if (command === 'library' && subcommand === 'init' && rest.length <= 1) {
       return libraryInit(context, rest[0]);
     }
+    if (command === 'backup' && positionals.length === 1) {
+      return await backupCommand(context, {
+        to: values.to,
+        withThumbs: values['with-thumbs'] ?? false,
+        list: values.list ?? false,
+        library: values.library,
+      });
+    }
+    if (command === 'sources' && positionals.length === 1) {
+      return await sourcesCommand(context, values.library);
+    }
     if (command === 'doctor' && positionals.length === 1) {
       return await doctorCommand(context, {
         library: values.library,
         fix: values.fix ?? false,
         yes: values.yes ?? false,
         deep: values.deep ?? false,
+        report: values.report,
+        includePaths: values['include-paths'] ?? false,
       });
     }
     if (command === 'library' && subcommand === 'forget' && rest.length <= 1) {
@@ -283,6 +307,15 @@ export const run = async (
       });
     }
     if (command === 'status' && positionals.length === 1) {
+      if (values.watch) {
+        const interval = Number(values.interval ?? 1);
+        if (!Number.isFinite(interval) || interval <= 0) {
+          throw new CliError(
+            `--interval は、0 より大きい秒数で指定してください: ${values.interval}`
+          );
+        }
+        return await statusWatch(context, values.library, interval);
+      }
       return await statusCommand(context, values.library);
     }
     if (command === 'verify' && positionals.length === 1) {
@@ -325,6 +358,7 @@ export const run = async (
         resume: values.resume ?? false,
         yes: values.yes ?? false,
         plain: values.plain ?? false,
+        spotCheck: !(values['no-spot-check'] ?? false),
       });
     }
     throw new CliError(unknownCommandMessage(positionals));

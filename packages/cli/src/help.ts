@@ -72,10 +72,22 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
         text: '深く調べる(台帳にある全ファイルの、存在・大きさ・サムネイル。時間がかかります。中身の照合は、seiri verify)',
       },
       { flag: '-y, --yes', text: '--fix の確認を、省く' },
+      {
+        flag: '--report <ファイル>',
+        text: '共有できる診断の報告を、書き出す(.json なら JSON、それ以外は文章)。パス・ファイル名は、伏せます',
+      },
+      {
+        flag: '--include-paths',
+        text: '--report に、パス・ファイル名も、含める',
+      },
       DATA_DIR,
     ],
     examples: [
       { command: 'seiri doctor', text: '診断だけ' },
+      {
+        command: 'seiri doctor --report seiri-report.json',
+        text: '問題を共有するための報告を、書き出す',
+      },
       {
         command: 'seiri doctor --deep',
         text: 'ファイルの存在・大きさまで、深く調べる',
@@ -154,6 +166,10 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
         text: '進み具合の画面を使わず、ログの行だけを出す(端末でないときは、いつも、こう)',
       },
       {
+        flag: '--no-spot-check',
+        text: '取り込みの最後の、抜き取り照合(コピーした一部を、読み直す)を、行わない',
+      },
+      {
         flag: '--rehash',
         text: 'ハッシュのキャッシュを使わず、計算し直す',
       },
@@ -229,13 +245,66 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
   },
   {
     name: 'status',
-    summary: '今の状況(ロック・直近の実行)を見る',
-    usage: 'seiri status [--library <パス>]',
+    summary: '今の状況(ロック・直近の実行)を見る。--watch で、取り込みを見張る',
+    usage: 'seiri status [--library <パス>] [--watch [--interval <秒>]]',
     about: [
       'ほかの実行が動いていないか(ロック)と、直近の実行の結果を、表示します。',
+      '--watch を付けると、別のウィンドウから、実行中の取り込みを、見張れます(進み具合・件数・直近のログを、更新して出します)。実行中のものがなければ、始まるまで待ち、見張っていた実行が終わると、自動で終わります。',
+    ],
+    options: [
+      LIBRARY,
+      { flag: '-w, --watch', text: '実行中の取り込みを、見張る' },
+      { flag: '--interval <秒>', text: '--watch の更新の間隔(既定 1 秒)' },
+      DATA_DIR,
+    ],
+    examples: [
+      { command: 'seiri status', text: '状況を見る' },
+      {
+        command: 'seiri status --watch',
+        text: '別のウィンドウから、取り込みを見張る',
+      },
+    ],
+  },
+  {
+    name: 'backup',
+    summary: 'この Mac の台帳(data/)を、バックアップする',
+    usage: 'seiri backup [--to <場所>] [--with-thumbs] [--list]',
+    about: [
+      'この Mac の設定と、ライブラリごとの台帳を、日時つきのフォルダへ、コピーします(取り込み中でも、壊れない形で)。',
+      'あわせて、ドライブのスナップショットと、突き合わせます(どちらが新しいか)。ライブラリのドライブには、何も書きません。',
+      '復元は、バックアップの中身を、data/ へ、コピーし直します。大事なデータは、別のドライブにも、置いてください(--to)。',
+    ],
+    options: [
+      {
+        flag: '--to <場所>',
+        text: 'バックアップを置く場所(既定: data/backups/)',
+      },
+      {
+        flag: '--with-thumbs',
+        text: 'この Mac のサムネイルも、含める(大きくなります)',
+      },
+      { flag: '--list', text: '作らずに、バックアップの一覧を見る' },
+      LIBRARY,
+      DATA_DIR,
+    ],
+    examples: [
+      { command: 'seiri backup', text: 'バックアップを作る' },
+      {
+        command: 'seiri backup --to /Volumes/Backup/seiri',
+        text: '別のドライブへ',
+      },
+    ],
+  },
+  {
+    name: 'sources',
+    summary: '取り込み元(SD カード・ドライブ)ごとの履歴を見る',
+    usage: 'seiri sources [--library <パス>]',
+    about: [
+      '取り込み元ごとに、これまでの取り込みの回数・取り込み済みのファイル数・最後の取り込み・dry-run の回数を、一覧にします。',
+      '同じ取り込み元を、また取り込むと、取り込み済みのファイルは、スキップされます(取り込みの結果にも、履歴が出ます)。',
     ],
     options: [LIBRARY, DATA_DIR],
-    examples: [{ command: 'seiri status', text: '状況を見る' }],
+    examples: [{ command: 'seiri sources', text: '履歴を見る' }],
   },
   {
     name: 'logs',

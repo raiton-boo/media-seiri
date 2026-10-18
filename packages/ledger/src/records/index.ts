@@ -231,6 +231,12 @@ export {
 } from './source-files.ts';
 export { formatTimestamp } from './time.ts';
 export {
+  getVolumeHistory,
+  listSourceHistory,
+  type SourceHistoryRow,
+  type VolumeHistory,
+} from './volume-history.ts';
+export {
   findVolumeByUuid,
   getVolume,
   type MediaKind,
