@@ -68,7 +68,7 @@ a {
   flex: 1;
 }
 .nav a {
-  padding: 16px 20px;
+  padding: 16px 14px;
   border-right: var(--bd);
   font-weight: 700;
   font-size: 14px;
@@ -84,7 +84,7 @@ a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 20px;
+  padding: 0 16px;
   border-left: var(--bd);
   font-family: var(--mono);
   font-size: 13px;
@@ -1724,4 +1724,14 @@ img {
   background: var(--ink);
   color: var(--paper);
   border-color: var(--paper);
+}
+
+/* 自動アルバムの格子(4 列。狭い画面では、減らす) */
+.auto-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 1000px) {
+  .auto-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

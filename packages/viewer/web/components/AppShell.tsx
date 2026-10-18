@@ -12,6 +12,8 @@ export const NAV_ITEMS = [
   { href: '/album', label: 'アルバム' },
   // アルバムの見方の 1 つ。別のページなので、ナビでも、アルバムの右に並べる
   { href: '/calendar', label: 'カレンダー' },
+  // できごと・動画・RAW・場所などで、自動でまとめたアルバム
+  { href: '/albums', label: '自動アルバム' },
   { href: '/map', label: '地図' },
   { href: '/stats', label: '統計' },
   { href: '/dupes', label: '重複比較' },
@@ -21,7 +23,9 @@ export const NAV_ITEMS = [
 ] as const;
 
 const isActive = (pathname: string, href: string): boolean =>
-  href === '/' ? pathname === '/' : pathname.startsWith(href);
+  href === '/'
+    ? pathname === '/'
+    : pathname === href || pathname.startsWith(`${href}/`);
 
 /** 右上のチップ: ライブラリの名前と、台帳の鮮度(この Mac は最新、家の PC などは、スナップショットの時刻) */
 function LibraryChip() {

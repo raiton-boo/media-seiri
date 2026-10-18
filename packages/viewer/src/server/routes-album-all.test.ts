@@ -11,6 +11,7 @@ import type {
   AlbumSectionPhotosResponse,
   AlbumSectionsResponse,
   AreaLabelsResponse,
+  AutoAlbumsResponse,
   CalendarDayResponse,
   CalendarResponse,
   SearchPhotosResponse,
@@ -297,5 +298,25 @@ describe('カレンダー', () => {
       gpsCount: 1,
     });
     expect((await get(app, '/api/album/day?day=2024-3-5')).status).toBe(400);
+  });
+});
+
+describe('自動アルバム', () => {
+  test('auto: できごとと、切り口(件数・条件)。live=1 の条件も読める', async () => {
+    const app = createViewerApp(seed());
+    const body = (await (
+      await get(app, '/api/album/auto')
+    ).json()) as AutoAlbumsResponse;
+    expect(body.eventTotal).toBe(0);
+    expect(body.events).toEqual([]);
+    expect(body.albums.find((album) => album.title === '動画')).toMatchObject({
+      kind: 'video',
+      count: 1,
+      unit: '本',
+      filter: { kinds: ['video'] },
+    });
+    const live = parseAlbumFilter((name) => ({ live: ['1'] })[name]);
+    expect(live).toEqual({ livePhotos: true });
+    expect(parseAlbumFilter((name) => ({ live: ['0'] })[name])).toEqual({});
   });
 });

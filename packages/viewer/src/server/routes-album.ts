@@ -2,15 +2,18 @@ import { areaLabel } from '@file-seiri/core';
 import {
   type AlbumFilter,
   type AlbumOrder,
+  countAlbumEvents,
   countFilteredPhotos,
   getDaySummary,
   getEventDetail,
   listAlbumSections,
+  listAutoAlbums,
   listCalendarDays,
   listCalendarYears,
   listEventStacks,
   listFilteredPhotos,
   listFilterOptions,
+  listLatestEvents,
   listMonthSummaries,
   listOnThisDay,
   listSectionPhotos,
@@ -29,6 +32,7 @@ import type {
   AlbumSectionsResponse,
   AlbumYearResponse,
   AreaLabelsResponse,
+  AutoAlbumsResponse,
   CalendarDayResponse,
   CalendarResponse,
   SearchPhotosResponse,
@@ -50,6 +54,9 @@ const SECTION_PHOTO_LIMIT = 5000;
 const MAX_QUERY_LENGTH = 100;
 /** 検索結果で、1 回に返す写真の上限 */
 const MAX_SEARCH_PAGE = 120;
+/** 自動アルバムで、最初に出すできごとの数と、上限 */
+const AUTO_EVENT_PAGE = 8;
+const MAX_AUTO_EVENTS = 60;
 /** 去年の今日に出す、できごとの数 */
 const ON_THIS_DAY = 3;
 
@@ -81,6 +88,7 @@ const parseDate = (
  * - `GET /api/album/all/sections`・`/api/album/all/photos?y=&m=`: 「すべて」(区画の一覧と、区画ごとの写真。絞り込みの条件つき)
  * - `GET /api/album/search/suggest?q=`・`/api/album/search/photos`: 検索の候補と結果(絞り込みの条件つき)
  * - `GET /api/album/calendar?y=`・`/api/album/day?day=`: カレンダー(日ごとの枚数・選んだ日のまとめ。絞り込みの条件つき)
+ * - `GET /api/album/auto`: 自動アルバム(できごと・切り口)
  * - `GET /api/album/filters`: 絞り込みの選択肢と件数
  * - `GET /api/album/memories?date=&salt=`: 去年の今日・今日の一枚
  * どれも `order=new|old`(既定は new)で、並び順を変えられる。
@@ -209,6 +217,20 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
         order,
         SECTION_PHOTO_LIMIT
       ),
+    };
+    return context.json(body);
+  });
+
+  // 自動アルバム: できごと(新しい順。`limit` 件)と、いろいろな切り口
+  app.get('/api/album/auto', (context) => {
+    const limit = Math.min(
+      Math.max(parseId(context.req.query('limit')) ?? AUTO_EVENT_PAGE, 1),
+      MAX_AUTO_EVENTS
+    );
+    const body: AutoAlbumsResponse = {
+      eventTotal: countAlbumEvents(db),
+      events: listLatestEvents(db, 'new', limit),
+      albums: listAutoAlbums(db),
     };
     return context.json(body);
   });

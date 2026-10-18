@@ -75,6 +75,9 @@ const describe = (
     ...list('precisions', '日付の精度', (v) => PRECISION_LABELS[v] ?? v),
     ...list('sources', '取得元', (v) => SOURCE_LABELS[v] ?? v),
     ...list('volumes', 'ソース', (v) => volumeLabels.get(v) ?? `#${v}`),
+    ...(filter.live
+      ? [{ key: 'live', label: 'ライブフォト', clear: { live: undefined } }]
+      : []),
   ];
 };
 
