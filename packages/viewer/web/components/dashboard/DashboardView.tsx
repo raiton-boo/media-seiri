@@ -27,11 +27,7 @@ function Dashboard() {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <div className="kicker">LIBRARY / DASHBOARD</div>
-          <h1 className="h1">
-            写真は、ぜんぶ
-            <br />
-            ここに揃っている。
-          </h1>
+          <h1 className="h1">ダッシュボード</h1>
           <div className="mono" style={{ fontSize: 12, paddingTop: 10 }}>
             ライブラリ {library.name}(ID {idPrefix})
             {place ? ` / 場所 ${place}` : ''}
