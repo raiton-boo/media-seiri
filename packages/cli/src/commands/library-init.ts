@@ -7,7 +7,11 @@ import {
 } from '@file-seiri/ledger';
 import { CliError } from '../cli-error.ts';
 import { ledgerPathFor, libraryWorkDir } from '../config/paths.ts';
-import { registerLibrary } from '../config/registry.ts';
+import {
+  readConfig,
+  registerLibrary,
+  unregisterLibraries,
+} from '../config/registry.ts';
 import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import {
@@ -89,6 +93,13 @@ export const libraryInit = (
     throw error;
   }
 
+  // 同じ場所に、作り直したときは、前の登録(別の ID)は、もう使えないので、外す(この Mac の台帳は、残す)
+  unregisterLibraries(
+    context.dataDir,
+    Object.entries(readConfig(context.dataDir).libraries)
+      .filter(([id, entry]) => id !== libraryId && entry.root === root)
+      .map(([id]) => id)
+  );
   if (context.fancy) {
     showReport(context, {
       title: 'ライブラリを作りました',

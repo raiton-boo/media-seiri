@@ -241,6 +241,7 @@ export const ingestSource = async (
   }
 
   const summary = emptySummary();
+  const startedAt = performance.now();
   context.progress.begin({
     runId,
     isDryRun: options.dryRun,
@@ -436,6 +437,7 @@ export const ingestSource = async (
           ? EXIT_CODES.completedWithErrors
           : EXIT_CODES.ok;
     const showSummary = (): void => {
+      summary.elapsedMs = performance.now() - startedAt;
       session.collected.push(summary);
       const shown = {
         source: describeVolume(sourceVolume),
@@ -479,6 +481,7 @@ export const ingestSource = async (
         `コピー: ${summary.copyFiles} ファイル(${rows.length > 0 ? '照合つき' : ''})`
       );
     }
+    const copyStartedAt = performance.now();
     const reason = lock
       ? await executeCopies({
           context,
@@ -492,6 +495,8 @@ export const ingestSource = async (
           summary,
         })
       : undefined;
+    if (summary.copy)
+      summary.copy.elapsedMs = performance.now() - copyStartedAt;
     if (summary.copy) {
       reportLines(
         context,

@@ -82,3 +82,15 @@ export const registerLibrary = (
   config.libraries[libraryId] = entry;
   writeConfig(dataDir, config);
 };
+
+/** 登録を外す(設定だけ。ライブラリのファイルや、この Mac の台帳は、消さない)。外した ID を返す */
+export const unregisterLibraries = (
+  dataDir: string,
+  libraryIds: readonly string[]
+): string[] => {
+  const config = readConfig(dataDir);
+  const removed = libraryIds.filter((id) => id in config.libraries);
+  for (const id of removed) delete config.libraries[id];
+  if (removed.length > 0) writeConfig(dataDir, config);
+  return removed;
+};

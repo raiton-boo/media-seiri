@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { readConfig, registerLibrary } from '../config/registry.ts';
 import {
   initLibrary,
   makeWorld,
@@ -8,6 +9,7 @@ import {
   scriptedAsker,
   type World,
 } from '../ingest/test-support.ts';
+import { markerPathOf } from './marker.ts';
 
 const worlds: World[] = [];
 afterEach(() => {
@@ -99,5 +101,63 @@ describe('library list', () => {
     const result = await runIn(world, ['library', 'list']);
     expect(result.code).toBe(0);
     expect(result.stdout.join('\n')).toContain('library init');
+  });
+});
+
+describe('古い登録(同じ場所に、作り直したライブラリがある)', () => {
+  /** 同じ場所に、別の ID の登録が、残っている世界(作り直しの、あとの状態) */
+  const withStale = async (): Promise<World> => {
+    const world = makeWorld();
+    worlds.push(world);
+    await initLibrary(world);
+    for (const id of ['old-1', 'old-2']) {
+      registerLibrary(world.dataDir, id, {
+        root: world.library,
+        registeredAt: '2026-10-01T00:00:00.000Z',
+      });
+    }
+    return world;
+  };
+
+  test('選択肢に入れない。接続中の 1 つが、自動で使われる', async () => {
+    const world = await withStale();
+    const result = await runIn(world, ['status']);
+    expect(result.code).toBe(0);
+    expect(result.stdout.join('\n')).toContain(world.library);
+  });
+
+  test('library list に、古い登録と出て、prune の案内も出る', async () => {
+    const world = await withStale();
+    const text = (await runIn(world, ['library', 'list'])).stdout.join('\n');
+    expect(text.match(/古い登録(?!が)/g)).toHaveLength(2);
+    expect(text).toContain('library prune');
+  });
+
+  test('prune は、古い登録だけを、設定から外す。台帳・ライブラリは、そのまま。端末でなければ、--yes が要る', async () => {
+    const world = await withStale();
+    const refused = await runIn(world, ['library', 'prune']);
+    expect(refused.code).toBe(2);
+    expect(Object.keys(readConfig(world.dataDir).libraries)).toHaveLength(3);
+
+    const done = await runIn(world, ['library', 'prune', '--yes']);
+    expect(done.code).toBe(0);
+    expect(Object.keys(readConfig(world.dataDir).libraries)).toEqual(['lib-1']);
+    // ライブラリの目印は、残っている
+    expect(await Bun.file(markerPathOf(world.library)).exists()).toBe(true);
+    // 2 回目は、何もない
+    const again = await runIn(world, ['library', 'prune', '--yes']);
+    expect(again.stdout.join('\n')).toContain('古い登録は、ありません');
+  });
+
+  test('同じ場所に、作り直すと、前の登録は、外れる', async () => {
+    const world = await withStale();
+    rmSync(markerPathOf(world.library), { force: true });
+    const created = await runIn(world, ['library', 'init', world.library], {
+      newLibraryId: () => 'lib-new',
+    });
+    expect(created.code).toBe(0);
+    expect(Object.keys(readConfig(world.dataDir).libraries)).toEqual([
+      'lib-new',
+    ]);
   });
 });
