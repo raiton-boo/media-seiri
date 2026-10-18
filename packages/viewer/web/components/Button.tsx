@@ -89,7 +89,13 @@ export function Button({
 
   if (href !== undefined && !inactive) {
     return download ? (
-      <a href={href} download className={className} aria-label={ariaLabel}>
+      <a
+        href={href}
+        download
+        className={className}
+        aria-label={ariaLabel}
+        onClick={onClick}
+      >
         {content}
       </a>
     ) : (

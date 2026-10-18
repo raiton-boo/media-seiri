@@ -1087,6 +1087,12 @@ select.sel {
 .btn:disabled .blabel {
   text-decoration: none;
 }
+/* 1 文字ずつに分けたラベル(SwapLabel)は、文字ごとの下線ではなく、ラベル全体の下に 1 本引く
+   (文字が上へ抜けるとき、下線が見えてしまうのと、スペースで下線が切れるのを、避けるため) */
+.blabel .swap {
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 2px;
+}
 
 /* 絞り込みの欄: ラベルも、部品(札・選択欄)も、同じ大きさにそろえる */
 .flabel {

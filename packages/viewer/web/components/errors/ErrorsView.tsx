@@ -11,8 +11,11 @@ import { useUrlState } from '../../lib/query-state';
 import { Button } from '../Button';
 import { FilterChip } from '../FilterChip';
 import { ListSkeleton } from '../ListSkeleton';
+import { LoadError } from '../motion/LoadError';
+import { RevealCards, RevealPage } from '../motion/Reveal';
 import { Pager } from '../Pager';
 import { RUN_KIND_LABELS } from '../RunLabels';
+import { CsvButton } from './CsvButton';
 import { ErrorDetail } from './ErrorDetail';
 
 /** エラーになったファイルの表示(`ドライブ名/パス`、ZIP の中身なら ` ! 中のパス`) */
@@ -42,7 +45,7 @@ export function ErrorsView() {
   if (isError) {
     return (
       <div className="page">
-        <div className="note">エラー一覧を読み込めませんでした。</div>
+        <LoadError>エラー一覧を読み込めませんでした。</LoadError>
       </div>
     );
   }
@@ -57,18 +60,22 @@ export function ErrorsView() {
     url.set({ offset: undefined, sel: undefined, ...updates });
 
   return (
-    <div className="page">
-      <div className="flex flex-wrap items-end justify-between gap-6">
+    <RevealPage className="page">
+      <div
+        className="flex flex-wrap items-end justify-between gap-6"
+        data-motion="title"
+      >
         <div>
           <div className="kicker">ERRORS</div>
           <h1 className="h1">エラー一覧</h1>
         </div>
-        <Button href={errorsCsvUrl({ code, run })} download>
-          CSV で書き出す
-        </Button>
+        <CsvButton href={errorsCsvUrl({ code, run })} />
       </div>
 
-      <div className="card s flex flex-wrap items-end gap-4">
+      <div
+        className="card s flex flex-wrap items-end gap-4"
+        data-motion="block"
+      >
         <div className="field">
           <span className="flabel">コード</span>
           <div className="flex flex-wrap gap-2">
@@ -121,34 +128,38 @@ export function ErrorsView() {
           style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
         >
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3">
+            <RevealCards
+              key={`${code}|${run}|${offset}`}
+              className="flex flex-col gap-3"
+            >
               <div className="listhead errhead" aria-hidden="true">
                 <span>コード</span>
                 <span>ファイル</span>
                 <span>実行 / 日時</span>
               </div>
               {data.items.map((item) => (
-                <Button
-                  key={item.errorId}
-                  block
-                  selected={item.errorId === selected?.errorId}
-                  className="errcard"
-                  onClick={() => url.set({ sel: String(item.errorId) })}
-                >
-                  <span className="chip r">{item.code}</span>
-                  <span
-                    className="mono errcard-path"
-                    title={describeSource(item.source)}
+                <div key={item.errorId} data-motion="card">
+                  <Button
+                    block
+                    selected={item.errorId === selected?.errorId}
+                    className="errcard"
+                    onClick={() => url.set({ sel: String(item.errorId) })}
                   >
-                    {shortenSource(item.source)}
-                  </span>
-                  <span className="mono errcard-side">
-                    <span>#{item.runId}</span>
-                    <span>{formatDateTimeSeconds(item.occurredAt)}</span>
-                  </span>
-                </Button>
+                    <span className="chip r">{item.code}</span>
+                    <span
+                      className="mono errcard-path"
+                      title={describeSource(item.source)}
+                    >
+                      {shortenSource(item.source)}
+                    </span>
+                    <span className="mono errcard-side">
+                      <span>#{item.runId}</span>
+                      <span>{formatDateTimeSeconds(item.occurredAt)}</span>
+                    </span>
+                  </Button>
+                </div>
               ))}
-            </div>
+            </RevealCards>
             <Pager
               total={data.total}
               limit={data.limit}
@@ -164,6 +175,6 @@ export function ErrorsView() {
           {selected ? <ErrorDetail id={selected.errorId} /> : null}
         </div>
       )}
-    </div>
+    </RevealPage>
   );
 }

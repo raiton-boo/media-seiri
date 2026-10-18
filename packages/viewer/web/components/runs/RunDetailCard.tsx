@@ -9,11 +9,12 @@ import {
   formatDuration,
 } from '../../lib/format';
 import { Button } from '../Button';
+import { RevealDetail } from '../motion/Reveal';
 import { RUN_KIND_LABELS } from '../RunLabels';
 
 function Count({ label, value }: { label: string; value: number }) {
   return (
-    <div className="card s">
+    <div className="card s" data-motion="detail-item">
       <div className="mono" style={{ fontSize: 12 }}>
         {label}
       </div>
@@ -44,7 +45,7 @@ export function RunDetailCard({ id }: { id: number }) {
       1000
     : null;
   return (
-    <div className="card flex flex-col gap-4">
+    <RevealDetail className="card flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="h2">run #{run.runId}</h2>
         <span className="flex gap-2">
@@ -121,6 +122,6 @@ export function RunDetailCard({ id }: { id: number }) {
           dry-run の結果は、アルバム・地図・統計には含まれません。
         </div>
       ) : null}
-    </div>
+    </RevealDetail>
   );
 }
