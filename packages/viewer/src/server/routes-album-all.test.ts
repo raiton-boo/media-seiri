@@ -341,13 +341,17 @@ describe('統計', () => {
     expect(all.kinds).toEqual({ photo: 3, video: 1, raw: 0 });
     expect(all.periods.monthsYear).toBe(2024);
     expect(all.periods.months[2]).toMatchObject({ month: 3, count: 2 });
-    expect((await stats('?year=2023')).periods.months[11]).toMatchObject({
+    expect((await stats('?monthsYear=2023')).periods.months[11]).toMatchObject({
       month: 12,
       count: 1,
     });
-    expect((await stats('?year=abc')).periods.monthsYear).toBe(2024);
+    expect((await stats('?monthsYear=abc')).periods.monthsYear).toBe(2024);
     // 日付なしの 1 枚は、「不明」(合計が、全体と合う)
     expect(all.periods.yearUnknown.count).toBe(1);
     expect((await stats('?kind=video')).total).toBe(1);
+    // 絞り込み(年)の `year` は、月別の年とは、別。年の絞り込みは、集計全体に効く
+    const filtered = await stats('?year=2023');
+    expect(filtered.total).toBe(1);
+    expect(filtered.periods.monthsYear).toBe(2023);
   });
 });

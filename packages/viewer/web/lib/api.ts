@@ -438,7 +438,7 @@ export const useStats = (year: number | undefined, filter: FilterState) =>
     queryKey: ['stats', year, filter],
     queryFn: () =>
       fetchJson<StatsResponse>(
-        `/api/stats${queryString({ year, ...filterParams(filter) })}`
+        `/api/stats${queryString({ monthsYear: year, ...filterParams(filter) })}`
       ),
     placeholderData: keepPreviousData,
   });
