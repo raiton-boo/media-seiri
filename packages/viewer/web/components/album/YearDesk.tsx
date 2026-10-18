@@ -25,7 +25,7 @@ export function YearDesk({ data }: { data: AlbumYearResponse }) {
     );
   }
   return (
-    <RevealDesk key={`${data.year}|${data.order}`} className="desk deskgrid">
+    <RevealDesk className="desk deskgrid">
       <div
         className="stk"
         style={{

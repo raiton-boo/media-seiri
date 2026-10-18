@@ -104,10 +104,7 @@ export function MonthDesk({
     );
   }
   return (
-    <RevealDesk
-      key={`${data.year}|${data.month}|${data.order}|${showSmall}`}
-      className="desk deskgrid"
-    >
+    <RevealDesk className="desk deskgrid">
       <div
         className="stk"
         style={{

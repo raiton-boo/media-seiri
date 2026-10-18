@@ -51,7 +51,12 @@ export function Polaroid({
       {children}
       <div className={`ph ${color}`}>
         {photo.thumbRelPath ? (
-          <img src={thumbUrl(photo.thumbRelPath)} alt={name} loading="lazy" />
+          <img
+            draggable={false}
+            src={thumbUrl(photo.thumbRelPath)}
+            alt={name}
+            loading="lazy"
+          />
         ) : (
           <div className="lb">{name} — サムネイルなし</div>
         )}

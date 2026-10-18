@@ -39,10 +39,7 @@ export function EventDesk({
   const remaining = data.fileCount - data.photos.length - data.offset;
 
   return (
-    <RevealDesk
-      key={`${data.albumEventId}|${data.order}`}
-      className="desk deskgrid"
-    >
+    <RevealDesk className="desk deskgrid">
       <div
         className="stk"
         style={{

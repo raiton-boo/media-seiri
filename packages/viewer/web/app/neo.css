@@ -1421,3 +1421,18 @@ button.stk {
 .seg .off {
   opacity: 0.45;
 }
+
+/* 定規の月の棒: 選んだ月の色の変わり方を、なめらかに */
+.mbars i {
+  transition: background-color 0.25s;
+}
+
+/* 画像・リンクは、ドラッグして、持ち出せないようにする(arcana-members と同じ) */
+img,
+a {
+  -webkit-user-drag: none;
+}
+img {
+  user-select: none;
+  -webkit-user-select: none;
+}

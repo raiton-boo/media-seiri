@@ -86,7 +86,10 @@ export function AlbumView() {
 
   const zoom = view ?? 'year';
   const eventMonth = eventStart ? Number(eventStart.slice(5, 7)) : undefined;
-  const month = view === 'month' ? monthParam : eventMonth;
+  // 定規には、手元にあるデータの年・月を渡す(新しいデータが届くまで、前のデータを見せ続けるため。URL の年・月と、棒のデータが、ずれないように)
+  const rulerYear = yearData.data.year;
+  const month =
+    view === 'month' ? (monthData.data?.month ?? monthParam) : eventMonth;
   const monthEvents = monthData.data;
   const firstEventId =
     monthEvents?.events[0]?.albumEventId ?? monthEvents?.small[0]?.albumEventId;
@@ -118,10 +121,7 @@ export function AlbumView() {
           : `YEAR / ${order === 'new' ? '新しい順' : '古い順'}`;
 
   return (
-    <RevealPage
-      className="page"
-      key={`${view}|${year}|${monthParam}|${eventId}`}
-    >
+    <RevealPage className="page">
       <div
         className="flex flex-wrap items-end justify-between gap-6"
         data-motion="title"
@@ -190,7 +190,7 @@ export function AlbumView() {
           overview={overview.data}
           order={order}
           zoom={zoom}
-          year={year}
+          year={rulerYear}
           months={yearData.data.months}
           month={month}
           eventHref={eventHref}

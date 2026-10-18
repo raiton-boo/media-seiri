@@ -2,11 +2,13 @@
 
 import type { MonthSummary } from '@file-seiri/ledger';
 import Link from 'next/link';
+import { useRef } from 'react';
 import type { AlbumOverviewResponse } from '../../../src/api-types.ts';
 import { albumHref } from '../../lib/album-url';
 import type { AlbumOrderParam } from '../../lib/api';
 import { formatCount } from '../../lib/format';
 import { SwapLabel } from '../motion/SwapLabel';
+import { type TileLayout, useRulerMotion } from './useRulerMotion';
 
 type Props = {
   overview: AlbumOverviewResponse;
@@ -54,9 +56,19 @@ export function TimeRuler({
       : months.findIndex((item) => item.month === currentMonth);
   const markerLeft = zoom === 'year' ? 50 : ((markerIndex + 0.5) / 12) * 100;
   const total = Math.max(1, overview.total);
+  const root = useRef<HTMLDivElement>(null);
+
+  // 年の札の幅(枚数に比例。いまの年は、月の棒が入る広さ)。動きのために、札ごとに、まとめておく
+  const tiles: TileLayout[] = overview.years.map((item) => {
+    const grow = Math.max(0.6, (item.count / total) * 10);
+    return item.year === year
+      ? { year: item.year, grow: Math.max(grow, 3), basis: 240 }
+      : { year: item.year, grow, basis: 72 };
+  });
+  useRulerMotion(root, year, tiles, markerLeft);
 
   return (
-    <div className="ruler">
+    <div className="ruler" ref={root}>
       <div className="flex flex-col justify-center gap-2 pr-2.5 pl-1">
         <div className="seg y">
           <Link
@@ -90,14 +102,19 @@ export function TimeRuler({
       </div>
 
       {overview.years.map((item) => {
-        const grow = Math.max(0.6, (item.count / total) * 10);
+        const tile = tiles.find((candidate) => candidate.year === item.year);
+        if (!tile) return null;
         if (item.year !== year) {
           return (
             <Link
               key={item.year}
               href={albumHref({ view: 'year', y: item.year, order })}
               className="yt"
-              style={{ flex: `${grow} 1 72px`, overflow: 'hidden' }}
+              data-year={item.year}
+              style={{
+                flex: `${tile.grow} 1 ${tile.basis}px`,
+                overflow: 'hidden',
+              }}
             >
               <span>{item.year}</span>
               <small>{formatCount(item.count)}</small>
@@ -108,7 +125,8 @@ export function TimeRuler({
           <div
             key={item.year}
             className="yt on"
-            style={{ flex: `${Math.max(grow, 3)} 1 240px`, paddingTop: 18 }}
+            data-year={item.year}
+            style={{ flex: `${tile.grow} 1 ${tile.basis}px`, paddingTop: 18 }}
           >
             <div className="flex items-baseline justify-between">
               <span>{item.year}</span>
