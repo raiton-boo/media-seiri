@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
 import { systemTimeZone } from '@file-seiri/core';
 import { DEFAULT_WEB_DIR } from '@file-seiri/viewer';
+import cliPackage from '../package.json' with { type: 'json' };
 import { CliError } from './cli-error.ts';
 import { drivesCommand } from './commands/drives.ts';
 import { eventsCommand } from './commands/events.ts';
@@ -14,6 +15,7 @@ import { viewerCommand } from './commands/viewer.ts';
 import { resolveDataDir } from './config/paths.ts';
 import { type CommandContext, newLibraryId } from './context.ts';
 import { EXIT_CODES, type ExitCode } from './exit-codes.ts';
+import { findCommandHelp, renderCommandHelp, renderOverview } from './help.ts';
 import {
   createLiveController,
   type LiveController,
@@ -27,39 +29,6 @@ import {
   resolveVolume as resolveRealVolume,
   type VolumeInfo,
 } from './volume/index.ts';
-
-const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
-
-コマンド:
-  library init <保存先のパス>   ライブラリを作る(目印・台帳・設定)
-  drives                        接続中のドライブの一覧(名前・容量・空き・形式・種類・状態・ライブラリ)
-  logs [--run <ID>] [--level <レベル>] [--tail <N>] [--follow]
-                                実行のログを表示する(既定は、直近の実行・INFO 以上。--verbose / --quiet)
-  status                        ロックの保持者と、直近の実行の状況を表示する
-  verify [--library <パス>] [--sample <割合>]
-                                ライブラリの全ファイルを読み直して、台帳と照合する(修復・削除はしない)
-  events [--library <パス>]     アルバムのできごとを、計算し直す(取り込みの最後に、自動でも計算される)
-  thumbs [--library <パス>]     サムネイルのないファイルに、サムネイルを作る(何度でも実行できる)
-  viewer [--library <パス>] [--port <番号>] [--snapshot]
-                                ライブラリを、ブラウザで見る(閲覧専用。本機の 127.0.0.1 だけで配信する)
-  ingest <ソース...> --dest <ライブラリの根>
-                                ソースを取り込む(--dry-run: コピーせず、結果だけ)
-
-オプション:
-  --data-dir <パス>   作業用の領域(data/)の場所。環境変数 FILE_SEIRI_DATA_DIR でも指定できる
-  --dest <パス>       ingest の保存先(ライブラリの根)
-  --dry-run           ingest で、コピーせずに、結果だけを見る
-  --library <パス>    verify・thumbs・events・logs・status の対象のライブラリの根(登録が 1 つだけなら、省ける)
-  --run <ID> / --level <レベル> / --tail <N> / -f, --follow / --verbose / --quiet   logs の絞り込み・追いかけ
-  --sample <割合>     verify を、抜き取りで行う(例: 0.1、10%)
-  --port <番号>       viewer の待ち受けポート(既定 3939。0 なら、空いているものを選ぶ)
-  --snapshot          viewer で、この Mac の台帳ではなく、ライブラリのスナップショットを開く(家の PC と同じ見え方)
-  --resume            ingest で、中断した実行を、続きから実行する
-  --plain             ingest で、ライブ表示(画面を書き換える表示)を使わず、ログの行だけを出す(端末でないときは、いつも、そう)
-  -y, --yes           ingest で、コピーの前の確認を、省く
-  --rehash            ingest で、ハッシュのキャッシュを使わず、計算し直す
-  --restore-snapshot  ingest で、スナップショットのほうが新しいとき、置き換えてよい(確認済み)
-  -h, --help          この説明を表示する`;
 
 export type RunEnvironment = {
   env: Record<string, string | undefined>;
@@ -114,12 +83,32 @@ export const run = async (
         snapshot: { type: 'boolean' },
         yes: { type: 'boolean', short: 'y' },
         help: { type: 'boolean', short: 'h' },
+        version: { type: 'boolean', short: 'v' },
       },
       allowPositionals: true,
     });
-    if (values.help || positionals.length === 0) {
-      environment.stdout(USAGE);
-      return values.help ? EXIT_CODES.ok : EXIT_CODES.failed;
+    if (values.version) {
+      environment.stdout(`seiri ${cliPackage.version}`);
+      return EXIT_CODES.ok;
+    }
+    const color =
+      environment.useColor ??
+      Boolean(process.stdout.isTTY && !environment.env.NO_COLOR);
+    // `seiri help <コマンド>` も、`seiri <コマンド> --help` と同じ
+    const asksHelp = values.help || positionals[0] === 'help';
+    if (asksHelp || positionals.length === 0) {
+      const words =
+        positionals[0] === 'help' ? positionals.slice(1) : positionals;
+      const help = words.length > 0 ? findCommandHelp(words) : undefined;
+      if (words.length > 0 && !help) {
+        throw new CliError(
+          `知らないコマンドです: ${words.join(' ')}\n\n${renderOverview(false)}`
+        );
+      }
+      environment.stdout(
+        help ? renderCommandHelp(help, color) : renderOverview(color)
+      );
+      return asksHelp ? EXIT_CODES.ok : EXIT_CODES.failed;
     }
 
     const context: CommandContext = {
@@ -214,7 +203,7 @@ export const run = async (
       });
     }
     throw new CliError(
-      `知らないコマンドです: ${positionals.join(' ')}\n\n${USAGE}`
+      `知らないコマンドです: ${positionals.join(' ')}\n\n${renderOverview(false)}`
     );
   } catch (error) {
     if (error instanceof CliError) {
@@ -227,7 +216,9 @@ export const run = async (
       'code' in error &&
       String(error.code).startsWith('ERR_PARSE_ARGS')
     ) {
-      environment.stderr(`エラー: ${error.message}\n\n${USAGE}`);
+      environment.stderr(
+        `エラー: ${error.message}\n\n${renderOverview(false)}`
+      );
       return EXIT_CODES.failed;
     }
     throw error;

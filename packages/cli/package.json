@@ -1,7 +1,12 @@
 {
   "name": "@file-seiri/cli",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "seiri": "./src/main.ts",
+    "file-seiri": "./src/main.ts"
+  },
   "exports": {
     ".": "./src/index.ts"
   },
