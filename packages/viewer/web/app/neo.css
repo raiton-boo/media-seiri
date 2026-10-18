@@ -13,6 +13,7 @@
   --l: #c1aeff;
   --r: #ff5a4d;
   --y2: #fff0a3;
+  --r-deep: #d63326;
   --desk: #ede6d0;
   --map: #dce9d5;
   --sk: #e6e0cc;
@@ -86,7 +87,7 @@ a {
   padding: 0 20px;
   border-left: var(--bd);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
 }
 .page {
   width: 100%;
@@ -112,7 +113,7 @@ a {
 }
 .kicker {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -121,7 +122,7 @@ a {
   font-family: var(--mono);
 }
 .muted {
-  opacity: 0.65;
+  opacity: 0.75;
 }
 .card {
   background: var(--paper);
@@ -158,24 +159,121 @@ a {
 .card.bg {
   background: var(--bg);
 }
+/* ボタン(押せる面を持つもの): 2 層。外側 .btn = 当たり判定と影(動かない)、内側 .face = 見た目の面。
+   ホバーで、影の 1/4 だけ浮き、押すと、影の位置まで沈む(0.1 秒)。押せないときは、影の大きさ(--sh)を 0 にして、影を消し、灰色の平らな面にする。
+   arcana-members のボタン(components/ui/button)の挙動に合わせた。影を本体の box-shadow にすると、押した瞬間に当たり判定ごと動き、
+   端で連打するとちらつくため、面だけを動かす。動きは CSS だけ(GSAP は、文字の入れ替えなど、別の動きに使う) */
 .btn {
+  position: relative;
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  --sh: 3px;
+  --btn-bg: var(--paper);
+  --btn-fg: var(--ink);
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform: translate(var(--sh), var(--sh));
+}
+.btn .face {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 0.6em;
   padding: 10px 18px;
   border: var(--bd);
-  background: var(--paper);
-  box-shadow: var(--shs);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
   font-weight: 900;
   font-size: 14px;
-  cursor: pointer;
+  line-height: 1.6;
+  transition:
+    transform 0.1s,
+    background-color 0.1s;
+}
+.btn:hover .face {
+  transform: translate(calc(var(--sh) * -0.25), calc(var(--sh) * -0.25));
+}
+.btn:active .face {
+  transform: translate(var(--sh), var(--sh));
 }
 .btn.y {
-  background: var(--y);
+  --btn-bg: var(--y);
 }
 .btn.ink {
-  background: var(--ink);
-  color: var(--paper);
+  --btn-bg: var(--ink);
+  --btn-fg: var(--paper);
+}
+.btn.lg {
+  --sh: 6px;
+}
+.btn.t-r {
+  /* 赤の上の文字は、黒(コントラスト比 6.3)。白は 3.1 で、小さい文字には足りない */
+  --btn-bg: var(--r);
+}
+.btn.t-o {
+  --btn-bg: var(--o);
+}
+.btn.t-l {
+  --btn-bg: var(--l);
+}
+.btn.t-b {
+  --btn-bg: var(--b);
+}
+.btn.block {
+  display: block;
+  width: 100%;
+}
+.btn.block .face {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 18px;
+}
+.btn:focus-visible {
+  outline: 0;
+}
+.btn:focus-visible .face {
+  outline: 3px solid var(--b);
+  outline-offset: 3px;
+}
+.btn:disabled {
+  cursor: not-allowed;
+  --sh: 0px;
+}
+.btn.loading:disabled {
+  cursor: progress;
+}
+.btn:disabled::before {
+  display: none;
+}
+.btn:disabled .face {
+  background: #c9c9c9;
+  color: #6a6a6a;
+}
+.btn .spin {
+  animation: btn-spin 0.8s linear infinite;
+}
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn .face {
+    transition: none;
+  }
 }
 .chip {
   display: inline-flex;
@@ -185,7 +283,7 @@ a {
   border: 2px solid var(--ink);
   background: var(--paper);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -212,7 +310,8 @@ a {
   background: var(--l);
 }
 .chip.r {
-  background: var(--r);
+  /* 白い文字が読める赤(コントラスト比 4.8。--r の白は 3.1) */
+  background: var(--r-deep);
   color: var(--paper);
 }
 .field {
@@ -221,11 +320,12 @@ a {
   gap: 4px;
   min-width: 130px;
 }
+/* 絞り込みの欄のラベル(.flabel と同じ大きさ) */
 .field label {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
 }
 .field .sel {
   border: var(--bd);
@@ -292,7 +392,7 @@ a {
   background: var(--ink);
   color: var(--paper);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -306,7 +406,7 @@ a {
 }
 .ph .bd span {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   border: 2px solid var(--ink);
   background: var(--paper);
@@ -325,20 +425,20 @@ a {
   text-align: left;
   padding: 10px 12px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   font-weight: 700;
 }
 .tbl td {
   padding: 10px 12px;
   border-top: 2px solid var(--ink);
-  font-size: 13px;
+  font-size: 14px;
   vertical-align: top;
 }
 .tbl td.m,
 .tbl .m {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
 }
 .tbl tr.hl td {
   background: var(--y);
@@ -348,7 +448,7 @@ a {
   background: var(--y);
   padding: 10px 14px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
 }
 .hr {
   height: 3px;
@@ -394,7 +494,7 @@ a {
   background: var(--ink);
   color: var(--term-fg);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   border: var(--bd);
   box-shadow: var(--sh);
@@ -453,7 +553,7 @@ a {
 }
 .mon small {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 .mon.p {
@@ -557,7 +657,7 @@ a {
   border: var(--bd);
   background: var(--paper);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
 }
 .fchip.on {
   background: var(--b);
@@ -565,7 +665,7 @@ a {
 }
 .fchip b {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* アルバムの部品: ポラロイド / 机 / 行ぞろえ / 時間の定規 */
@@ -614,7 +714,7 @@ a {
   right: 12px;
   bottom: 10px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   display: flex;
   justify-content: space-between;
@@ -686,7 +786,7 @@ a {
 }
 .yt small {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 .yt.on {
@@ -715,7 +815,7 @@ a {
   background: var(--ink);
   color: var(--paper);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 8px;
   border: 2px solid var(--ink);
@@ -740,7 +840,7 @@ a {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 .fdr .bx2 {
@@ -779,7 +879,7 @@ a {
 .big-scr .yb small {
   display: block;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   margin-top: 4px;
 }
@@ -799,7 +899,7 @@ a {
   height: 18px;
   border: 2px solid var(--ink);
   background: var(--paper);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -878,7 +978,7 @@ a {
   border: 2px solid var(--ink);
   background: var(--paper);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 3px;
   line-height: 1.1;
@@ -913,4 +1013,215 @@ a {
     transparent 10px 20px
   );
   border: var(--bd);
+}
+
+/* ビューア(web/)の追加: ワイヤーフレームの部品を、本物のボタン・選択欄・表の行の選択に使うための調整 */
+button.chip,
+button.fchip {
+  color: inherit;
+  cursor: pointer;
+}
+select.sel {
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  cursor: pointer;
+}
+.tbl tr {
+  position: relative;
+}
+.rowbtn {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  font: inherit;
+}
+.rowbtn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.rowbtn:focus-visible {
+  outline: 3px solid var(--b);
+  outline-offset: -3px;
+}
+.tbl th {
+  white-space: nowrap;
+}
+/* 選べる行(クリックで詳細が変わる表)は、ホバーで薄い黄にして、押せることを示す */
+.tbl tr:has(.rowbtn):hover td {
+  background: var(--y2);
+}
+.tbl tr.hl:has(.rowbtn):hover td {
+  background: var(--y);
+}
+/* 文字のリンク(目立たせたい行き先): 大きく、太く、下線。ワイヤーフレームの「地図へ →」の下線を、太く大きくした */
+.textlink {
+  align-self: flex-start;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+}
+.textlink:hover {
+  text-decoration-thickness: 6px;
+}
+.textlink:focus-visible {
+  outline: 3px solid var(--b);
+  outline-offset: 3px;
+}
+/* 絞り込みの札: 選んでいるものは、黒く塗って、✓ を付ける */
+.chip .tick {
+  font-weight: 900;
+}
+
+/* ボタンのラベルは、下線を引く(カードと、押せるものを、見分けるため) */
+.blabel {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.btn:disabled .blabel {
+  text-decoration: none;
+}
+
+/* 絞り込みの欄: ラベルも、部品(札・選択欄)も、同じ大きさにそろえる */
+.flabel {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.chip.lg,
+.field select.sel {
+  min-height: 44px;
+  font-size: 14px;
+}
+.chip.lg {
+  padding: 6px 14px;
+}
+
+/* 選べる行の右端の目印(›: 押せる、▶: 選んでいる) */
+.tbl .chev {
+  width: 44px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+}
+.tbl th.chev {
+  padding: 0;
+}
+.tbl tr:has(.rowbtn):hover .chev {
+  transform: translateX(3px);
+}
+
+/* 折り返さない(日時・ドライブ名など、1 行で読みたいセル) */
+.tbl .nw {
+  white-space: nowrap;
+}
+
+/* 選んでいるボタン(一覧から 1 つを選ぶ): 黄色で、押した位置に沈んだまま */
+.btn.sel {
+  --btn-bg: var(--y);
+}
+.btn.sel .face {
+  transform: translate(var(--sh), var(--sh));
+}
+
+/* 実行履歴の 1 件(ボタンカード): 番号・ソースと件数・状態と日時 */
+.btn.block.runcard .face {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 132px;
+  gap: 4px 16px;
+  align-items: center;
+  text-align: left;
+  padding: 14px 18px;
+}
+.runcard-id {
+  font-family: var(--disp);
+  font-size: 30px;
+  line-height: 1;
+}
+.runcard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.runcard-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+.runcard-counts {
+  font-size: 13px;
+  font-weight: 400;
+}
+.runcard-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 13px;
+}
+
+/* エラー一覧の 1 件(ボタンカード): コードの札・ファイル・実行と日時 */
+.btn.block.errcard .face {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 150px;
+  gap: 4px 16px;
+  align-items: center;
+  text-align: left;
+  padding: 10px 16px;
+}
+.errcard .chip {
+  justify-self: start;
+}
+.errcard-path {
+  font-size: 14px;
+  font-weight: 400;
+  word-break: break-all;
+}
+.errcard-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* 選んでいる赤い札: 赤のまま、✓ と、太い枠で分かる */
+.chip.r.on {
+  background: var(--r-deep);
+  color: var(--paper);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* 一覧の見出しの帯(表の見出しの代わり): 各列が何かを示す。列の幅は、カードの中の列と、そろえる */
+.listhead {
+  display: grid;
+  gap: 4px 16px;
+  padding: 8px 21px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.listhead.runhead {
+  grid-template-columns: 72px minmax(0, 1fr) 132px;
+}
+.listhead.errhead {
+  grid-template-columns: 190px minmax(0, 1fr) 150px;
+}
+.listhead > :last-child {
+  text-align: right;
 }

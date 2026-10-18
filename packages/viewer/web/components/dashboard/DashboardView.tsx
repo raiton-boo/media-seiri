@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { useDashboard } from '../../lib/api';
 import {
@@ -28,7 +29,7 @@ function Dashboard() {
         <div>
           <div className="kicker">LIBRARY / DASHBOARD</div>
           <h1 className="h1">ダッシュボード</h1>
-          <div className="mono" style={{ fontSize: 12, paddingTop: 10 }}>
+          <div className="mono" style={{ fontSize: 13, paddingTop: 10 }}>
             ライブラリ {library.name}(ID {idPrefix})
             {place ? ` / 場所 ${place}` : ''}
             {summary.lastIngestAt
@@ -43,7 +44,7 @@ function Dashboard() {
         <div className="card y">
           <div className="kicker">FILES</div>
           <div className="num">{formatCount(files.total)}</div>
-          <div className="mono" style={{ fontSize: 12 }}>
+          <div className="mono" style={{ fontSize: 13 }}>
             写真 {formatCount(files.photos)} / 動画 {formatCount(files.videos)}{' '}
             / RAW {formatCount(files.raws)}
           </div>
@@ -54,7 +55,7 @@ function Dashboard() {
             {size.value}
             <span style={{ fontSize: 24 }}> {size.unit}</span>
           </div>
-          <div className="mono" style={{ fontSize: 12 }}>
+          <div className="mono" style={{ fontSize: 13 }}>
             {disk
               ? `空き ${splitBytes(disk.freeBytes).value} ${splitBytes(disk.freeBytes).unit} / ${splitBytes(disk.totalBytes).value} ${splitBytes(disk.totalBytes).unit}`
               : 'ドライブの容量: 未接続'}
@@ -64,22 +65,22 @@ function Dashboard() {
           <div className="kicker">PERIOD</div>
           <div className="num m" style={{ paddingTop: 12 }}>
             {period
-              ? `${formatPeriodEnd(period.from)} → ${formatPeriodEnd(period.to)}`
+              ? `${formatPeriodEnd(period.from)} ~ ${formatPeriodEnd(period.to)}`
               : '—'}
           </div>
-          <div className="mono" style={{ fontSize: 12 }}>
+          <div className="mono" style={{ fontSize: 13 }}>
             日付が取れた範囲
           </div>
         </div>
-        <div className="card g">
+        <div className="card g flex flex-col gap-2">
           <div className="kicker">GPS</div>
           <div className="num">{formatCount(gps.with)}</div>
-          <div className="mono" style={{ fontSize: 12 }}>
-            付き {formatCount(gps.with)} / なし {formatCount(gps.without)}{' '}
-            <a href="/map" style={{ textDecoration: 'underline' }}>
-              地図へ →
-            </a>
+          <div className="mono" style={{ fontSize: 13 }}>
+            付き {formatCount(gps.with)} / なし {formatCount(gps.without)}
           </div>
+          <Link href="/map" className="textlink mt-auto pt-2">
+            地図へ →
+          </Link>
         </div>
       </div>
 

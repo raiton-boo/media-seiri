@@ -114,3 +114,27 @@ export const estimatePace = (
     ),
   };
 };
+
+/** UTC の ISO 8601 を、この PC の時刻で、`10-10 21:58:12`(月日と、秒まで)にする */
+export const formatDateTimeSeconds = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
+/**
+ * 長いパスを省く: 区切り(`/`)で 4 つ以上あれば、最後の 2 つだけ残し、前を `…` にする(`A/B/C/D.jpg` → `…/C/D.jpg`)。
+ * 先頭に `/` が付くものは、そのまま扱う。
+ */
+export const shortenPath = (path: string): string => {
+  const parts = path.split('/').filter((part) => part !== '');
+  if (parts.length <= 3) return parts.join('/');
+  return `…/${parts.slice(-2).join('/')}`;
+};
+
+/** UTC の ISO 8601 を、この PC の時刻で、`10-10 21:40`(月日と、分まで)にする。表のように、狭いところ用 */
+export const formatShortDateTime = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};

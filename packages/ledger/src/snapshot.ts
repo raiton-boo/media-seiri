@@ -8,8 +8,10 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { LedgerError } from './errors.ts';
-import { type Ledger, openLedger } from './ledger.ts';
-import { getRevision } from './meta.ts';
+import type { Ledger } from './ledger.ts';
+import { getLibraryId, getRevision } from './meta.ts';
+import { getUserVersion } from './migrate.ts';
+import { LATEST_SCHEMA_VERSION } from './migrations/index.ts';
 import { formatTimestamp } from './records/time.ts';
 
 /** スナップショットを置く、ライブラリの根の下のフォルダ(仕様書 §8-2) */
@@ -81,12 +83,34 @@ export type SnapshotStatus =
       snapshotRevision: number;
     };
 
+/**
+ * 台帳のリビジョンを読む。**古いスキーマの台帳でも、読める**(プログラムを更新した直後は、作業用の台帳もスナップショットも古く、
+ * 移行は、このあとの、書き込みで開くときに行うため。`meta` は、最初の版から、同じ形)。
+ * 新しすぎるスキーマ(別の、新しいプログラムが作ったもの)と、別のライブラリの台帳は、エラー。
+ */
 const readRevision = (path: string, libraryId: string | undefined): number => {
-  const ledger = openLedger(path, { mode: 'readonly', libraryId });
+  const db = new Database(path, { readonly: true, strict: true });
   try {
-    return getRevision(ledger.db);
+    const version = getUserVersion(db);
+    if (version > LATEST_SCHEMA_VERSION) {
+      throw new LedgerError(
+        'SCHEMA_TOO_NEW',
+        `台帳のスキーマ(${version})が、このプログラムが扱える版(${LATEST_SCHEMA_VERSION})より新しい。プログラムを更新してください`
+      );
+    }
+    const actualId = getLibraryId(db);
+    if (
+      actualId === undefined ||
+      (libraryId !== undefined && libraryId !== actualId)
+    ) {
+      throw new LedgerError(
+        'LIBRARY_ID_MISMATCH',
+        `台帳のライブラリ ID(${actualId ?? 'なし'})が、指定(${libraryId ?? 'なし'})と違います`
+      );
+    }
+    return getRevision(db);
   } finally {
-    ledger.close();
+    db.close();
   }
 };
 

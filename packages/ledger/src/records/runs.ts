@@ -56,6 +56,26 @@ export const startRun = (db: Database, input: RunInput): number => {
   return Number(result.lastInsertRowid);
 };
 
+/** 取り込みの、容量の見積り(仕様書 §9-3): 必要な容量(コピー予定の合計 + 余裕分)と、保存先の空き */
+export type RunCapacity = {
+  requiredBytes: number;
+  destinationFreeBytes: number;
+};
+
+/** 実行に、容量の見積りを記録する(再開・やり直しのときは、上書きする) */
+export const recordRunCapacity = (
+  db: Database,
+  runId: number,
+  capacity: RunCapacity
+): void => {
+  const result = db
+    .query(
+      'UPDATE runs SET required_bytes = ?, destination_free_bytes = ? WHERE run_id = ?'
+    )
+    .run(capacity.requiredBytes, capacity.destinationFreeBytes, runId);
+  if (result.changes === 0) throw new Error(`実行がありません: ${runId}`);
+};
+
 /** 実行を終える(完了・中断・失敗) */
 export const finishRun = (
   db: Database,

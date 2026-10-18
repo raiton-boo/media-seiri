@@ -176,6 +176,19 @@ describe('ingest --dry-run: 基本', () => {
     ]);
   });
 
+  test('容量の見積り(必要な容量・保存先の空き)を、実行に記録する', async () => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);
+    await ingestDry(world);
+    const [run] = rows(
+      world,
+      'SELECT required_bytes AS required, destination_free_bytes AS free FROM runs'
+    );
+    // 保存先の空き(テストのボリューム)と、必要な容量(コピー予定の合計 + 余裕分 10 GB)
+    expect(run?.free).toBe(world.destVolume.freeBytes);
+    expect(Number(run?.required)).toBeGreaterThanOrEqual(10_000_000_000);
+  });
+
   test('2 回目は、ハッシュをキャッシュから得る。--rehash は、計算し直す', async () => {
     const world = await newWorld();
     await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);

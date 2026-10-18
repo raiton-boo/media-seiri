@@ -1,5 +1,10 @@
-import { ComingSoon } from '../../components/ComingSoon';
+import { AppShell } from '../../components/AppShell';
+import { RunsLoader } from '../../components/runs/RunsLoader';
 
-export default function Page() {
-  return <ComingSoon kicker="RUNS" title="実行履歴" />;
+export default function RunsPage() {
+  return (
+    <AppShell>
+      <RunsLoader />
+    </AppShell>
+  );
 }

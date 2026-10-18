@@ -26,6 +26,8 @@ erDiagram
         int run_id PK
         text kind "ingest / verify / thumbs"
         int source_volume_id FK
+        int required_bytes "取り込みの見積り: 必要な容量(余裕分を含む)。古い実行は NULL"
+        int destination_free_bytes "取り込みの見積り: 保存先の空き"
         int is_dry_run "1 なら集計に含めない"
         text status "running / completed / interrupted / failed"
         text started_at

@@ -21,6 +21,10 @@
   },
   "overrides": [
     {
+      "includes": ["packages/viewer/web/**"],
+      "linter": { "rules": { "performance": { "noImgElement": "off" } } }
+    },
+    {
       "includes": ["packages/viewer/web/app/neo.css"],
       "linter": { "rules": { "style": { "noDescendingSpecificity": "off" } } }
     }

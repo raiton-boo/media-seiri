@@ -27,6 +27,13 @@ export {
   listDuplicateLinksByAdopted,
 } from './duplicate-links.ts';
 export {
+  type BrowsedError,
+  browseErrors,
+  countErrorCodes,
+  type ErrorFilter,
+  getBrowsedError,
+} from './error-browse.ts';
+export {
   countErrorsByCode,
   type ErrorRecord,
   listErrors,
@@ -79,6 +86,12 @@ export {
   recordRepairAttempt,
 } from './repair-attempts.ts';
 export {
+  browseRuns,
+  getRunDetail,
+  type RunDetail,
+  type RunFilter,
+} from './run-browse.ts';
+export {
   finishRun,
   getLatestRun,
   getRun,
@@ -86,10 +99,12 @@ export {
   listRecentRuns,
   listUnfinishedRuns,
   type Run,
+  type RunCapacity,
   type RunFinish,
   type RunInput,
   type RunKind,
   type RunStatus,
+  recordRunCapacity,
   resumeRun,
   startRun,
 } from './runs.ts';

@@ -16,6 +16,7 @@ import { CliError } from '../cli-error.ts';
 import { ledgerPathFor } from '../config/paths.ts';
 import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
+import { describeLedgerOpenError } from '../ledger-error.ts';
 import { chooseLibraryRoot, libraryIdOf } from '../library/choose.ts';
 import { libraryThumbsDir, thumbsDirFor } from '../thumbs/index.ts';
 
@@ -49,7 +50,7 @@ const openReadOnly = (path: string, libraryId: string): Ledger => {
     return openLedger(path, { mode: 'readonly', libraryId });
   } catch (error) {
     if (error instanceof LedgerError) {
-      throw new CliError(`台帳を開けません: ${error.message}`);
+      throw new CliError(`台帳を開けません: ${describeLedgerOpenError(error)}`);
     }
     throw error;
   }

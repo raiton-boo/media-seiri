@@ -1,62 +1,50 @@
 import type { DashboardSummary } from '@file-seiri/ledger';
-import Link from 'next/link';
 import { formatCount } from '../../lib/format';
+import { Button } from '../Button';
 
 type Item = {
   href: string;
   label: string;
   count: number;
   /** 色の意味(design.md §2): 赤=エラー、オレンジ=注意、紫=日付なし、青=情報 */
-  background: string;
-  color?: string;
+  tone: 'r' | 'o' | 'l' | 'b';
 };
 
-/** 「要チェック」: 注意が必要な項目への、リンクと件数 */
+/** 「要チェック」: 注意が必要な項目への、リンクと件数。押せるため、ボタンと同じ動き(ホバーで浮き、押すと沈む) */
 export function Attention({
   attention,
 }: {
   attention: DashboardSummary['attention'];
 }) {
   const items: Item[] = [
-    {
-      href: '/errors',
-      label: 'エラー',
-      count: attention.errors,
-      background: 'var(--r)',
-      color: 'var(--paper)',
-    },
+    { href: '/errors', label: 'エラー', count: attention.errors, tone: 'r' },
     {
       href: '/fallback',
       label: '日付フォールバック',
       count: attention.dateFallback,
-      background: 'var(--o)',
+      tone: 'o',
     },
     {
       href: '/fallback',
       label: '日付なし (_unknown)',
       count: attention.dateUnknown,
-      background: 'var(--l)',
+      tone: 'l',
     },
     {
       href: '/dupes',
       label: '重複スキップ',
       count: attention.duplicates,
-      background: 'var(--b)',
+      tone: 'b',
     },
   ];
   return (
-    <div className="card flex flex-col gap-3">
-      <div className="h2">要チェック</div>
+    <div className="card flex flex-col gap-4">
+      <h2 className="h2">要チェック</h2>
       {items.map((item) => (
-        <Link
-          key={item.label}
-          href={item.href}
-          className="card s flex items-center justify-between"
-          style={{ background: item.background, color: item.color }}
-        >
-          <span style={{ fontWeight: 900 }}>{item.label}</span>
+        <Button key={item.label} href={item.href} tone={item.tone} block>
+          <span className="blabel">{item.label} →</span>
           <span className="num m">{formatCount(item.count)}</span>
-        </Link>
+        </Button>
       ))}
     </div>
   );

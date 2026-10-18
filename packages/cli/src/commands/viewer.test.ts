@@ -160,6 +160,29 @@ describe('viewer', () => {
     expect(result.stdout.join('\n')).toContain('スナップショット');
   });
 
+  test('台帳が古い版のときは、読み取り専用では移行できないため、直し方を案内して、止まる', async () => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);
+    await runIn(world, [
+      'ingest',
+      join(world.srcRoot, 'DCIM'),
+      '--dest',
+      world.library,
+      '--yes',
+    ]);
+    const { Database } = await import('bun:sqlite');
+    const raw = new Database(
+      join(world.dataDir, 'libraries', 'lib-1', 'catalog.sqlite')
+    );
+    raw.exec('PRAGMA user_version = 1');
+    raw.close();
+    const result = await runIn(world, ['viewer', '--library', world.library], {
+      viewerWebDir: makeWebDir(),
+    });
+    expect(result.code).toBe(EXIT_CODES.failed);
+    expect(result.stderr.join('\n')).toContain('verify・thumbs・ingest');
+  });
+
   test('画面が作られていなければ、作り方を案内して、止まる', async () => {
     const world = await newWorld();
     const result = await runIn(world, ['viewer', '--library', world.library], {

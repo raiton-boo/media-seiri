@@ -1,6 +1,9 @@
 import type {
+  BrowsedError,
   DashboardSummary,
   MediaKind,
+  RepairAttempt,
+  RunDetail,
   RunningProgress,
   RunSummary,
 } from '@file-seiri/ledger';
@@ -34,4 +37,27 @@ export type DashboardResponse = ViewerInfo & {
   /** 実行中の取り込み(この Mac の作業用の台帳のときだけ) */
   running: RunningProgress | null;
   disk: DiskUsage | null;
+};
+
+/** 一覧のページ送り */
+export type Page = { total: number; limit: number; offset: number };
+
+export type ErrorsResponse = Page & {
+  items: BrowsedError[];
+  /** コード別の件数(絞り込みのコードは、反映しない。札を、すべて出すため) */
+  codes: { code: string; count: number }[];
+  /** 実行の選択肢(新しい順) */
+  runs: RunSummary[];
+};
+
+export type ErrorDetailResponse = {
+  error: BrowsedError;
+  attempts: RepairAttempt[];
+};
+
+export type RunsResponse = Page & { items: RunSummary[] };
+
+export type RunDetailResponse = {
+  run: RunDetail;
+  library: LibraryInfo;
 };
