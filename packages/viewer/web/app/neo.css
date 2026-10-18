@@ -1636,3 +1636,65 @@ img {
 .viewer .chip {
   color: var(--ink);
 }
+
+/* スライドショー */
+.ss-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 90px 28px;
+  min-height: 560px;
+  position: relative;
+}
+.ss-frame {
+  position: relative;
+  max-width: min(860px, 100%);
+  border: 3px solid var(--paper);
+  box-shadow: 12px 12px 0 var(--y);
+  background: #1b1b1b;
+  display: flex;
+  justify-content: center;
+}
+.ss-media {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 340px);
+  object-fit: contain;
+}
+.ss-controls {
+  padding: 14px 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ss-progress {
+  height: 14px;
+  border: 3px solid var(--paper);
+  background: var(--ink);
+}
+.ss-progress > div {
+  height: 100%;
+  background: var(--y);
+}
+.ss-next {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  overflow: hidden;
+}
+.ss-nt {
+  flex: none;
+  height: 54px;
+  border: 3px solid var(--paper);
+  background: #1b1b1b;
+}
+.ss-nt img {
+  height: 100%;
+  display: block;
+}
+.vw-actions .chip.vw-ghost {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--paper);
+}

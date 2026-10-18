@@ -1,8 +1,17 @@
 import { existsSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
-import { getPhotoDetail, getPhotoStrip } from '@file-seiri/ledger';
+import {
+  countFilteredPhotos,
+  getPhotoDetail,
+  getPhotoStrip,
+  listFilteredPhotos,
+} from '@file-seiri/ledger';
 import type { Context, Hono } from 'hono';
-import type { PhotoDetailResponse, PhotoStripResponse } from '../api-types.ts';
+import type {
+  PhotoDetailResponse,
+  PhotoStripResponse,
+  SlideshowResponse,
+} from '../api-types.ts';
 import { parseAlbumFilter, parseId } from './query.ts';
 import type { ViewerSource } from './source.ts';
 
@@ -21,6 +30,8 @@ const DISPLAYABLE: Record<string, { kind: 'image' | 'video'; type: string }> = {
   '.webm': { kind: 'video', type: 'video/webm' },
 };
 
+/** スライドショーで、1 回に渡す写真の上限(あまりに多いと、重い。先頭から、これだけ) */
+const MAX_SLIDES = 3000;
 /** 前後に出す、片側の枚数の上限 */
 const MAX_RADIUS = 30;
 const DEFAULT_RADIUS = 8;
@@ -64,6 +75,7 @@ const parseRange = (
  * 拡大表示の API(読み取り専用)。
  * - `GET /api/album/photo/:id`: 写真の情報
  * - `GET /api/album/photo/:id/strip`: 前後の写真(絞り込みの条件・`event`・`order`・`radius`)
+ * - `GET /api/album/slideshow`: スライドショーの写真(条件・`event`・`order`)
  * - `GET /api/files/:id`: 原本(台帳にあるファイルだけ。ブラウザで表示できる形だけ。動画は範囲指定に答える)
  */
 export const registerPhotoRoutes = (app: Hono, source: ViewerSource): void => {
@@ -97,6 +109,21 @@ export const registerPhotoRoutes = (app: Hono, source: ViewerSource): void => {
     const body: PhotoStripResponse = {
       order,
       ...getPhotoStrip(db, id, filterOf(context), order, radius),
+    };
+    return context.json(body);
+  });
+
+  // スライドショー: 条件に合う写真を、表示の順に(先頭から `MAX_SLIDES` 枚まで)
+  app.get('/api/album/slideshow', (context) => {
+    const order = context.req.query('order') === 'old' ? 'old' : 'new';
+    const filter = filterOf(context);
+    const body: SlideshowResponse = {
+      order,
+      total: countFilteredPhotos(db, filter),
+      photos: listFilteredPhotos(db, filter, order, {
+        limit: MAX_SLIDES,
+        offset: 0,
+      }),
     };
     return context.json(body);
   });

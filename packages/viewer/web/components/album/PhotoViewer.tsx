@@ -198,7 +198,16 @@ export function PhotoViewer() {
             ) : null}
           </div>
           <div className="vw-actions">
-            <Button disabled>▶ スライドショー</Button>
+            <Button
+              href={albumHref({
+                view: 'slide',
+                p: photo.libraryFileId,
+                e: eventId,
+                order,
+              })}
+            >
+              ▶ スライドショー
+            </Button>
             <Button
               onClick={() => {
                 if (document.fullscreenElement) void document.exitFullscreen();

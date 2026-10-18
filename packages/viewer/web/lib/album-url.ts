@@ -3,7 +3,7 @@ import { queryString } from './api';
 
 export type AlbumLocation = {
   /** 省くと、入口(最新の年の机) */
-  view?: 'year' | 'month' | 'event' | 'all' | 'search' | 'photo';
+  view?: 'year' | 'month' | 'event' | 'all' | 'search' | 'photo' | 'slide';
   y?: number;
   m?: number;
   /** できごとの ID(拡大表示では、前後に動く範囲) */
@@ -14,6 +14,10 @@ export type AlbumLocation = {
   order?: 'new' | 'old';
   /** 「すべて」の配置。`masonry`(既定)は、URL に出さない */
   layout?: 'masonry' | 'rows';
+  /** スライドショーの速度(秒)。既定(3 秒)は、URL に出さない */
+  speed?: number;
+  /** スライドショーを、シャッフルする */
+  shuffle?: boolean;
   /** 絞り込みの条件(移っても、引き継ぐ)。省くと、条件なし */
   filter?: FilterState;
   /** 絞り込みの引き出しを開く */
@@ -32,6 +36,8 @@ export const albumHref = (location: AlbumLocation = {}): string =>
     m: location.m,
     e: location.e,
     p: location.p,
+    speed: location.speed && location.speed !== 3 ? location.speed : undefined,
+    shuffle: location.shuffle ? 1 : undefined,
     order: location.order === 'old' ? 'old' : undefined,
     layout: location.layout === 'rows' ? 'rows' : undefined,
     ...(location.filter ? filterParams(location.filter) : {}),
