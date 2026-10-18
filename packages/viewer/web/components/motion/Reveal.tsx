@@ -1,7 +1,12 @@
 'use client';
 
 import { type ReactNode, useLayoutEffect, useRef } from 'react';
-import { revealCards, revealDetail, revealPage } from '../../lib/motion/reveal';
+import {
+  revealCards,
+  revealDesk,
+  revealDetail,
+  revealPage,
+} from '../../lib/motion/reveal';
 
 type Props = { className?: string; children: ReactNode };
 
@@ -34,6 +39,20 @@ export function RevealCards({ className, children }: Props) {
 export function RevealDetail({ className, children }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => revealDetail(ref.current), []);
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * 机。表示されたとき、ポラロイド(`data-motion="pol"`)が、順に落ちてくる。
+ * ズーム(年・月・できごと)や並び順で、中身が入れ替わるときは、呼び出し側が `key` を変えて、作り直す。
+ */
+export function RevealDesk({ className, children }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => revealDesk(ref.current), []);
   return (
     <div ref={ref} className={className}>
       {children}

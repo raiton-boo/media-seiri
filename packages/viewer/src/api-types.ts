@@ -1,11 +1,17 @@
 import type {
+  AlbumOrder,
+  AlbumPhoto,
   BrowsedError,
   DashboardSummary,
   DuplicateGroup,
   DuplicateGroupDetail,
+  EventDetail,
+  EventStack,
   FallbackRow,
   FallbackSource,
   MediaKind,
+  MonthSummary,
+  OnThisDay,
   RepairAttempt,
   RunDetail,
   RunningProgress,
@@ -86,3 +92,45 @@ export type DupesResponse = Page & {
 };
 
 export type DupeDetailResponse = DuplicateGroupDetail;
+
+/** アルバムの全体: 年ごとの枚数(時間の定規と、入口の最新の年に使う) */
+export type AlbumOverviewResponse = {
+  order: AlbumOrder;
+  years: { year: number; count: number }[];
+  /** 日付のない枚数 */
+  undated: number;
+  total: number;
+  /** 写真のある、いちばん新しい年。1 枚もなければ null */
+  latestYear: number | null;
+};
+
+export type AlbumYearResponse = {
+  year: number;
+  order: AlbumOrder;
+  /** 12 か月ぶん(枚数 0 の月も含む)。並びは `order` に従う */
+  months: MonthSummary[];
+  total: number;
+};
+
+export type AlbumMonthResponse = {
+  year: number;
+  month: number;
+  order: AlbumOrder;
+  /** この月の枚数 */
+  total: number;
+  /** できごと(3 枚以上)。束にして置く */
+  events: EventStack[];
+  /** 小さなできごと(3 枚未満)。まとめて、あとで見せる */
+  small: EventStack[];
+};
+
+export type AlbumEventResponse = EventDetail & {
+  order: AlbumOrder;
+  limit: number;
+  offset: number;
+};
+
+export type AlbumMemoriesResponse = {
+  onThisDay: OnThisDay[];
+  photoOfDay: AlbumPhoto | null;
+};

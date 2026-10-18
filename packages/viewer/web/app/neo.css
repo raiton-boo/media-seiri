@@ -1367,3 +1367,57 @@ select.sel {
     transparent calc(50% + 3px)
   );
 }
+
+/* アルバムの机(ワイヤーフレームの .desk・.pol・.stk などに、写真・傾きの変数・リンクを足す) */
+.pol {
+  transform: rotate(var(--rot, 0deg));
+  display: block;
+  color: inherit;
+}
+.deskgrid > .pol {
+  display: flex;
+}
+.pol .ph img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+a.pol:focus-visible,
+button.pol:focus-visible,
+a.stack:focus-visible {
+  outline: 3px solid var(--b);
+  outline-offset: 4px;
+}
+button.stk {
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+}
+.stk.static {
+  position: absolute;
+}
+.stack {
+  color: inherit;
+}
+/* 時間の定規: リンクにしたときの調整 */
+.ruler a.yt {
+  color: inherit;
+}
+.mbars .mbar {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+.mbars .mbar i {
+  width: 100%;
+  flex: none;
+}
+.yt.off {
+  opacity: 0.55;
+}
+.seg .off {
+  opacity: 0.45;
+}
