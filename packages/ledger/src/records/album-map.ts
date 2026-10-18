@@ -18,8 +18,6 @@ export type MapCluster = {
   maxLon: number;
   /** 代表の 1 枚(サムネイルのあるもののうち、`library_file_id` が最小。なければ、最小) */
   libraryFileId: number;
-  /** 代表の 1 枚のサムネイル(なければ null) */
-  thumbRelPath: string | null;
 };
 
 /** 一度に返す、まとまりの数の上限(表示の重さの、安全のため) */
@@ -37,11 +35,8 @@ export const listMapClusters = (
   const { sql, params } = albumFilterSql(filter);
   const where = `m.gps_lat IS NOT NULL AND m.gps_lon IS NOT NULL
     AND NOT (m.gps_lat = 0 AND m.gps_lon = 0)${sql}`;
-  const thumbOf = db.query<{ thumb: string | null }, [number]>(
-    'SELECT thumb_rel_path AS thumb FROM library_files WHERE library_file_id = ?'
-  );
   const clusters = db
-    .query<Omit<MapCluster, 'thumbRelPath'>, Param[]>(
+    .query<MapCluster, Param[]>(
       // 緯度・経度を、負にならないようにずらして、切り捨て(整数にする)= 格子の番号
       `SELECT avg(m.gps_lat) AS lat, avg(m.gps_lon) AS lon, count(*) AS count,
               min(m.gps_lat) AS minLat, max(m.gps_lat) AS maxLat,
@@ -51,11 +46,7 @@ export const listMapClusters = (
        GROUP BY CAST((m.gps_lat + 90) / ? AS INTEGER), CAST((m.gps_lon + 180) / ? AS INTEGER)
        ORDER BY count DESC LIMIT ?`
     )
-    .all(...params, cellDegrees, cellDegrees, MAX_MAP_CLUSTERS)
-    .map((row) => ({
-      ...row,
-      thumbRelPath: thumbOf.get(row.libraryFileId)?.thumb ?? null,
-    }));
+    .all(...params, cellDegrees, cellDegrees, MAX_MAP_CLUSTERS);
   const total =
     db
       .query<{ n: number }, Param[]>(

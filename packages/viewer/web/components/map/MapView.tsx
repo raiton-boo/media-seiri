@@ -17,7 +17,7 @@ import {
   type Bounds,
   boundsToString,
   isSinglePoint,
-  MAX_PHOTO_MARKER_COUNT,
+  MAX_PIN_COUNT,
   padBounds,
 } from '../../lib/map';
 import { formatPhotoDate } from '../../lib/photo';
@@ -277,9 +277,9 @@ export function MapView() {
   if (!config.data) return <ListSkeleton />;
 
   const onSelect = (cluster: MapCluster): void => {
-    // 写真の小さな札(少数)・同じ位置・これ以上近づけない: その場所の写真を、札で見せる。多いまとまり(円)は、その範囲へ拡大
+    // ピン(少数)・同じ位置・これ以上近づけない: その場所のミニプレビューを出す。多いまとまり(円)は、その範囲へ拡大
     if (
-      cluster.count <= MAX_PHOTO_MARKER_COUNT ||
+      cluster.count <= MAX_PIN_COUNT ||
       isSinglePoint(cluster) ||
       (view?.zoom ?? 0) >= MAX_FIT_ZOOM
     ) {

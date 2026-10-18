@@ -47,10 +47,10 @@ export const padBounds = (bounds: Bounds, ratio: number): Bounds => {
 };
 
 /**
- * このくらいの枚数までは、円ではなく、写真の小さな札(サムネイル)で出す(1 枚ずつ見えるように。2 枚以上は、重なった札に、枚数の印)。
+ * このくらいの枚数までは、円ではなく、ピンで出す(2 枚以上が重なる場所は、枚数の印つき)。
  * これより多いときは、件数の円。
  */
-export const MAX_PHOTO_MARKER_COUNT = 4;
+export const MAX_PIN_COUNT = 4;
 
 /** まとまりの印の、大きさ(px)。件数が多いほど大きく(対数で、ゆるやかに) */
 export const clusterSize = (count: number): number =>
