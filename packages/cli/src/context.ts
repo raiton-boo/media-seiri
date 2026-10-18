@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { IngestHooks } from './ingest/copy-stage.ts';
+import type { LiveController } from './live/controller.ts';
+import type { IngestProgress, PauseGate } from './live/progress.ts';
 import type { RepairTools } from './repair/index.ts';
 import type { ThumbnailMaker } from './thumbs/maker.ts';
 import type { VolumeInfo } from './volume/index.ts';
@@ -35,6 +37,14 @@ export type CommandContext = {
   sleep: (milliseconds: number) => Promise<void>;
   /** サムネイルを作るもの(sips・ffmpeg・ExifTool を使う)。使い終わったら、`close` を呼ぶ。テストでは、差し替える */
   thumbnailMaker: () => ThumbnailMaker;
+  /** 取り込みの進み具合を、画面(ライブ表示)に伝える口。画面を使わないときは、何もしない */
+  progress: IngestProgress;
+  /** 一時停止の関門(ライブ表示の `p` キー)。処理の合間に `wait()` を呼ぶ。画面を使わないときは、いつも通る */
+  pause: PauseGate;
+  /** ライブ表示を作る(端末で、`--plain` でないときの取り込みが使う)。テストでは、画面を出さない偽物に、差し替える */
+  liveController: () => LiveController;
+  /** 取り込みの結果のまとめ(サマリー)を、出す。ライブ表示の間は、画面を閉じてから、まとめて出す。既定は、標準出力 */
+  report?: (lines: readonly string[]) => void;
   /** 破損の検査と修復に使う道具(ffmpeg・sips・ExifTool)。使い終わったら、`close` を呼ぶ。テストでは、差し替える */
   repairTools: () => RepairTools;
   /** 画面(ビューア)の静的ファイルの場所。テストでは、差し替える */

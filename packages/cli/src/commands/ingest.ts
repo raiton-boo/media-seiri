@@ -11,6 +11,8 @@ export type IngestArguments = {
   restoreSnapshot: boolean;
   resume: boolean;
   yes: boolean;
+  /** ライブ表示を使わない(ログの行だけ) */
+  plain: boolean;
 };
 
 /** `ingest <ソース...> --dest <ライブラリの根> [--dry-run] [--resume] [--yes] [--rehash] [--restore-snapshot]` */
@@ -36,5 +38,6 @@ export const ingestCommand = (
     restoreSnapshot: args.restoreSnapshot,
     resume: args.resume,
     yes: args.yes,
+    plain: args.plain,
   });
 };

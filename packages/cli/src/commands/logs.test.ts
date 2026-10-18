@@ -6,15 +6,15 @@ import {
   addFile,
   addPhoto,
   initLibrary,
+  installExifWriter,
   makeWorld,
   NOW,
   openWorldLedger,
   runIn,
-  useExifWriter,
   type World,
 } from '../ingest/test-support.ts';
 
-useExifWriter();
+installExifWriter();
 
 const worlds: World[] = [];
 afterEach(() => {

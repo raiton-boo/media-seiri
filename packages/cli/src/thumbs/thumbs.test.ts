@@ -9,15 +9,15 @@ import {
   DATE_2024_03_05,
   fakeThumbnailMaker,
   initLibrary,
+  installExifWriter,
   makeWorld,
   openWorldLedger,
   runIn,
-  useExifWriter,
   type World,
 } from '../ingest/test-support.ts';
 import { libraryThumbsDir } from './sync.ts';
 
-useExifWriter();
+installExifWriter();
 
 const worlds: World[] = [];
 afterEach(() => {
