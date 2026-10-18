@@ -218,4 +218,18 @@ describe('入口のメニュー', () => {
     const result = await runIn(world, [], options);
     expect(result.code).toBe(0);
   });
+
+  test('ライブラリが複数あるときは、どれにするか、選べる', async () => {
+    const world = await newWorld();
+    const second = join(world.destDrive, 'Second');
+    const created = await runIn(world, ['library', 'init', second], {
+      newLibraryId: () => 'lib-2',
+    });
+    expect(created.code).toBe(0);
+    const { ask, options } = interactive(['状況', second]);
+    const result = await runIn(world, [], options);
+    expect(result.code).toBe(0);
+    expect(ask.asked).toEqual(['何をしますか?', 'どのライブラリにしますか?']);
+    expect(result.stdout.join('\n')).toContain('Second');
+  });
 });

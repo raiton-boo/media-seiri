@@ -36,6 +36,7 @@ import {
   resolveVolume as resolveRealVolume,
   type VolumeInfo,
 } from './volume/index.ts';
+import { createInkAsker } from './wizard/ink-asker.tsx';
 import { mainMenu } from './wizard/menu.ts';
 
 export const PARSE_OPTIONS = {
@@ -154,7 +155,15 @@ export const run = async (
       listVolumes: environment.listVolumes ?? (() => listMountedVolumes()),
       timeZone: environment.timeZone ?? systemTimeZone(),
       isInteractive: interactive,
-      ask: environment.ask ?? createAsker(environment.stdout),
+      // 端末なら、矢印キーで選ぶ色つきの画面。そうでなければ(TERM=dumb など)、番号入力
+      ask:
+        environment.ask ??
+        (interactive &&
+        process.stdout.isTTY &&
+        process.env.TERM !== 'dumb' &&
+        environment.useColor !== false
+          ? createInkAsker()
+          : createAsker(environment.stdout)),
       confirm: environment.confirm ?? askYesNo,
       shouldStop: environment.shouldStop ?? (() => false),
       random: environment.random ?? Math.random,
