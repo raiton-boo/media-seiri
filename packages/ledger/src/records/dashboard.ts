@@ -124,9 +124,9 @@ export type RunSummary = {
   errors: number;
 };
 
-type RunSummaryRow = Omit<RunSummary, 'isDryRun'> & { isDryRun: number };
+export type RunSummaryRow = Omit<RunSummary, 'isDryRun'> & { isDryRun: number };
 
-const RUN_SUMMARY_SQL = `SELECT r.run_id AS runId, r.kind, r.is_dry_run AS isDryRun, r.status,
+export const RUN_SUMMARY_SQL = `SELECT r.run_id AS runId, r.kind, r.is_dry_run AS isDryRun, r.status,
               r.started_at AS startedAt, r.finished_at AS finishedAt, v.label AS sourceLabel,
               (SELECT count(*) FROM source_files WHERE run_id = r.run_id AND state IN ('planned', 'done')) AS adopted,
               (SELECT count(*) FROM source_files WHERE run_id = r.run_id AND state = 'duplicate') AS duplicates,
@@ -137,7 +137,7 @@ const RUN_SUMMARY_SQL = `SELECT r.run_id AS runId, r.kind, r.is_dry_run AS isDry
               (SELECT count(*) FROM errors WHERE run_id = r.run_id) AS errors
        FROM runs AS r JOIN volumes AS v ON v.volume_id = r.source_volume_id`;
 
-const toRunSummary = (row: RunSummaryRow): RunSummary => ({
+export const toRunSummary = (row: RunSummaryRow): RunSummary => ({
   ...row,
   isDryRun: row.isDryRun === 1,
 });
@@ -151,7 +151,10 @@ export const listRunSummaries = (db: Database, limit: number): RunSummary[] =>
     .all(limit)
     .map(toRunSummary);
 
-const getRunSummary = (db: Database, runId: number): RunSummary | undefined => {
+export const getRunSummary = (
+  db: Database,
+  runId: number
+): RunSummary | undefined => {
   const row = db
     .query<RunSummaryRow, [number]>(`${RUN_SUMMARY_SQL} WHERE r.run_id = ?`)
     .get(runId);

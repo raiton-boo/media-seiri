@@ -114,3 +114,10 @@ export const estimatePace = (
     ),
   };
 };
+
+/** UTC の ISO 8601 を、この PC の時刻で、`10-10 21:58:12`(月日と、秒まで)にする */
+export const formatDateTimeSeconds = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};

@@ -9,6 +9,7 @@ import {
   formatPeriodEnd,
   splitBytes,
 } from '../../lib/format';
+import { Button } from '../Button';
 import { Attention } from './Attention';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { RecentRuns } from './RecentRuns';
@@ -71,14 +72,14 @@ function Dashboard() {
             日付が取れた範囲
           </div>
         </div>
-        <div className="card g">
+        <div className="card g flex flex-col gap-2">
           <div className="kicker">GPS</div>
           <div className="num">{formatCount(gps.with)}</div>
           <div className="mono" style={{ fontSize: 12 }}>
-            付き {formatCount(gps.with)} / なし {formatCount(gps.without)}{' '}
-            <a href="/map" style={{ textDecoration: 'underline' }}>
-              地図へ →
-            </a>
+            付き {formatCount(gps.with)} / なし {formatCount(gps.without)}
+          </div>
+          <div className="mt-auto pt-2">
+            <Button href="/map">地図へ →</Button>
           </div>
         </div>
       </div>
