@@ -20,6 +20,7 @@ import {
   MAX_PHOTO_MARKER_COUNT,
   padBounds,
 } from '../../lib/map';
+import { formatPhotoDate } from '../../lib/photo';
 import { useAlbumFilterState } from '../../lib/use-album-filter';
 import { FilterBar } from '../album/FilterBar';
 import { FilterDrawer } from '../album/FilterDrawer';
@@ -60,12 +61,13 @@ const clusterBounds = (cluster: MapCluster): Bounds => ({
   east: cluster.maxLon + 1e-6,
 });
 
-/** この場所の、写真の札を出す、最大の枚数(それより多いときは、アルバムで) */
-const POPUP_PHOTOS = 12;
+/** この場所の、1 枚ずつ見られる、最大の枚数(それより多いときは、残りを、アルバムの「すべて」で) */
+const POPUP_PHOTOS = 30;
 
 /**
- * 押した場所の札: その場所の写真を、小さな札(サムネイル)で、まとめて見せる(1 枚でも、複数枚でも)。
- * 同じ場所に、たくさんあるときは、上の枚数まで見せて、残りは、アルバムの「すべて」で。
+ * 押した場所のミニプレビュー: 写真を **1 枚ずつ**、大きめに見せる(撮影日時・ファイル名・「拡大表示へ」)。
+ * 同じ場所に複数枚あるときは、← → (キーも)で、1 枚ずつめくる。下に、小さな札の列(押すと、その 1 枚へ)。
+ * たくさんあるときは、上の枚数まで。残りは、アルバムの「すべて」で。
  */
 function PlaceCard({
   cluster,
@@ -80,12 +82,34 @@ function PlaceCard({
   const bbox = boundsToString(clusterBounds(cluster));
   const scoped: FilterState = { ...filter, bbox };
   const photos = useSearchPhotos('new', scoped, POPUP_PHOTOS, true);
+  const list = photos.data?.photos ?? [];
   const total = photos.data?.total ?? cluster.count;
+  const [index, setIndex] = useState(0);
+  const current = list[Math.min(index, Math.max(list.length - 1, 0))];
+  const last = list.length - 1;
+
+  // ← → で、1 枚ずつめくる(入力中は、効かせない)
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+        return;
+      if (event.key === 'ArrowLeft')
+        setIndex((value) => Math.max(value - 1, 0));
+      else if (event.key === 'ArrowRight')
+        setIndex((value) => Math.min(value + 1, Math.max(last, 0)));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [last]);
+
+  const name = current?.relPath.split('/').pop() ?? '';
   return (
     <div className="card s map-popup">
       <div className="flex items-center justify-between gap-2">
         <div className="mono" style={{ fontSize: 13, fontWeight: 700 }}>
           この場所 {formatCount(total)} 枚
+          {list.length > 1 ? ` ／ ${index + 1} / ${list.length}` : ''}
         </div>
         <button
           type="button"
@@ -96,48 +120,99 @@ function PlaceCard({
           ×
         </button>
       </div>
-      <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
-      >
-        {(photos.data?.photos ?? []).map((photo, index) => (
-          <Link
-            key={photo.libraryFileId}
-            className={`ph sq c${(index % 7) + 1}`}
+      {current ? (
+        <>
+          <div className="map-preview">
+            {current.thumbRelPath ? (
+              <img
+                key={current.libraryFileId}
+                draggable={false}
+                src={thumbUrl(current.thumbRelPath)}
+                alt={name}
+              />
+            ) : (
+              <div className="lb">{name} — サムネイルなし</div>
+            )}
+            {list.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="vw-nav l"
+                  aria-label="前の 1 枚"
+                  disabled={index === 0}
+                  onClick={() => setIndex(index - 1)}
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  className="vw-nav r"
+                  aria-label="次の 1 枚"
+                  disabled={index >= last}
+                  onClick={() => setIndex(index + 1)}
+                >
+                  →
+                </button>
+              </>
+            ) : null}
+          </div>
+          <div
+            className="mono"
+            style={{ fontSize: 12, lineHeight: 1.6, wordBreak: 'break-all' }}
+          >
+            {formatPhotoDate(current.takenAt)}
+            <br />
+            {name}
+          </div>
+          {list.length > 1 ? (
+            <div className="map-strip">
+              {list.map((photo, position) => (
+                <button
+                  key={photo.libraryFileId}
+                  type="button"
+                  className={position === index ? 'on' : undefined}
+                  aria-label={`${position + 1} 枚目`}
+                  aria-current={position === index}
+                  onClick={() => setIndex(position)}
+                >
+                  {photo.thumbRelPath ? (
+                    <img
+                      draggable={false}
+                      src={thumbUrl(photo.thumbRelPath)}
+                      alt=""
+                    />
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <Button
+            variant="y"
+            block
             href={state.albumHref({
               view: 'photo',
-              p: photo.libraryFileId,
+              p: current.libraryFileId,
               filter: scoped,
             })}
-            style={{ display: 'block' }}
-            title={photo.takenAt?.slice(0, 16).replace('T', ' ') ?? ''}
           >
-            {photo.thumbRelPath ? (
-              <img
-                draggable={false}
-                src={thumbUrl(photo.thumbRelPath)}
-                alt={photo.relPath.split('/').pop() ?? ''}
-              />
-            ) : null}
-          </Link>
-        ))}
-      </div>
-      {total > POPUP_PHOTOS ? (
-        <Button block href={state.albumHref({ view: 'all', filter: scoped })}>
-          {formatCount(total)} 枚すべてを、アルバムで →
-        </Button>
+            拡大表示へ →
+          </Button>
+          {total > list.length ? (
+            <Button
+              block
+              href={state.albumHref({ view: 'all', filter: scoped })}
+            >
+              {formatCount(total)} 枚すべてを、アルバムで →
+            </Button>
+          ) : null}
+        </>
       ) : (
-        <Button
-          variant="y"
-          block
-          href={state.albumHref({
-            view: 'photo',
-            p: cluster.libraryFileId,
-            filter: scoped,
-          })}
-        >
-          拡大表示へ →
-        </Button>
+        <div
+          className="sk"
+          style={{ height: 140 }}
+          role="status"
+          aria-label="読み込み中"
+        />
       )}
     </div>
   );
