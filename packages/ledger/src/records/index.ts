@@ -28,6 +28,11 @@ export {
   replaceAlbumEvents,
 } from './album-events.ts';
 export {
+  type FacetValue,
+  type FilterOptions,
+  listFilterOptions,
+} from './album-facets.ts';
+export {
   type AlbumFilter,
   albumFilterSql,
   countAlbumFilters,

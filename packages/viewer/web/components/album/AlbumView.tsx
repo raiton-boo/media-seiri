@@ -2,9 +2,20 @@
 
 import Link from 'next/link';
 import { eventTitle } from '../../lib/album';
-import { albumHref } from '../../lib/album-url';
+import { AlbumFilterProvider } from '../../lib/album-context';
+import {
+  countFilter,
+  type FilterState,
+  filterParams,
+  readFilter,
+} from '../../lib/album-filter';
+import {
+  type AlbumLocation,
+  albumHref as buildHref,
+} from '../../lib/album-url';
 import {
   useAlbumEvent,
+  useAlbumFilters,
   useAlbumMonth,
   useAlbumOverview,
   useAlbumSections,
@@ -19,6 +30,8 @@ import { LoadError } from '../motion/LoadError';
 import { RevealPage } from '../motion/Reveal';
 import { AllView } from './AllView';
 import { EventDesk } from './EventDesk';
+import { FilterBar } from './FilterBar';
+import { FilterDrawer } from './FilterDrawer';
 import { Memories } from './Memories';
 import { MonthDesk } from './MonthDesk';
 import { TimeRuler } from './TimeRuler';
@@ -50,11 +63,27 @@ export function AlbumView() {
   const more = toInt(url.get('more')) ?? EVENT_STEP;
   const showSmall = url.get('small') === '1';
 
+  const filter = readFilter(url.getAll);
+  const filtered = countFilter(filter) > 0;
+  const drawer = url.get('drawer') === '1';
+  // 移っても、条件と引き出しの開閉を引き継ぐ
+  const albumHref = (location: AlbumLocation = {}): string =>
+    buildHref({ filter, drawer, ...location });
+  // 条件を変えたら、「もっと広げる」は、最初に戻す
+  const changeFilter = (next: FilterState): void =>
+    url.set({ ...filterParams(next), more: undefined });
+  const facets = useAlbumFilters(filter, drawer || filter.volumes.length > 0);
+  const volumeLabels = new Map(
+    (facets.data?.volumes ?? []).map((volume) => [
+      String(volume.volumeId),
+      volume.label ?? `ドライブ #${volume.volumeId}`,
+    ])
+  );
   const layout = url.get('layout') === 'rows' ? 'rows' : 'masonry';
 
-  const overview = useAlbumOverview(order);
-  const allSections = useAlbumSections(order);
-  const event = useAlbumEvent(eventId, order, more);
+  const overview = useAlbumOverview(order, filter);
+  const allSections = useAlbumSections(order, filter);
+  const event = useAlbumEvent(eventId, order, more, filter);
   const eventStart = event.data?.startAt;
   // いま開いている年(定規の開く年): できごとなら、その年。入口は、最新の年
   const eventYear = eventStart ? Number(eventStart.slice(0, 4)) : undefined;
@@ -62,11 +91,12 @@ export function AlbumView() {
     view === 'event'
       ? eventYear
       : (yearParam ?? overview.data?.latestYear ?? undefined);
-  const yearData = useAlbumYear(year, order);
+  const yearData = useAlbumYear(year, order, filter);
   const monthData = useAlbumMonth(
     view === 'month' ? year : undefined,
     view === 'month' ? monthParam : undefined,
-    order
+    order,
+    filter
   );
 
   const failed =
@@ -86,9 +116,27 @@ export function AlbumView() {
   if (overview.data.total === 0) {
     return (
       <div className="page">
-        <div className="card g">
-          <div className="h2">まだ、写真が、ありません</div>
-        </div>
+        {filtered ? (
+          <>
+            <h1 className="h1">アルバム</h1>
+            <FilterBar
+              filter={filter}
+              volumeLabels={volumeLabels}
+              drawerOpen={drawer}
+              onToggleDrawer={() =>
+                url.set({ drawer: drawer ? undefined : '1' })
+              }
+              onChange={changeFilter}
+            />
+            <div className="card">
+              <div className="h2">条件に合う写真は、ありません</div>
+            </div>
+          </>
+        ) : (
+          <div className="card g">
+            <div className="h2">まだ、写真が、ありません</div>
+          </div>
+        )}
       </div>
     );
   }
@@ -135,173 +183,203 @@ export function AlbumView() {
             : `YEAR / ${order === 'new' ? '新しい順' : '古い順'}`;
 
   return (
-    <RevealPage className="page">
-      <div
-        className="flex flex-wrap items-end justify-between gap-6"
-        data-motion="title"
-      >
-        <div>
-          {view && view !== 'all' ? (
-            <div className="mono" style={{ fontSize: 14, fontWeight: 700 }}>
-              <Link
-                href={albumHref({ order })}
-                style={{ textDecoration: 'underline' }}
-              >
-                アルバム
-              </Link>
-              {' ▸ '}
-              <Link
-                href={albumHref({ view: 'year', y: year, order })}
-                style={
-                  view === 'year' ? undefined : { textDecoration: 'underline' }
-                }
-              >
-                {year}年
-              </Link>
-              {view !== 'year' && month ? (
-                <>
-                  {' ▸ '}
-                  <Link
-                    href={albumHref({
-                      view: 'month',
-                      y: year,
-                      m: month,
-                      order,
-                    })}
-                    style={
-                      view === 'month'
-                        ? undefined
-                        : { textDecoration: 'underline' }
-                    }
-                  >
-                    {month}月
-                  </Link>
-                </>
+    <AlbumFilterProvider filter={filter} drawer={drawer}>
+      <RevealPage className="page">
+        <div
+          className="flex flex-wrap items-end justify-between gap-6"
+          data-motion="title"
+        >
+          <div>
+            {view && view !== 'all' ? (
+              <div className="mono" style={{ fontSize: 14, fontWeight: 700 }}>
+                <Link
+                  href={albumHref({ order })}
+                  style={{ textDecoration: 'underline' }}
+                >
+                  アルバム
+                </Link>
+                {' ▸ '}
+                <Link
+                  href={albumHref({ view: 'year', y: year, order })}
+                  style={
+                    view === 'year'
+                      ? undefined
+                      : { textDecoration: 'underline' }
+                  }
+                >
+                  {year}年
+                </Link>
+                {view !== 'year' && month ? (
+                  <>
+                    {' ▸ '}
+                    <Link
+                      href={albumHref({
+                        view: 'month',
+                        y: year,
+                        m: month,
+                        order,
+                      })}
+                      style={
+                        view === 'month'
+                          ? undefined
+                          : { textDecoration: 'underline' }
+                      }
+                    >
+                      {month}月
+                    </Link>
+                  </>
+                ) : null}
+                {view === 'event' ? ' ▸ できごと' : ''}
+              </div>
+            ) : (
+              <div className="kicker">{kicker}</div>
+            )}
+            <h1
+              className="h1"
+              style={view && view !== 'all' ? { paddingTop: 8 } : undefined}
+            >
+              {heading}{' '}
+              {entrance && year === overview.data.latestYear ? (
+                <span
+                  className="chip y"
+                  style={{ fontSize: 14, verticalAlign: 'middle' }}
+                >
+                  最新
+                </span>
               ) : null}
-              {view === 'event' ? ' ▸ できごと' : ''}
-            </div>
-          ) : (
-            <div className="kicker">{kicker}</div>
-          )}
-          <h1
-            className="h1"
-            style={view && view !== 'all' ? { paddingTop: 8 } : undefined}
-          >
-            {heading}{' '}
-            {entrance && year === overview.data.latestYear ? (
-              <span
-                className="chip y"
-                style={{ fontSize: 14, verticalAlign: 'middle' }}
-              >
-                最新
-              </span>
-            ) : null}
-          </h1>
+            </h1>
+          </div>
         </div>
-      </div>
 
-      {entrance ? <Memories /> : null}
+        {entrance ? <Memories /> : null}
 
-      <div data-motion="block">
-        <TimeRuler
-          overview={overview.data}
-          order={order}
-          zoom={zoom}
-          year={rulerYear}
-          months={yearData.data.months}
-          month={month}
-          eventHref={eventHref}
-          onToggleOrder={toggleOrder}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3" data-motion="block">
-        <span className="mono" style={{ fontSize: 13, fontWeight: 700 }}>
-          {zoom === 'all' &&
-            allSections.data &&
-            `${formatCount(allSections.data.total)} 枚 / 年月ごとに、すべて並べている`}
-          {zoom === 'year' &&
-            `${formatCount(yearData.data.total)} 枚 / 月ごとの代表を広げている`}
-          {zoom === 'month' &&
-            monthEvents &&
-            `${formatCount(monthEvents.total)} 枚 / できごと ${formatCount(monthEvents.events.length + monthEvents.small.length)} 件(束)`}
-          {zoom === 'event' &&
-            event.data &&
-            `${formatCount(event.data.fileCount)} 枚 / ${formatCount(event.data.photos.length)} 枚を広げている`}
-        </span>
-      </div>
-
-      {zoom === 'all' ? (
-        <>
-          <div className="flex flex-wrap gap-2" data-motion="block">
-            <FilterChip
-              selected={layout === 'masonry'}
-              onClick={() => url.set({ layout: undefined })}
-            >
-              マソンリー
-            </FilterChip>
-            <FilterChip
-              selected={layout === 'rows'}
-              onClick={() => url.set({ layout: 'rows' })}
-            >
-              行ぞろえ
-            </FilterChip>
-          </div>
-          {allSections.data ? (
-            <AllView
-              sections={allSections.data.sections}
-              order={order}
-              layout={layout}
-            />
-          ) : null}
-        </>
-      ) : null}
-      {zoom === 'year' ? <YearDesk data={yearData.data} /> : null}
-      {zoom === 'month' && monthEvents ? (
-        <MonthDesk
-          data={monthEvents}
-          showSmall={showSmall}
-          onToggleSmall={() => url.set({ small: showSmall ? undefined : '1' })}
-        />
-      ) : null}
-      {zoom === 'event' && event.data ? (
-        <>
-          <EventDesk
-            data={event.data}
-            title={eventTitle(event.data.startAt)}
-            onMore={() => url.set({ more: String(more + EVENT_STEP) })}
+        <div data-motion="block">
+          <TimeRuler
+            overview={overview.data}
+            order={order}
+            zoom={zoom}
+            year={rulerYear}
+            months={yearData.data.months}
+            month={month}
+            eventHref={eventHref}
+            onToggleOrder={toggleOrder}
           />
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {event.data.previous ? (
-              <Button
-                href={albumHref({
-                  view: 'event',
-                  e: event.data.previous.albumEventId,
-                  order,
-                })}
-              >
-                ← 前のできごと({eventTitle(event.data.previous.startAt)})
-              </Button>
-            ) : (
-              <Button disabled>← 前のできごと</Button>
-            )}
-            {event.data.next ? (
-              <Button
-                variant="y"
-                href={albumHref({
-                  view: 'event',
-                  e: event.data.next.albumEventId,
-                  order,
-                })}
-              >
-                次のできごと({eventTitle(event.data.next.startAt)}) →
-              </Button>
-            ) : (
-              <Button disabled>次のできごと →</Button>
-            )}
+        </div>
+
+        <FilterBar
+          filter={filter}
+          volumeLabels={volumeLabels}
+          drawerOpen={drawer}
+          onToggleDrawer={() => url.set({ drawer: drawer ? undefined : '1' })}
+          onChange={changeFilter}
+        />
+
+        <div
+          className={drawer ? 'grid items-start gap-6' : undefined}
+          style={
+            drawer ? { gridTemplateColumns: 'minmax(0,1fr) 340px' } : undefined
+          }
+        >
+          <div className="flex min-w-0 flex-col gap-8">
+            <div
+              className="flex flex-wrap items-center gap-3"
+              data-motion="block"
+            >
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700 }}>
+                {zoom === 'all' &&
+                  allSections.data &&
+                  `${formatCount(allSections.data.total)} 枚 / 年月ごとに、すべて並べている`}
+                {zoom === 'year' &&
+                  `${formatCount(yearData.data.total)} 枚 / 月ごとの代表を広げている`}
+                {zoom === 'month' &&
+                  monthEvents &&
+                  `${formatCount(monthEvents.total)} 枚 / できごと ${formatCount(monthEvents.events.length + monthEvents.small.length)} 件(束)`}
+                {zoom === 'event' &&
+                  event.data &&
+                  `${formatCount(event.data.fileCount)} 枚 / ${formatCount(event.data.photos.length)} 枚を広げている`}
+              </span>
+            </div>
+
+            {zoom === 'all' ? (
+              <>
+                <div className="flex flex-wrap gap-2" data-motion="block">
+                  <FilterChip
+                    selected={layout === 'masonry'}
+                    onClick={() => url.set({ layout: undefined })}
+                  >
+                    マソンリー
+                  </FilterChip>
+                  <FilterChip
+                    selected={layout === 'rows'}
+                    onClick={() => url.set({ layout: 'rows' })}
+                  >
+                    行ぞろえ
+                  </FilterChip>
+                </div>
+                {allSections.data ? (
+                  <AllView
+                    sections={allSections.data.sections}
+                    order={order}
+                    filter={filter}
+                    layout={layout}
+                  />
+                ) : null}
+              </>
+            ) : null}
+            {zoom === 'year' ? <YearDesk data={yearData.data} /> : null}
+            {zoom === 'month' && monthEvents ? (
+              <MonthDesk
+                data={monthEvents}
+                showSmall={showSmall}
+                onToggleSmall={() =>
+                  url.set({ small: showSmall ? undefined : '1' })
+                }
+              />
+            ) : null}
+            {zoom === 'event' && event.data ? (
+              <>
+                <EventDesk
+                  data={event.data}
+                  title={eventTitle(event.data.startAt)}
+                  onMore={() => url.set({ more: String(more + EVENT_STEP) })}
+                />
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  {event.data.previous ? (
+                    <Button
+                      href={albumHref({
+                        view: 'event',
+                        e: event.data.previous.albumEventId,
+                        order,
+                      })}
+                    >
+                      ← 前のできごと({eventTitle(event.data.previous.startAt)})
+                    </Button>
+                  ) : (
+                    <Button disabled>← 前のできごと</Button>
+                  )}
+                  {event.data.next ? (
+                    <Button
+                      variant="y"
+                      href={albumHref({
+                        view: 'event',
+                        e: event.data.next.albumEventId,
+                        order,
+                      })}
+                    >
+                      次のできごと({eventTitle(event.data.next.startAt)}) →
+                    </Button>
+                  ) : (
+                    <Button disabled>次のできごと →</Button>
+                  )}
+                </div>
+              </>
+            ) : null}
           </div>
-        </>
-      ) : null}
-    </RevealPage>
+          {drawer ? (
+            <FilterDrawer filter={filter} onChange={changeFilter} />
+          ) : null}
+        </div>
+      </RevealPage>
+    </AlbumFilterProvider>
   );
 }

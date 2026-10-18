@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { listAlbumSections, listSectionPhotos } from './album-all.ts';
+import { listMonthSummaries, listYearCounts } from './album-browse.ts';
+import { listFilterOptions } from './album-facets.ts';
 import {
   albumFilterSql,
   countAlbumFilters,
@@ -214,5 +216,63 @@ describe('listSectionPhotos', () => {
       10
     ).filter((p) => p.kind === 'video');
     expect(video?.relPath).toBe('a2.mp4');
+  });
+});
+
+describe('listFilterOptions(選択肢と件数)', () => {
+  const ctx = build(SPECS);
+  test('条件がなければ、全体の件数', () => {
+    const options = listFilterOptions(ctx.db, {});
+    expect(options.kinds).toEqual([
+      { value: 'photo', count: 5 },
+      { value: 'video', count: 1 },
+      { value: 'raw', count: 1 },
+    ]);
+    expect(options.cameras).toEqual([
+      { value: 'Canon', count: 2 },
+      { value: 'Sony', count: 1 },
+      { value: UNKNOWN_CAMERA, count: 4 },
+    ]);
+    expect(options.gps).toEqual({ with: 1, without: 6 });
+    expect(options.years).toEqual([
+      { value: 2016, count: 4 },
+      { value: 2014, count: 2 },
+    ]);
+    expect(options.volumes.map((v) => v.count)).toEqual([5, 2]);
+  });
+
+  test('その項目自身の条件は外して数え、ほかの条件には、従う', () => {
+    const options = listFilterOptions(ctx.db, {
+      kinds: ['video'],
+      cameras: ['Canon'],
+    });
+    // 種別: カメラ Canon だけに絞った中での、写真・動画・RAW
+    expect(options.kinds).toEqual([
+      { value: 'photo', count: 1 },
+      { value: 'video', count: 1 },
+      { value: 'raw', count: 0 },
+    ]);
+    // カメラ: 動画だけに絞った中での、カメラ
+    expect(options.cameras).toEqual([{ value: 'Canon', count: 1 }]);
+  });
+});
+
+describe('年・月の集計に、絞り込みが効く', () => {
+  const ctx = build(SPECS);
+  test('年ごとの枚数・日付なしの枚数', () => {
+    expect(listYearCounts(ctx.db, 'new', { kinds: ['photo'] })).toEqual({
+      years: [
+        { year: 2016, count: 2 },
+        { year: 2014, count: 2 },
+      ],
+      undated: 1,
+      total: 5,
+    });
+  });
+  test('月の枚数と代表', () => {
+    const months = listMonthSummaries(ctx.db, 2016, 'old', { gps: true });
+    expect(
+      months.filter((m) => m.count > 0).map((m) => [m.month, m.count])
+    ).toEqual([[12, 1]]);
   });
 });

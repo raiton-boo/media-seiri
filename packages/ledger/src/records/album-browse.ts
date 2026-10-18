@@ -1,5 +1,6 @@
 import type { Database } from 'bun:sqlite';
 import { classifyFile } from '@file-seiri/core';
+import { type AlbumFilter, albumFilterSql } from './album-filter.ts';
 
 /** 並び順: 新しい順(既定)/ 古い順 */
 export type AlbumOrder = 'new' | 'old';
@@ -44,25 +45,27 @@ const FILES = `FROM library_files AS f JOIN media_metadata AS m ON m.content_id 
 /** 年ごとの枚数(撮影日時のあるもの)と、日付のないものの枚数 */
 export const listYearCounts = (
   db: Database,
-  order: AlbumOrder
+  order: AlbumOrder,
+  filter: AlbumFilter = {}
 ): {
   years: { year: number; count: number }[];
   undated: number;
   total: number;
 } => {
+  const narrow = albumFilterSql(filter);
   const years = db
-    .query<{ year: number; count: number }, []>(
+    .query<{ year: number; count: number }, (string | number)[]>(
       `SELECT CAST(substr(m.taken_at, 1, 4) AS INTEGER) AS year, count(*) AS count
-       ${FILES} WHERE m.taken_at IS NOT NULL
+       ${FILES} WHERE m.taken_at IS NOT NULL${narrow.sql}
        GROUP BY year ORDER BY year ${direction(order)}`
     )
-    .all();
+    .all(...narrow.params);
   const undated =
     db
-      .query<{ n: number }, []>(
-        `SELECT count(*) AS n ${FILES} WHERE m.taken_at IS NULL`
+      .query<{ n: number }, (string | number)[]>(
+        `SELECT count(*) AS n ${FILES} WHERE m.taken_at IS NULL${narrow.sql}`
       )
-      .get()?.n ?? 0;
+      .get(...narrow.params)?.n ?? 0;
   return {
     years,
     undated,
@@ -81,32 +84,34 @@ export type MonthSummary = {
 export const listMonthSummaries = (
   db: Database,
   year: number,
-  order: AlbumOrder
+  order: AlbumOrder,
+  filter: AlbumFilter = {}
 ): MonthSummary[] => {
+  const narrow = albumFilterSql(filter);
   const prefix = `${String(year).padStart(4, '0')}-`;
   const counts = new Map(
     db
-      .query<{ month: number; count: number }, [string]>(
+      .query<{ month: number; count: number }, (string | number)[]>(
         `SELECT CAST(substr(m.taken_at, 6, 2) AS INTEGER) AS month, count(*) AS count
-         ${FILES} WHERE m.taken_at LIKE ? || '%' AND length(m.taken_at) >= 7
+         ${FILES} WHERE m.taken_at LIKE ? || '%' AND length(m.taken_at) >= 7${narrow.sql}
          GROUP BY month`
       )
-      .all(prefix)
+      .all(prefix, ...narrow.params)
       .map((row) => [row.month, row.count])
   );
   const covers = new Map(
     db
-      .query<PhotoRow & { month: number }, [string]>(
+      .query<PhotoRow & { month: number }, (string | number)[]>(
         `SELECT * FROM (
            SELECT ${PHOTO_COLUMNS}, CAST(substr(m.taken_at, 6, 2) AS INTEGER) AS month,
                   row_number() OVER (
                     PARTITION BY substr(m.taken_at, 6, 2)
                     ORDER BY (m.gps_lat IS NULL), m.taken_at, f.library_file_id) AS rn
            ${FILES}
-           WHERE m.taken_at LIKE ? || '%' AND length(m.taken_at) >= 7 AND f.thumb_rel_path IS NOT NULL
+           WHERE m.taken_at LIKE ? || '%' AND length(m.taken_at) >= 7 AND f.thumb_rel_path IS NOT NULL${narrow.sql}
          ) WHERE rn = 1`
       )
-      .all(prefix)
+      .all(prefix, ...narrow.params)
       .map((row) => [row.month, toAlbumPhoto(row)])
   );
   const months = Array.from({ length: 12 }, (_, index) => ({
@@ -134,8 +139,10 @@ export const listEventStacks = (
   db: Database,
   year: number,
   month: number,
-  order: AlbumOrder
+  order: AlbumOrder,
+  filter: AlbumFilter = {}
 ): EventStack[] => {
+  const narrow = albumFilterSql(filter);
   const prefix = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`;
   const events = db
     .query<
@@ -145,15 +152,20 @@ export const listEventStacks = (
         endAt: string;
         fileCount: number;
       },
-      [string]
+      (string | number)[]
     >(
-      `SELECT album_event_id AS albumEventId, start_at AS startAt, end_at AS endAt, file_count AS fileCount
-       FROM album_events WHERE substr(start_at, 1, 7) = ?
-       ORDER BY start_at ${direction(order)}, album_event_id ${direction(order)}`
+      // 枚数は、条件に合うものだけ数える(合うものがないできごとは、出さない)
+      `SELECT e.album_event_id AS albumEventId, e.start_at AS startAt, e.end_at AS endAt, count(*) AS fileCount
+       FROM album_events AS e
+       JOIN library_files AS f ON f.album_event_id = e.album_event_id
+       JOIN media_metadata AS m ON m.content_id = f.content_id
+       WHERE substr(e.start_at, 1, 7) = ?${narrow.sql}
+       GROUP BY e.album_event_id
+       ORDER BY e.start_at ${direction(order)}, e.album_event_id ${direction(order)}`
     )
-    .all(prefix);
+    .all(prefix, ...narrow.params);
   const photos = db
-    .query<PhotoRow & { albumEventId: number }, [string]>(
+    .query<PhotoRow & { albumEventId: number }, (string | number)[]>(
       `SELECT * FROM (
          SELECT ${PHOTO_COLUMNS}, e.album_event_id AS albumEventId,
                 row_number() OVER (
@@ -162,10 +174,10 @@ export const listEventStacks = (
          FROM album_events AS e
          JOIN library_files AS f ON f.album_event_id = e.album_event_id
          JOIN media_metadata AS m ON m.content_id = f.content_id
-         WHERE substr(e.start_at, 1, 7) = ? AND f.thumb_rel_path IS NOT NULL
+         WHERE substr(e.start_at, 1, 7) = ? AND f.thumb_rel_path IS NOT NULL${narrow.sql}
        ) WHERE rn <= ${STACK_SIZE}`
     )
-    .all(prefix);
+    .all(prefix, ...narrow.params);
   const byEvent = new Map<number, AlbumPhoto[]>();
   for (const row of photos) {
     byEvent.set(row.albumEventId, [
@@ -198,8 +210,10 @@ export const getEventDetail = (
   db: Database,
   albumEventId: number,
   order: AlbumOrder,
-  page: { limit: number; offset: number }
+  page: { limit: number; offset: number },
+  filter: AlbumFilter = {}
 ): EventDetail | undefined => {
+  const narrow = albumFilterSql(filter);
   const event = db
     .query<
       {
@@ -216,13 +230,22 @@ export const getEventDetail = (
     .get(albumEventId);
   if (!event) return undefined;
   const photos = db
-    .query<PhotoRow, [number, number, number]>(
-      `SELECT ${PHOTO_COLUMNS} ${FILES} WHERE f.album_event_id = ?
+    .query<PhotoRow, (string | number)[]>(
+      `SELECT ${PHOTO_COLUMNS} ${FILES} WHERE f.album_event_id = ?${narrow.sql}
        ORDER BY m.taken_at ${direction(order)}, f.library_file_id ${direction(order)}
        LIMIT ? OFFSET ?`
     )
-    .all(albumEventId, page.limit, page.offset)
+    .all(albumEventId, ...narrow.params, page.limit, page.offset)
     .map(toAlbumPhoto);
+  // 条件があるときの枚数は、合うものだけ
+  const fileCount =
+    narrow.sql === ''
+      ? event.fileCount
+      : (db
+          .query<{ n: number }, (string | number)[]>(
+            `SELECT count(*) AS n ${FILES} WHERE f.album_event_id = ?${narrow.sql}`
+          )
+          .get(albumEventId, ...narrow.params)?.n ?? 0);
   const camera =
     db
       .query<{ model: string }, [number]>(
@@ -247,6 +270,7 @@ export const getEventDetail = (
   const older = neighbor('<', 'DESC');
   return {
     ...event,
+    fileCount,
     camera,
     photos,
     previous: order === 'new' ? newer : older,

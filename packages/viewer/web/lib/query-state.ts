@@ -12,17 +12,21 @@ export const useUrlState = () => {
   const router = useRouter();
   const pathname = usePathname();
   const get = (key: string): string | undefined => params.get(key) ?? undefined;
+  const getAll = (key: string): string[] => params.getAll(key);
   const set = useCallback(
-    (updates: Record<string, string | undefined>) => {
+    (updates: Record<string, string | string[] | undefined>) => {
       const next = new URLSearchParams(params.toString());
       for (const [key, value] of Object.entries(updates)) {
-        if (value === undefined || value === '') next.delete(key);
-        else next.set(key, value);
+        next.delete(key);
+        // 配列は、同じ名前を繰り返す(`kind=photo&kind=video`)
+        for (const item of Array.isArray(value) ? value : [value]) {
+          if (item !== undefined && item !== '') next.append(key, item);
+        }
       }
       const query = next.toString();
       router.replace(query ? `${pathname}?${query}` : pathname);
     },
     [params, router, pathname]
   );
-  return { get, set };
+  return { get, getAll, set };
 };

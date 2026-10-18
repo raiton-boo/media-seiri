@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query';
 import type {
   AlbumEventResponse,
+  AlbumFiltersResponse,
   AlbumMemoriesResponse,
   AlbumMonthResponse,
   AlbumOverviewResponse,
@@ -21,6 +22,7 @@ import type {
   RunsResponse,
   ViewerInfo,
 } from '../../src/api-types.ts';
+import { type FilterState, filterParams } from './album-filter';
 
 /** API の場所。同じ場所から配信するので、空(相対パス)。開発で、別のポートの API を使うときだけ、指定する */
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '';
@@ -58,11 +60,14 @@ export const thumbUrl = (thumbRelPath: string): string =>
 
 /** クエリ文字列を作る(空の値は、入れない) */
 export const queryString = (
-  params: Record<string, string | number | undefined>
+  params: Record<string, string | number | string[] | undefined>
 ): string => {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== '') search.set(key, String(value));
+    // 配列は、同じ名前を繰り返す
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item !== undefined && item !== '') search.append(key, String(item));
+    }
   }
   const text = search.toString();
   return text ? `?${text}` : '';
@@ -142,25 +147,26 @@ export const useDupeDetail = (id: number | undefined) =>
 /** アルバムの並び順(`new` は、URL では省く) */
 export type AlbumOrderParam = 'new' | 'old';
 
-export const useAlbumOverview = (order: AlbumOrderParam) =>
+export const useAlbumOverview = (order: AlbumOrderParam, filter: FilterState) =>
   useQuery({
-    queryKey: ['album-overview', order],
+    queryKey: ['album-overview', order, filter],
     queryFn: () =>
       fetchJson<AlbumOverviewResponse>(
-        `/api/album/overview${queryString({ order })}`
+        `/api/album/overview${queryString({ order, ...filterParams(filter) })}`
       ),
     placeholderData: keepPreviousData,
   });
 
 export const useAlbumYear = (
   year: number | undefined,
-  order: AlbumOrderParam
+  order: AlbumOrderParam,
+  filter: FilterState
 ) =>
   useQuery({
-    queryKey: ['album-year', year, order],
+    queryKey: ['album-year', year, order, filter],
     queryFn: () =>
       fetchJson<AlbumYearResponse>(
-        `/api/album/year${queryString({ y: year, order })}`
+        `/api/album/year${queryString({ y: year, order, ...filterParams(filter) })}`
       ),
     enabled: year !== undefined,
     placeholderData: keepPreviousData,
@@ -169,13 +175,14 @@ export const useAlbumYear = (
 export const useAlbumMonth = (
   year: number | undefined,
   month: number | undefined,
-  order: AlbumOrderParam
+  order: AlbumOrderParam,
+  filter: FilterState
 ) =>
   useQuery({
-    queryKey: ['album-month', year, month, order],
+    queryKey: ['album-month', year, month, order, filter],
     queryFn: () =>
       fetchJson<AlbumMonthResponse>(
-        `/api/album/month${queryString({ y: year, m: month, order })}`
+        `/api/album/month${queryString({ y: year, m: month, order, ...filterParams(filter) })}`
       ),
     enabled: year !== undefined && month !== undefined,
     placeholderData: keepPreviousData,
@@ -185,13 +192,14 @@ export const useAlbumMonth = (
 export const useAlbumEvent = (
   id: number | undefined,
   order: AlbumOrderParam,
-  limit: number
+  limit: number,
+  filter: FilterState
 ) =>
   useQuery({
-    queryKey: ['album-event', id, order, limit],
+    queryKey: ['album-event', id, order, limit, filter],
     queryFn: () =>
       fetchJson<AlbumEventResponse>(
-        `/api/album/event/${id}${queryString({ order, limit })}`
+        `/api/album/event/${id}${queryString({ order, limit, ...filterParams(filter) })}`
       ),
     enabled: id !== undefined,
     placeholderData: keepPreviousData,
@@ -207,12 +215,12 @@ export const useAlbumMemories = (date: string, salt: number) =>
     placeholderData: keepPreviousData,
   });
 
-export const useAlbumSections = (order: AlbumOrderParam) =>
+export const useAlbumSections = (order: AlbumOrderParam, filter: FilterState) =>
   useQuery({
-    queryKey: ['album-all-sections', order],
+    queryKey: ['album-all-sections', order, filter],
     queryFn: () =>
       fetchJson<AlbumSectionsResponse>(
-        `/api/album/all/sections${queryString({ order })}`
+        `/api/album/all/sections${queryString({ order, ...filterParams(filter) })}`
       ),
     placeholderData: keepPreviousData,
   });
@@ -222,14 +230,27 @@ export const useSectionPhotos = (
   year: number,
   month: number,
   order: AlbumOrderParam,
+  filter: FilterState,
   enabled: boolean
 ) =>
   useQuery({
-    queryKey: ['album-all-photos', year, month, order],
+    queryKey: ['album-all-photos', year, month, order, filter],
     queryFn: () =>
       fetchJson<AlbumSectionPhotosResponse>(
-        `/api/album/all/photos${queryString({ y: year, m: month, order })}`
+        `/api/album/all/photos${queryString({ y: year, m: month, order, ...filterParams(filter) })}`
       ),
     enabled,
     staleTime: 60_000,
+  });
+
+/** 絞り込みの引き出し: 選択肢と件数(いまの条件のもとで、項目ごとに数える)。引き出しを開いているときだけ読む */
+export const useAlbumFilters = (filter: FilterState, enabled: boolean) =>
+  useQuery({
+    queryKey: ['album-filters', filter],
+    queryFn: () =>
+      fetchJson<AlbumFiltersResponse>(
+        `/api/album/filters${queryString(filterParams(filter))}`
+      ),
+    enabled,
+    placeholderData: keepPreviousData,
   });

@@ -3,6 +3,7 @@
 import type { AlbumPhoto, AlbumSection } from '@file-seiri/ledger';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FilterState } from '../../lib/album-filter';
 import {
   type AlbumOrderParam,
   thumbUrl,
@@ -88,10 +89,12 @@ function Section({
   order,
   layout,
   width,
+  filter,
   active,
 }: {
   section: AlbumSection;
   order: AlbumOrderParam;
+  filter: FilterState;
   layout: AllLayout;
   width: number;
   active: boolean;
@@ -100,6 +103,7 @@ function Section({
     section.year,
     section.month,
     order,
+    filter,
     active
   );
   return (
@@ -155,9 +159,11 @@ export function AllView({
   sections,
   order,
   layout,
+  filter,
 }: {
   sections: AlbumSection[];
   order: AlbumOrderParam;
+  filter: FilterState;
   layout: AllLayout;
 }) {
   const list = useRef<HTMLDivElement>(null);
@@ -229,6 +235,7 @@ export function AllView({
                 <Section
                   section={section}
                   order={order}
+                  filter={filter}
                   layout={layout}
                   width={width}
                   active
