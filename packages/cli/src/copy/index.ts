@@ -3,6 +3,8 @@ export {
   cleanupAppleDouble,
   cleanupPartFiles,
   isPartFileName,
+  listAppleDoubleFiles,
+  listPartFiles,
   usesAppleDouble,
 } from './cleanup.ts';
 export {

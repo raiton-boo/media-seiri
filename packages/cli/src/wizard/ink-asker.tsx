@@ -1,6 +1,7 @@
 import { render } from 'ink';
 import type { ReactElement } from 'react';
 import { type Asker, PromptCancelled } from '../ask.ts';
+import { terminalColumns, terminalRows } from '../live/terminal-size.ts';
 import { SelectPrompt, TextPrompt } from './prompts.tsx';
 
 const DEFAULT_COLUMNS = 80;
@@ -41,8 +42,8 @@ export const createInkAsker = (): Asker => ({
       <SelectPrompt
         message={message}
         items={choices.map(({ label, hint }) => ({ label, hint }))}
-        columns={process.stdout.columns ?? DEFAULT_COLUMNS}
-        rows={process.stdout.rows ?? DEFAULT_ROWS}
+        columns={terminalColumns(DEFAULT_COLUMNS)}
+        rows={terminalRows(DEFAULT_ROWS)}
         onDone={done}
         onCancel={cancel}
       />
@@ -56,7 +57,7 @@ export const createInkAsker = (): Asker => ({
       <TextPrompt
         message={message}
         initial={initial}
-        columns={process.stdout.columns ?? DEFAULT_COLUMNS}
+        columns={terminalColumns(DEFAULT_COLUMNS)}
         onDone={done}
         onCancel={cancel}
       />

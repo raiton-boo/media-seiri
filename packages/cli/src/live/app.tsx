@@ -2,6 +2,7 @@ import { Box, useApp, useInput } from 'ink';
 import { useEffect, useRef, useState } from 'react';
 import type { LiveControls } from './controller.ts';
 import type { LiveFeed, LiveSnapshot, LogLine } from './feed.ts';
+import { terminalColumns, terminalRows } from './terminal-size.ts';
 import { LiveView } from './view.tsx';
 
 const TICK_MS = 100;
@@ -158,8 +159,8 @@ export const LiveApp = ({
         logView={logView}
         sleepGuard={sleepGuard}
         notice={notice}
-        columns={process.stdout.columns ?? DEFAULT_COLUMNS}
-        rows={process.stdout.rows ?? DEFAULT_ROWS}
+        columns={terminalColumns(DEFAULT_COLUMNS)}
+        rows={terminalRows(DEFAULT_ROWS)}
         system={state.system}
       />
     </Box>

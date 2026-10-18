@@ -42,8 +42,19 @@ export type StandaloneEnvironment = {
   waitForStop: () => Promise<void>;
   now: () => Date;
   platform: string;
+  /** 失敗のあと、ウィンドウがすぐ閉じないよう、Enter を待つ(ダブルクリックで開いたとき、読めるように)。端末でなければ、何もしない */
+  pause: () => Promise<void>;
   /** 画面の静的ファイルの場所(実行ファイルでは、埋め込みを使うので、使われない) */
   webDir: string;
+};
+
+/** 端末のときだけ、Enter を待つ */
+const waitForEnter = async (): Promise<void> => {
+  if (!process.stdin.isTTY) return;
+  console.log('\nEnter キーを押すと、閉じます。');
+  await new Promise<void>((resolve) => {
+    process.stdin.once('data', () => resolve());
+  });
 };
 
 export const defaultEnvironment = (
@@ -59,6 +70,7 @@ export const defaultEnvironment = (
       process.once('SIGTERM', resolve);
     }),
   now: () => new Date(),
+  pause: waitForEnter,
   platform: process.platform,
   webDir: DEFAULT_WEB_DIR,
 });
@@ -233,12 +245,7 @@ export const mainStandaloneViewer = async (
         ? error.message
         : String(error);
     environment.print(`エラー: ${message}`);
-    if (process.stdin.isTTY) {
-      environment.print('\nEnter キーを押すと、閉じます。');
-      await new Promise<void>((resolve) => {
-        process.stdin.once('data', () => resolve());
-      });
-    }
+    await environment.pause();
     return 2;
   }
 };

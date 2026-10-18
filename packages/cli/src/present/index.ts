@@ -1,4 +1,5 @@
 import type { CommandContext } from '../context.ts';
+import { terminalColumns } from '../live/terminal-size.ts';
 import type { Report } from './report.ts';
 import { renderReport } from './report-view.tsx';
 
@@ -12,5 +13,5 @@ export const showReport = (
   report: Report,
   write: (text: string) => void = context.stdout
 ): void => {
-  write(renderReport(report, process.stdout.columns ?? DEFAULT_COLUMNS));
+  write(renderReport(report, terminalColumns(DEFAULT_COLUMNS)));
 };

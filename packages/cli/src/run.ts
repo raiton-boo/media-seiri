@@ -5,11 +5,13 @@ import { DEFAULT_WEB_DIR } from '@file-seiri/viewer';
 import cliPackage from '../package.json' with { type: 'json' };
 import { type Asker, createAsker, PromptCancelled } from './ask.ts';
 import { CliError } from './cli-error.ts';
+import { doctorCommand } from './commands/doctor.ts';
 import { drivesCommand } from './commands/drives.ts';
 import { eventsCommand } from './commands/events.ts';
 import { ingestCommand } from './commands/ingest.ts';
 import { libraryInit } from './commands/library-init.ts';
 import { libraryList } from './commands/library-list.ts';
+import { libraryForget, libraryRemove } from './commands/library-manage.ts';
 import { libraryPrune } from './commands/library-prune.ts';
 import { logsCommand } from './commands/logs.ts';
 import { statusCommand } from './commands/status.ts';
@@ -35,6 +37,7 @@ import { neverPaused, noopProgress } from './live/progress.ts';
 import { ansi } from './live/theme.ts';
 import { askYesNo } from './prompt.ts';
 import { createRepairTools, type RepairTools } from './repair/index.ts';
+import { openBrowser } from './standalone-viewer/open-browser.ts';
 import { didYouMean } from './suggest.ts';
 import { createThumbnailMaker, type ThumbnailMaker } from './thumbs/index.ts';
 import { resolveBundleDir } from './viewer-bundle/install.ts';
@@ -65,6 +68,9 @@ export const PARSE_OPTIONS = {
   port: { type: 'string' },
   snapshot: { type: 'boolean' },
   yes: { type: 'boolean', short: 'y' },
+  fix: { type: 'boolean' },
+  'no-open': { type: 'boolean' },
+  deep: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const;
@@ -128,6 +134,8 @@ export type RunEnvironment = {
   liveController?: () => LiveController;
   viewerWebDir?: string;
   viewerBundleDir?: string | undefined;
+  findTool?: (name: string) => string | undefined;
+  openBrowser?: (url: string) => void;
   ingestHooks?: CommandContext['ingestHooks'];
 };
 
@@ -214,6 +222,9 @@ export const run = async (
       progress: noopProgress,
       pause: neverPaused,
       viewerWebDir: environment.viewerWebDir ?? DEFAULT_WEB_DIR,
+      openBrowser: environment.openBrowser ?? ((url) => openBrowser(url)),
+      findTool:
+        environment.findTool ?? ((name) => Bun.which(name) ?? undefined),
       viewerBundleDir:
         'viewerBundleDir' in environment
           ? environment.viewerBundleDir
@@ -236,6 +247,20 @@ export const run = async (
     const [command, subcommand, ...rest] = positionals;
     if (command === 'library' && subcommand === 'init' && rest.length <= 1) {
       return libraryInit(context, rest[0]);
+    }
+    if (command === 'doctor' && positionals.length === 1) {
+      return await doctorCommand(context, {
+        library: values.library,
+        fix: values.fix ?? false,
+        yes: values.yes ?? false,
+        deep: values.deep ?? false,
+      });
+    }
+    if (command === 'library' && subcommand === 'forget' && rest.length <= 1) {
+      return libraryForget(context, rest[0]);
+    }
+    if (command === 'library' && subcommand === 'remove' && rest.length <= 1) {
+      return await libraryRemove(context, rest[0], values.yes ?? false);
     }
     if (command === 'library' && subcommand === 'prune' && rest.length === 0) {
       return await libraryPrune(context, values.yes ?? false);
@@ -287,6 +312,7 @@ export const run = async (
         library: values.library,
         port: values.port,
         snapshot: values.snapshot ?? false,
+        noOpen: values['no-open'] ?? false,
       });
     }
     if (command === 'ingest') {

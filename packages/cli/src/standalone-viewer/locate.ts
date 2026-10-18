@@ -30,14 +30,17 @@ const librariesIn = (directory: string): string[] => {
   }
 };
 
+/** 探す階層: 置き場所と、その 1 つ上(`<ライブラリ>/viewer/` と `<ドライブ>/viewer/` が、想定の置き場。もっと上は、無関係のものを拾うので、見ない) */
+const LEVELS = 2;
+
 /**
- * 実行ファイルの置き場所から、ライブラリを探す。置き場所から、上のフォルダへ向かって、
+ * 実行ファイルの置き場所から、ライブラリを探す。置き場所と、その 1 つ上のフォルダについて、
  * 「そのフォルダ自身」→「そのフォルダの直下」の順に見て、見つかった最初の階層で止める。
  * 例: `<ライブラリ>/viewer/` に置けば、1 つ上のライブラリ。`<ドライブ>/viewer/` に置けば、ドライブの直下の `Pictures/` など。
  */
 export const locateLibraries = (startDirectory: string): LocatedLibrary[] => {
   let directory = startDirectory;
-  for (;;) {
+  for (let level = 0; level < LEVELS; level += 1) {
     const found = [
       ...(markerExists(directory) ? [directory] : []),
       ...librariesIn(directory),
@@ -47,4 +50,5 @@ export const locateLibraries = (startDirectory: string): LocatedLibrary[] => {
     if (parent === directory) return [];
     directory = parent;
   }
+  return [];
 };
