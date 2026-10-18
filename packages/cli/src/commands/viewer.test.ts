@@ -9,15 +9,15 @@ import {
   DATE_2024_03_05,
   fakeThumbnailMaker,
   initLibrary,
+  installExifWriter,
   makeWorld,
   NOW,
   runIn,
-  useExifWriter,
   type World,
 } from '../ingest/test-support.ts';
 import { run } from '../run.ts';
 
-useExifWriter();
+installExifWriter();
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {

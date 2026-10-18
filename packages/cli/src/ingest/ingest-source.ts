@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import {
   createSnapshot,
   finishRun,
@@ -72,6 +72,8 @@ export type IngestOptions = {
   resume: boolean;
   /** コピーの前の確認を、省く */
   yes: boolean;
+  /** ライブ表示を使わない(ログの行だけ) */
+  plain: boolean;
 };
 
 /** ソースを処理するための、実行全体で共有するもの */
@@ -97,6 +99,44 @@ class StopRequested extends Error {
   }
 }
 
+/** 取り込みの結果(サマリー)を出す。ライブ表示の間は、画面を閉じてから、まとめて出す(`context.report`) */
+const reportLines = (
+  context: CommandContext,
+  lines: readonly string[]
+): void => {
+  if (context.report) context.report(lines);
+  else printLines(context, lines);
+};
+
+/** スキャンの結果から、ライブ表示の内訳(種別・ZIP の中のファイルの数)を作る */
+const scanBreakdown = (files: readonly ScannedFile[]) => {
+  let photos = 0;
+  let videos = 0;
+  let raws = 0;
+  let zipEntries = 0;
+  const zipSizes = new Map<string, number>();
+  for (const file of files) {
+    if (file.kind === 'photo') photos += 1;
+    else if (file.kind === 'video') videos += 1;
+    else if (file.kind === 'raw') raws += 1;
+    else continue;
+    const marker = file.relPath.indexOf('!/');
+    if (marker >= 0) {
+      zipEntries += 1;
+      const zip = file.relPath.slice(0, marker);
+      zipSizes.set(zip, (zipSizes.get(zip) ?? 0) + 1);
+    }
+  }
+  return {
+    found: photos + videos + raws,
+    photos,
+    videos,
+    raws,
+    zipEntries,
+    zipSizes,
+  };
+};
+
 const printLines = (
   context: CommandContext,
   lines: readonly string[]
@@ -111,7 +151,8 @@ const printLines = (
  */
 export const ingestSource = async (
   session: IngestSession,
-  source: string
+  source: string,
+  position: { index: number; count: number } = { index: 0, count: 1 }
 ): Promise<ExitCode> => {
   const {
     context,
@@ -192,6 +233,17 @@ export const ingestSource = async (
   }
 
   const summary = emptySummary();
+  context.progress.begin({
+    runId,
+    isDryRun: options.dryRun,
+    db,
+    source: basename(sourceRoot),
+    destination: destinationVolume.label || basename(library.root),
+    destinationRoot: library.root,
+    sourceIndex: position.index,
+    sourceCount: position.count,
+    summary,
+  });
   const stopRequested = (): StopReason | undefined => {
     if (lock?.isLost()) return 'lock-lost';
     return context.shouldStop() ? 'user' : undefined;
@@ -273,6 +325,7 @@ export const ingestSource = async (
       maxDepth: MAX_ZIP_DEPTH,
       maxEntryBytes: DEFAULT_MAX_ENTRY_BYTES,
     });
+    context.progress.scanned(scanBreakdown(scan.files));
     const { rows } = recordScan({
       db,
       write,
@@ -313,18 +366,23 @@ export const ingestSource = async (
       },
       jsonFilesByDirectory,
     };
+    context.progress.analyzeTotal(rows.length);
     let analyzed = 0;
     const analyses = await mapConcurrent(
       rows,
       readConcurrency(sourceVolume.mediaKind),
       async ({ file, sourceFileId }) => {
+        // 一時停止中は、ここで待つ(ライブ表示の `p` キー)
+        await context.pause.wait();
         const reason = stopRequested();
         if (reason) throw new StopRequested(reason);
+        context.progress.analyzeStart(file.relPath);
         const analysis = await analyzeFile(
           file,
           sourceFileId,
           analyzeEnvironment
         );
+        context.progress.analyzeDone(file.relPath);
         analyzed += 1;
         if (analyzed % PROGRESS_INTERVAL === 0)
           context.stdout(`  解析: ${analyzed} / ${rows.length}`);
@@ -352,6 +410,7 @@ export const ingestSource = async (
         destinationFreeBytes: summary.capacity?.freeBytes ?? 0,
       })
     );
+    context.progress.planned(summary.copyFiles, summary.copyBytes);
     const shortage = capacityProblem(summary.capacity);
     if (shortage) problems.push(shortage);
     summary.problems = problems;
@@ -369,7 +428,7 @@ export const ingestSource = async (
           ? EXIT_CODES.completedWithErrors
           : EXIT_CODES.ok;
     const showSummary = (): void =>
-      printLines(
+      reportLines(
         context,
         formatSummary(summary, {
           source: describeVolume(sourceVolume),
@@ -420,10 +479,11 @@ export const ingestSource = async (
           summary,
         })
       : undefined;
-    if (summary.copy) printLines(context, formatCopyResult(summary.copy));
+    if (summary.copy) reportLines(context, formatCopyResult(summary.copy));
     if (reason) return stopped(reason);
 
     // サムネイル(コピーの最後に、まとめて作る。作れなくても、取り込みは失敗にしない)
+    context.progress.phase('サムネイル');
     const thumbnails = await runThumbnailStage({
       context,
       library,

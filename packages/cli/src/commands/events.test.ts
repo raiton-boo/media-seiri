@@ -5,14 +5,14 @@ import { EXIT_CODES } from '../exit-codes.ts';
 import {
   addPhoto,
   initLibrary,
+  installExifWriter,
   makeWorld,
   openWorldLedger,
   runIn,
-  useExifWriter,
   type World,
 } from '../ingest/test-support.ts';
 
-useExifWriter();
+installExifWriter();
 
 const worlds: World[] = [];
 afterEach(() => {

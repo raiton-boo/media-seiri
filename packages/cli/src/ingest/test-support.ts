@@ -4,6 +4,8 @@ import { dirname, join } from 'node:path';
 import { openLedger } from '@file-seiri/ledger';
 import { ExifTool } from 'exiftool-vendored';
 import { ledgerPathFor } from '../config/paths.ts';
+import type { LiveController } from '../live/controller.ts';
+import { createFeed } from '../live/feed.ts';
 import type { RepairTools } from '../repair/index.ts';
 import { type RunEnvironment, run } from '../run.ts';
 import { makeTempDir } from '../test-helpers.ts';
@@ -126,6 +128,8 @@ export const runIn = async (
     thumbnailMaker: () => fakeThumbnailMaker(),
     // 外のコマンドを使わない(どのファイルも、壊れていない)。破損の試験は、`repairTools` を差し替える
     repairTools: () => healthyRepairTools(),
+    // 画面(Ink)は出さない。画面を使う経路の試験は、`fakeLiveController` を渡す
+    liveController: () => fakeLiveController(),
     resolveVolume: (path) =>
       path.startsWith(world.srcRoot) ? world.sourceVolume : world.destVolume,
     ...options,
@@ -145,7 +149,7 @@ export const openWorldLedger = (world: World) =>
 
 let writer: ExifTool | undefined;
 /** タグの書き込みに使う ExifTool を、テストファイル全体で 1 つ持つ */
-export const useExifWriter = (): void => {
+export const installExifWriter = (): void => {
   beforeAll(() => {
     writer = new ExifTool({ maxProcs: 1 });
   });
@@ -164,7 +168,7 @@ export const addPhoto = async (
   const path = join(world.srcRoot, relPath);
   mkdirSync(dirname(path), { recursive: true });
   copyFileSync(join(FIXTURES, 'base.jpg'), path);
-  if (!writer) throw new Error('useExifWriter() を、先に呼んでください');
+  if (!writer) throw new Error('installExifWriter() を、先に呼んでください');
   // 既定では、ファイルごとに違う内容にする(`ImageDescription` を、パスにする)。同じ内容にしたいときは、同じ値を渡す
   await writer.write(
     path,
@@ -202,3 +206,38 @@ export const addVideo = (
 export const DATE_2024_03_05 = {
   DateTimeOriginal: '2024:03:05 10:20:30',
 } as const;
+
+/**
+ * 画面(Ink)を出さない、ライブ表示の代役。進み具合の集計(`feed`)は、本物。
+ * `stopAfterCopied` を指定すると、そのファイル数をコピーしたあとで、「安全に停止」(q キー)が要求されたことにする。
+ */
+export const fakeLiveController = (
+  options: { stopAfterCopied?: number } = {}
+): LiveController & { events: string[]; paused: { value: boolean } } => {
+  const feed = createFeed();
+  const events: string[] = [];
+  const paused = { value: false };
+  return {
+    feed,
+    events,
+    paused,
+    pause: { isPaused: () => paused.value, wait: async () => {} },
+    stopRequested: () => {
+      const snapshot = feed.snapshot();
+      return (
+        options.stopAfterCopied !== undefined &&
+        snapshot !== undefined &&
+        snapshot.counts.copied >= options.stopAfterCopied
+      );
+    },
+    start: () => events.push('start'),
+    suspend: async () => {
+      events.push('suspend');
+    },
+    resume: () => events.push('resume'),
+    stop: async () => {
+      events.push('stop');
+    },
+    note: () => {},
+  };
+};

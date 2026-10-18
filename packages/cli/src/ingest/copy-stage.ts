@@ -150,6 +150,8 @@ export const executeCopies = async (
 
   for (const groupIndex of order) {
     for (const index of groupMembers.get(groupIndex) ?? []) {
+      // 一時停止中は、ここで待つ(ライブ表示の `p` キー)
+      await context.pause.wait();
       const stopped = stopReason();
       if (stopped) return finish(stopped);
 
@@ -180,6 +182,11 @@ export const executeCopies = async (
             occurredAt: at(),
           });
         });
+        context.progress.copyStart(
+          file.relPath,
+          file.sizeBytes,
+          analysis.content.hash
+        );
         // ZIP の中のファイルは、ここで、一時領域に取り出して、コピーし、すぐ消す
         const materialized = await materializeFile(file);
         try {
@@ -192,6 +199,11 @@ export const executeCopies = async (
               hash: analysis.content.hash,
             },
             removeAppleDouble,
+            hooks: {
+              afterChunkWritten: (written) =>
+                context.progress.copyChunk(written),
+              afterSync: () => context.progress.copyVerifying(),
+            },
           });
         } finally {
           await materialized.cleanup();
@@ -224,12 +236,14 @@ export const executeCopies = async (
             occurredAt: at(),
           });
         });
+        context.progress.copyDone(true);
         result.copied += 1;
         result.copiedBytes += file.sizeBytes;
         if (result.copied % PROGRESS_INTERVAL === 0)
           context.stdout(`  コピー: ${result.copied} / ${total}`);
         await context.ingestHooks?.afterFileCopied?.(result.copied);
       } catch (error) {
+        context.progress.copyDone(false);
         const failure = classify(error);
         if (failure.fatal === 'lock-lost') return finish('lock-lost');
         try {

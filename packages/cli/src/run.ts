@@ -14,6 +14,11 @@ import { viewerCommand } from './commands/viewer.ts';
 import { resolveDataDir } from './config/paths.ts';
 import { type CommandContext, newLibraryId } from './context.ts';
 import { EXIT_CODES, type ExitCode } from './exit-codes.ts';
+import {
+  createLiveController,
+  type LiveController,
+} from './live/controller.ts';
+import { neverPaused, noopProgress } from './live/progress.ts';
 import { askYesNo } from './prompt.ts';
 import { createRepairTools, type RepairTools } from './repair/index.ts';
 import { createThumbnailMaker, type ThumbnailMaker } from './thumbs/index.ts';
@@ -50,6 +55,7 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
   --port <番号>       viewer の待ち受けポート(既定 3939。0 なら、空いているものを選ぶ)
   --snapshot          viewer で、この Mac の台帳ではなく、ライブラリのスナップショットを開く(家の PC と同じ見え方)
   --resume            ingest で、中断した実行を、続きから実行する
+  --plain             ingest で、ライブ表示(画面を書き換える表示)を使わず、ログの行だけを出す(端末でないときは、いつも、そう)
   -y, --yes           ingest で、コピーの前の確認を、省く
   --rehash            ingest で、ハッシュのキャッシュを使わず、計算し直す
   --restore-snapshot  ingest で、スナップショットのほうが新しいとき、置き換えてよい(確認済み)
@@ -72,6 +78,7 @@ export type RunEnvironment = {
   sleep?: (milliseconds: number) => Promise<void>;
   thumbnailMaker?: () => ThumbnailMaker;
   repairTools?: () => RepairTools;
+  liveController?: () => LiveController;
   viewerWebDir?: string;
   ingestHooks?: CommandContext['ingestHooks'];
 };
@@ -91,6 +98,7 @@ export const run = async (
         'data-dir': { type: 'string' },
         dest: { type: 'string' },
         'dry-run': { type: 'boolean' },
+        plain: { type: 'boolean' },
         rehash: { type: 'boolean' },
         'restore-snapshot': { type: 'boolean' },
         resume: { type: 'boolean' },
@@ -139,6 +147,10 @@ export const run = async (
           new Promise((resolve) => setTimeout(resolve, milliseconds))),
       thumbnailMaker: environment.thumbnailMaker ?? createThumbnailMaker,
       repairTools: environment.repairTools ?? createRepairTools,
+      liveController:
+        environment.liveController ?? (() => createLiveController()),
+      progress: noopProgress,
+      pause: neverPaused,
       viewerWebDir: environment.viewerWebDir ?? DEFAULT_WEB_DIR,
       ingestHooks: environment.ingestHooks,
     };
@@ -198,6 +210,7 @@ export const run = async (
         restoreSnapshot: values['restore-snapshot'] ?? false,
         resume: values.resume ?? false,
         yes: values.yes ?? false,
+        plain: values.plain ?? false,
       });
     }
     throw new CliError(

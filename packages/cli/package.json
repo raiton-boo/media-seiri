@@ -13,6 +13,12 @@
     "@file-seiri/core": "workspace:*",
     "@file-seiri/ledger": "workspace:*",
     "@file-seiri/viewer": "workspace:*",
-    "exiftool-vendored": "^39.0.1"
+    "exiftool-vendored": "^39.0.1",
+    "ink": "^8.0.0",
+    "react": "^19.3.1",
+    "string-width": "^8.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0"
   }
 }

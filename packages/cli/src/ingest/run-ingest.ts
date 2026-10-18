@@ -22,6 +22,16 @@ import { recoverUnrecordedCopies } from './recover.ts';
 
 export type { IngestOptions } from './ingest-source.ts';
 
+/** 進み具合だけを伝える行(ライブ表示では、画面に出ているので、あとで、出し直さない) */
+const PROGRESS_LINE =
+  /^\s*(解析|コピー|サムネイル): \d+ \/ \d+$|^スキャン: |^コピー: \d+ ファイル/;
+
+/** ライブ表示(画面を書き換える表示)を使うか: 端末(質問できる状態)で、`--plain` でないとき */
+const useLiveDisplay = (
+  context: CommandContext,
+  options: IngestOptions
+): boolean => !options.plain && context.isInteractive;
+
 /**
  * `ingest` を実行する。ソースは、1 つずつ順番に処理する(同じハブの USB の帯域を奪い合わないため。仕様書 §9-1)。
  * 終了コードは、ソースごとの結果のうち、いちばん重いもの(130 は、中断として、最優先)。
@@ -30,7 +40,7 @@ export type { IngestOptions } from './ingest-source.ts';
  * ロックが途絶えていれば、引き継ぎ、前の実行を中断として記録する。起動時に、残った一時ファイルを消し、
  * 前の実行が、記録する前に止まったコピーを、見つけて採用する。dry-run は、ロックを取らない(読み取りだけのため)。
  */
-export const runIngest = async (
+const runIngestInner = async (
   context: CommandContext,
   options: IngestOptions
 ): Promise<ExitCode> => {
@@ -94,8 +104,11 @@ export const runIngest = async (
     }
 
     let worst: ExitCode = EXIT_CODES.ok;
-    for (const source of options.sources) {
-      const code = await ingestSource(session, source);
+    for (const [index, source] of options.sources.entries()) {
+      const code = await ingestSource(session, source, {
+        index,
+        count: options.sources.length,
+      });
       if (code === EXIT_CODES.interrupted) return code;
       if (code > worst) worst = code;
       // ロックを失ったら、ほかのソースには、進まない
@@ -118,9 +131,64 @@ export const runIngest = async (
         );
       }
     }
+    // 画面が、閉じた台帳を読まないよう、先に伝える
+    context.progress.end();
     lock?.release();
     await metadataReader.close();
     await repairTools.close();
     library.ledger.close();
+  }
+};
+
+/**
+ * `ingest` を実行する。端末なら、btop 風のライブ表示を出す(`--plain`・端末でないときは、ログの行だけ)。
+ * ライブ表示の間、取り込みが標準出力・標準エラーに出す行は、画面のログの欄へ(画面が崩れないように)。
+ * 結果のまとめ(サマリー)と、警告は、画面を閉じてから、まとめて出す。コピーの前の確認の質問のときは、画面を、いったん閉じる。
+ */
+export const runIngest = async (
+  context: CommandContext,
+  options: IngestOptions
+): Promise<ExitCode> => {
+  if (!useLiveDisplay(context, options))
+    return runIngestInner(context, options);
+
+  const live = context.liveController();
+  const reported: string[] = [];
+  const warnings: string[] = [];
+  const flush = (): void => {
+    for (const line of reported.splice(0)) context.stdout(line);
+    for (const line of warnings.splice(0)) context.stderr(line);
+  };
+  const liveContext: CommandContext = {
+    ...context,
+    progress: live.feed,
+    pause: live.pause,
+    shouldStop: () => context.shouldStop() || live.stopRequested(),
+    // 画面の邪魔にならないよう、いったん、ためる。進み具合の行は、画面に出ているので、あとで出さない
+    stdout: (text) => {
+      live.note(text);
+      if (!PROGRESS_LINE.test(text)) reported.push(text);
+    },
+    stderr: (text) => {
+      live.note(text);
+      warnings.push(text);
+    },
+    report: (lines) => {
+      reported.push(...lines);
+    },
+    confirm: async (question) => {
+      await live.suspend();
+      flush();
+      const answer = await context.confirm(question);
+      live.resume();
+      return answer;
+    },
+  };
+  live.start();
+  try {
+    return await runIngestInner(liveContext, options);
+  } finally {
+    await live.stop();
+    flush();
   }
 };
