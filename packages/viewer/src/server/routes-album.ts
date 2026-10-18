@@ -1,14 +1,17 @@
 import {
   type AlbumOrder,
+  countFilteredPhotos,
   getEventDetail,
   listAlbumSections,
   listEventStacks,
+  listFilteredPhotos,
   listFilterOptions,
   listMonthSummaries,
   listOnThisDay,
   listSectionPhotos,
   listYearCounts,
   pickPhotoOfDay,
+  suggestSearch,
 } from '@file-seiri/ledger';
 import type { Context, Hono } from 'hono';
 import type {
@@ -20,6 +23,8 @@ import type {
   AlbumSectionPhotosResponse,
   AlbumSectionsResponse,
   AlbumYearResponse,
+  SearchPhotosResponse,
+  SearchSuggestResponse,
 } from '../api-types.ts';
 import { parseAlbumFilter, parseId } from './query.ts';
 import type { ViewerSource } from './source.ts';
@@ -31,6 +36,10 @@ const EVENT_PAGE = 12;
 const MAX_EVENT_PAGE = 60;
 /** 「すべて」の、1 つの区画の写真の上限(月が、極端に多いときの、安全のため) */
 const SECTION_PHOTO_LIMIT = 5000;
+/** 検索の入力の、長さの上限 */
+const MAX_QUERY_LENGTH = 100;
+/** 検索結果で、1 回に返す写真の上限 */
+const MAX_SEARCH_PAGE = 120;
 /** 去年の今日に出す、できごとの数 */
 const ON_THIS_DAY = 3;
 
@@ -60,6 +69,7 @@ const parseDate = (
  * - `GET /api/album/month?y=&m=`: 1 か月の、できごと(束)
  * - `GET /api/album/event/:id`: できごとの写真(ページ送り)と、前後のできごと
  * - `GET /api/album/all/sections`・`/api/album/all/photos?y=&m=`: 「すべて」(区画の一覧と、区画ごとの写真。絞り込みの条件つき)
+ * - `GET /api/album/search/suggest?q=`・`/api/album/search/photos`: 検索の候補と結果(絞り込みの条件つき)
  * - `GET /api/album/filters`: 絞り込みの選択肢と件数
  * - `GET /api/album/memories?date=&salt=`: 去年の今日・今日の一枚
  * どれも `order=new|old`(既定は new)で、並び順を変えられる。
@@ -185,6 +195,34 @@ export const registerAlbumRoutes = (app: Hono, source: ViewerSource): void => {
   // 絞り込みの引き出し: 選択肢と件数(いまの条件のもとで、項目ごとに数える)
   app.get('/api/album/filters', (context) => {
     const body: AlbumFiltersResponse = listFilterOptions(db, filterOf(context));
+    return context.json(body);
+  });
+
+  // 検索: 入力中の候補(件数つき)と、結果の写真(先頭から)
+  app.get('/api/album/search/suggest', (context) => {
+    // 入力は、長すぎる文字を切る(重い検索を、避ける)
+    const text = (context.req.query('q') ?? '').slice(0, MAX_QUERY_LENGTH);
+    const body: SearchSuggestResponse = {
+      suggestions: suggestSearch(db, text, filterOf(context)),
+    };
+    return context.json(body);
+  });
+
+  app.get('/api/album/search/photos', (context) => {
+    const order = orderOf(context.req.query('order'));
+    const filter = filterOf(context);
+    const limit = Math.min(
+      Math.max(parseId(context.req.query('limit')) ?? EVENT_PAGE, 1),
+      MAX_SEARCH_PAGE
+    );
+    const offset = parseId(context.req.query('offset')) ?? 0;
+    const body: SearchPhotosResponse = {
+      order,
+      total: countFilteredPhotos(db, filter),
+      limit,
+      offset,
+      photos: listFilteredPhotos(db, filter, order, { limit, offset }),
+    };
     return context.json(body);
   });
 

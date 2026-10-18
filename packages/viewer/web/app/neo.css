@@ -1462,3 +1462,23 @@ img {
   max-height: calc(100vh - 32px);
   overflow-y: auto;
 }
+
+/* 検索の入力(札の中) */
+.srch-input {
+  flex: 1 1 160px;
+  min-width: 120px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.srch:focus-within {
+  box-shadow: var(--sh);
+}
+.fdr button.rw.active {
+  background: var(--y);
+}

@@ -18,6 +18,7 @@ import type {
   RunDetail,
   RunningProgress,
   RunSummary,
+  SearchSuggestion,
 } from '@file-seiri/ledger';
 
 /** どの台帳を見ているか。この Mac では作業用の台帳(最新)、家の PC などでは、ドライブ内のスナップショット */
@@ -154,3 +155,15 @@ export type AlbumSectionPhotosResponse = {
 
 /** 絞り込みの引き出し: 項目ごとの選択肢と件数 */
 export type AlbumFiltersResponse = FilterOptions;
+
+/** 検索の候補(入力中) */
+export type SearchSuggestResponse = { suggestions: SearchSuggestion[] };
+
+/** 検索の結果: 合う枚数と、先頭から `limit` 枚(「もっと広げる」で、増やす) */
+export type SearchPhotosResponse = {
+  order: AlbumOrder;
+  total: number;
+  limit: number;
+  offset: number;
+  photos: AlbumPhoto[];
+};

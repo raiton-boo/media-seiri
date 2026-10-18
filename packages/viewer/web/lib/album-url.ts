@@ -3,7 +3,7 @@ import { queryString } from './api';
 
 export type AlbumLocation = {
   /** 省くと、入口(最新の年の机) */
-  view?: 'year' | 'month' | 'event' | 'all';
+  view?: 'year' | 'month' | 'event' | 'all' | 'search';
   y?: number;
   m?: number;
   /** できごとの ID */

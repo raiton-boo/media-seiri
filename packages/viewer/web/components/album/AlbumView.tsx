@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { eventTitle } from '../../lib/album';
 import { AlbumFilterProvider } from '../../lib/album-context';
 import {
-  countFilter,
+  countSearch,
   type FilterState,
   filterParams,
+  isFiltered,
   readFilter,
 } from '../../lib/album-filter';
 import {
@@ -20,6 +21,7 @@ import {
   useAlbumOverview,
   useAlbumSections,
   useAlbumYear,
+  useSearchPhotos,
 } from '../../lib/api';
 import { formatCount } from '../../lib/format';
 import { useUrlState } from '../../lib/query-state';
@@ -34,11 +36,15 @@ import { FilterBar } from './FilterBar';
 import { FilterDrawer } from './FilterDrawer';
 import { Memories } from './Memories';
 import { MonthDesk } from './MonthDesk';
+import { SearchBox } from './SearchBox';
+import { SearchDesk } from './SearchDesk';
 import { TimeRuler } from './TimeRuler';
 import { YearDesk } from './YearDesk';
 
 /** できごとの机で、最初に広げる枚数と、「もっと広げる」で増やす枚数 */
 const EVENT_STEP = 12;
+/** 検索結果の机で、最初に広げる枚数と、「もっと広げる」で増やす枚数 */
+const SEARCH_STEP = 12;
 
 const toInt = (value: string | undefined): number | undefined => {
   const number = Number(value);
@@ -53,7 +59,7 @@ const toInt = (value: string | undefined): number | undefined => {
  */
 export function AlbumView() {
   const url = useUrlState();
-  const view = (['year', 'month', 'event', 'all'] as const).find(
+  const view = (['year', 'month', 'event', 'all', 'search'] as const).find(
     (candidate) => candidate === url.get('view')
   );
   const order = url.get('order') === 'old' ? 'old' : 'new';
@@ -64,7 +70,7 @@ export function AlbumView() {
   const showSmall = url.get('small') === '1';
 
   const filter = readFilter(url.getAll);
-  const filtered = countFilter(filter) > 0;
+  const filtered = isFiltered(filter);
   const drawer = url.get('drawer') === '1';
   // 移っても、条件と引き出しの開閉を引き継ぐ
   const albumHref = (location: AlbumLocation = {}): string =>
@@ -83,6 +89,12 @@ export function AlbumView() {
 
   const overview = useAlbumOverview(order, filter);
   const allSections = useAlbumSections(order, filter);
+  const searchResult = useSearchPhotos(
+    order,
+    filter,
+    toInt(url.get('more')) ?? SEARCH_STEP,
+    view === 'search'
+  );
   const event = useAlbumEvent(eventId, order, more, filter);
   const eventStart = event.data?.startAt;
   // いま開いている年(定規の開く年): できごとなら、その年。入口は、最新の年
@@ -102,6 +114,7 @@ export function AlbumView() {
   const failed =
     overview.isError ||
     (view === 'all' && allSections.isError) ||
+    (view === 'search' && searchResult.isError) ||
     yearData.isError ||
     monthData.isError ||
     event.isError;
@@ -142,7 +155,8 @@ export function AlbumView() {
   }
   if (year === undefined || !yearData.data) return <ListSkeleton />;
 
-  const zoom = view ?? 'year';
+  const searching = view === 'search';
+  const zoom = view === 'search' ? 'year' : (view ?? 'year');
   const eventMonth = eventStart ? Number(eventStart.slice(5, 7)) : undefined;
   // 定規には、手元にあるデータの年・月を渡す(新しいデータが届くまで、前のデータを見せ続けるため。URL の年・月と、棒のデータが、ずれないように)
   const rulerYear = yearData.data.year;
@@ -164,23 +178,29 @@ export function AlbumView() {
 
   const entrance = view === undefined;
   const heading =
-    view === 'all'
-      ? 'すべて'
-      : view === 'event' && eventStart
-        ? eventTitle(eventStart)
-        : view === 'month' && monthParam
-          ? `${year}年${monthParam}月`
-          : `${year}年`;
+    view === 'search'
+      ? searchResult.data
+        ? `見つけた、${formatCount(searchResult.data.total)} 枚。`
+        : '検索結果'
+      : view === 'all'
+        ? 'すべて'
+        : view === 'event' && eventStart
+          ? eventTitle(eventStart)
+          : view === 'month' && monthParam
+            ? `${year}年${monthParam}月`
+            : `${year}年`;
   const kicker =
-    view === 'all'
-      ? `ALL / ${order === 'new' ? '新しい順' : '古い順'}`
-      : view === 'event'
-        ? 'EVENT / 机の上に広げる'
-        : view === 'month'
-          ? 'MONTH / できごとの束'
-          : entrance
-            ? `入口 / 最新の年の机 / ${order === 'new' ? '新しい順' : '古い順'}`
-            : `YEAR / ${order === 'new' ? '新しい順' : '古い順'}`;
+    view === 'search'
+      ? `SEARCH / ${order === 'new' ? '新しい順' : '古い順'}`
+      : view === 'all'
+        ? `ALL / ${order === 'new' ? '新しい順' : '古い順'}`
+        : view === 'event'
+          ? 'EVENT / 机の上に広げる'
+          : view === 'month'
+            ? 'MONTH / できごとの束'
+            : entrance
+              ? `入口 / 最新の年の机 / ${order === 'new' ? '新しい順' : '古い順'}`
+              : `YEAR / ${order === 'new' ? '新しい順' : '古い順'}`;
 
   return (
     <AlbumFilterProvider filter={filter} drawer={drawer}>
@@ -190,7 +210,7 @@ export function AlbumView() {
           data-motion="title"
         >
           <div>
-            {view && view !== 'all' ? (
+            {view && view !== 'all' && view !== 'search' ? (
               <div className="mono" style={{ fontSize: 14, fontWeight: 700 }}>
                 <Link
                   href={albumHref({ order })}
@@ -236,7 +256,11 @@ export function AlbumView() {
             )}
             <h1
               className="h1"
-              style={view && view !== 'all' ? { paddingTop: 8 } : undefined}
+              style={
+                view && view !== 'all' && view !== 'search'
+                  ? { paddingTop: 8 }
+                  : undefined
+              }
             >
               {heading}{' '}
               {entrance && year === overview.data.latestYear ? (
@@ -251,20 +275,49 @@ export function AlbumView() {
           </div>
         </div>
 
-        {entrance ? <Memories /> : null}
-
         <div data-motion="block">
-          <TimeRuler
-            overview={overview.data}
-            order={order}
-            zoom={zoom}
-            year={rulerYear}
-            months={yearData.data.months}
-            month={month}
-            eventHref={eventHref}
-            onToggleOrder={toggleOrder}
+          <SearchBox
+            filter={filter}
+            onPick={(next) =>
+              url.set({
+                ...filterParams(next),
+                view: 'search',
+                y: undefined,
+                m: undefined,
+                e: undefined,
+                more: undefined,
+                small: undefined,
+              })
+            }
+            onRemove={(next) =>
+              url.set({
+                ...filterParams(next),
+                // 検索の条件を、すべて外したら、検索結果の画面から、入口へ戻る
+                ...(searching && countSearch(next) === 0
+                  ? { view: undefined }
+                  : {}),
+                more: undefined,
+              })
+            }
           />
         </div>
+
+        {entrance ? <Memories /> : null}
+
+        {searching ? null : (
+          <div data-motion="block">
+            <TimeRuler
+              overview={overview.data}
+              order={order}
+              zoom={zoom}
+              year={rulerYear}
+              months={yearData.data.months}
+              month={month}
+              eventHref={eventHref}
+              onToggleOrder={toggleOrder}
+            />
+          </div>
+        )}
 
         <FilterBar
           filter={filter}
@@ -286,10 +339,14 @@ export function AlbumView() {
               data-motion="block"
             >
               <span className="mono" style={{ fontSize: 13, fontWeight: 700 }}>
+                {searching && searchResult.data
+                  ? `${formatCount(searchResult.data.total)} 枚 / 代表の ${formatCount(searchResult.data.photos.length)} 枚を広げている`
+                  : null}
                 {zoom === 'all' &&
                   allSections.data &&
                   `${formatCount(allSections.data.total)} 枚 / 年月ごとに、すべて並べている`}
-                {zoom === 'year' &&
+                {!searching &&
+                  zoom === 'year' &&
                   `${formatCount(yearData.data.total)} 枚 / 月ごとの代表を広げている`}
                 {zoom === 'month' &&
                   monthEvents &&
@@ -326,7 +383,34 @@ export function AlbumView() {
                 ) : null}
               </>
             ) : null}
-            {zoom === 'year' ? <YearDesk data={yearData.data} /> : null}
+            {searching && searchResult.data ? (
+              <>
+                <SearchDesk
+                  data={searchResult.data}
+                  onMore={() =>
+                    url.set({
+                      more: String(
+                        (toInt(url.get('more')) ?? SEARCH_STEP) + SEARCH_STEP
+                      ),
+                    })
+                  }
+                />
+                {searchResult.data.total > 0 ? (
+                  <div className="flex justify-end">
+                    <Button
+                      variant="y"
+                      href={albumHref({ view: 'all', layout: 'rows', order })}
+                    >
+                      {formatCount(searchResult.data.total)}{' '}
+                      件を一覧で(行ぞろえ) →
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+            {!searching && zoom === 'year' ? (
+              <YearDesk data={yearData.data} />
+            ) : null}
             {zoom === 'month' && monthEvents ? (
               <MonthDesk
                 data={monthEvents}

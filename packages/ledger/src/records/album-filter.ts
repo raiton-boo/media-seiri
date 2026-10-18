@@ -15,7 +15,27 @@ export type AlbumFilter = {
   dateSources?: string[];
   /** ソースのドライブ(コピーしたソースのファイルの、ドライブ) */
   volumeIds?: number[];
+  /** 検索: 日付(`YYYY` / `YYYY-MM` / `YYYY-MM-DD`)。撮影日時が、その日付で始まるもの。複数なら、どれか */
+  dates?: string[];
+  /** 検索: ファイル名に含む文字(大文字・小文字は、区別しない)。複数なら、どれか */
+  names?: string[];
+  /** 検索: 場所(GPS を 0.1 度(約 11km)の格子にまとめた、中心)。複数なら、どれか */
+  places?: { lat: number; lon: number }[];
 };
+
+/** 場所の格子(度)。地名への変換はしないので、座標のまとまりで探す */
+export const PLACE_CELL_DEGREES = 0.1;
+
+/** 座標を、格子の中心に丸める(SQL の `round(x, 1)` と、同じ丸め) */
+export const roundToPlaceCell = (value: number): number =>
+  Math.round(value / PLACE_CELL_DEGREES) / (1 / PLACE_CELL_DEGREES);
+
+/** LIKE の特別な文字(`%`・`_`・`\`)を、そのままの文字として扱う */
+export const escapeLike = (text: string): string =>
+  text.replace(/[\\%_]/g, (char) => `\\${char}`);
+
+/** ファイル名(`rel_path` の、最後の `/` のあと)を取り出す SQL */
+const BASENAME_SQL = `replace(f.rel_path, rtrim(f.rel_path, replace(f.rel_path, '/', '')), '')`;
 
 /** カメラの「不明」を表す名前 */
 export const UNKNOWN_CAMERA = '不明';
@@ -81,6 +101,26 @@ export const albumFilterSql = (
     );
     params.push(...filter.volumeIds);
   }
+  if (filter.dates && filter.dates.length > 0) {
+    parts.push(
+      `(${filter.dates.map(() => "m.taken_at LIKE ? || '%'").join(' OR ')})`
+    );
+    params.push(...filter.dates);
+  }
+  if (filter.names && filter.names.length > 0) {
+    parts.push(
+      `(${filter.names.map(() => `lower(${BASENAME_SQL}) LIKE '%' || lower(?) || '%' ESCAPE '\\'`).join(' OR ')})`
+    );
+    params.push(...filter.names.map(escapeLike));
+  }
+  if (filter.places && filter.places.length > 0) {
+    parts.push(
+      `(${filter.places
+        .map(() => '(round(m.gps_lat, 1) = ? AND round(m.gps_lon, 1) = ?)')
+        .join(' OR ')})`
+    );
+    for (const place of filter.places) params.push(place.lat, place.lon);
+  }
   return {
     sql: parts.map((part) => ` AND ${part}`).join(''),
     params,
@@ -97,4 +137,7 @@ export const countAlbumFilters = (filter: AlbumFilter): number =>
     filter.precisions?.length,
     filter.dateSources?.length,
     filter.volumeIds?.length,
+    filter.dates?.length,
+    filter.names?.length,
+    filter.places?.length,
   ].filter(Boolean).length;
