@@ -3,7 +3,9 @@ import type {
   AlbumPhoto,
   AlbumSection,
   BrowsedError,
+  CalendarDay,
   DashboardSummary,
+  DaySummary,
   DuplicateGroup,
   DuplicateGroupDetail,
   EventDetail,
@@ -205,3 +207,16 @@ export type SlideshowResponse = {
   total: number;
   photos: AlbumPhoto[];
 };
+
+/** カレンダー: 選べる年と、1 年の日ごとの枚数(写真のある日だけ)。年を省くと、いちばん新しい年 */
+export type CalendarResponse = {
+  /** 選べる年(新しい年が先)。絞り込みに合う、日まで分かる写真のある年 */
+  years: { year: number; count: number }[];
+  /** いま出している年(写真が 1 枚もなければ null) */
+  year: number | null;
+  days: CalendarDay[];
+  total: number;
+};
+
+/** 選んだ日のまとめ */
+export type CalendarDayResponse = DaySummary & { date: string };

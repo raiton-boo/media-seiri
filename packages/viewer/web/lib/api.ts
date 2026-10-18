@@ -13,6 +13,8 @@ import type {
   AlbumSectionsResponse,
   AlbumYearResponse,
   AreaLabelsResponse,
+  CalendarDayResponse,
+  CalendarResponse,
   DashboardResponse,
   DupeDetailResponse,
   DupesResponse,
@@ -348,5 +350,28 @@ export const useSlideshow = (
       fetchJson<SlideshowResponse>(
         `/api/album/slideshow${queryString({ order, event: eventId, ...filterParams(filter) })}`
       ),
+    placeholderData: keepPreviousData,
+  });
+
+/** カレンダー: 選べる年と、1 年の日ごとの枚数。年を省くと、いちばん新しい年 */
+export const useCalendar = (year: number | undefined, filter: FilterState) =>
+  useQuery({
+    queryKey: ['album-calendar', year, filter],
+    queryFn: () =>
+      fetchJson<CalendarResponse>(
+        `/api/album/calendar${queryString({ y: year, ...filterParams(filter) })}`
+      ),
+    placeholderData: keepPreviousData,
+  });
+
+/** 選んだ日のまとめ(枚数・最初と最後の時刻・GPS) */
+export const useCalendarDay = (date: string | undefined, filter: FilterState) =>
+  useQuery({
+    queryKey: ['album-calendar-day', date, filter],
+    queryFn: () =>
+      fetchJson<CalendarDayResponse>(
+        `/api/album/day${queryString({ day: date, ...filterParams(filter) })}`
+      ),
+    enabled: date !== undefined,
     placeholderData: keepPreviousData,
   });

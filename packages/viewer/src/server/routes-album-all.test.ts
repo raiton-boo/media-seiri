@@ -11,6 +11,8 @@ import type {
   AlbumSectionPhotosResponse,
   AlbumSectionsResponse,
   AreaLabelsResponse,
+  CalendarDayResponse,
+  CalendarResponse,
   SearchPhotosResponse,
   SearchSuggestResponse,
 } from '../api-types.ts';
@@ -247,5 +249,53 @@ describe('地名(地域)の検索', () => {
       'pref:40': '東京都',
       'country:JP': '日本',
     });
+  });
+});
+
+describe('カレンダー', () => {
+  test('calendar: 年の一覧と日ごとの枚数(年を省くと、最新の年。条件が効く)', async () => {
+    const app = createViewerApp(seed());
+    const calendar = async (query: string) =>
+      (await (
+        await get(app, `/api/album/calendar${query}`)
+      ).json()) as CalendarResponse;
+    expect(await calendar('')).toMatchObject({
+      year: 2024,
+      years: [
+        { year: 2024, count: 2 },
+        { year: 2023, count: 1 },
+      ],
+      days: [
+        { date: '2024-03-05', count: 1 },
+        { date: '2024-03-06', count: 1 },
+      ],
+      total: 2,
+    });
+    expect((await calendar('?y=2023')).days).toEqual([
+      { date: '2023-12-31', count: 1 },
+    ]);
+    expect((await calendar('?kind=video')).days).toEqual([
+      { date: '2024-03-06', count: 1 },
+    ]);
+    expect(await calendar('?y=1999')).toMatchObject({
+      year: 1999,
+      days: [],
+      total: 0,
+    });
+  });
+
+  test('day: 選んだ日のまとめ。不正な日付は 400', async () => {
+    const app = createViewerApp(seed());
+    const body = (await (
+      await get(app, '/api/album/day?day=2024-03-05')
+    ).json()) as CalendarDayResponse;
+    expect(body).toEqual({
+      date: '2024-03-05',
+      count: 1,
+      firstClock: '10:00',
+      lastClock: '10:00',
+      gpsCount: 1,
+    });
+    expect((await get(app, '/api/album/day?day=2024-3-5')).status).toBe(400);
   });
 });

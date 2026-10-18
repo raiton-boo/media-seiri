@@ -31,6 +31,7 @@ import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
 import { RevealPage } from '../motion/Reveal';
 import { AllView } from './AllView';
+import { CalendarView } from './CalendarView';
 import { EventDesk } from './EventDesk';
 import { FilterBar } from './FilterBar';
 import { FilterDrawer } from './FilterDrawer';
@@ -181,9 +182,7 @@ function AlbumBrowser() {
   const entrance = view === undefined;
   const heading =
     view === 'search'
-      ? searchResult.data
-        ? `見つけた、${formatCount(searchResult.data.total)} 枚。`
-        : '検索結果'
+      ? '検索結果'
       : view === 'all'
         ? 'すべて'
         : view === 'event' && eventStart
@@ -264,7 +263,7 @@ function AlbumBrowser() {
                   : undefined
               }
             >
-              {heading}{' '}
+              アルバム<span className="h1-sub"> - {heading}</span>{' '}
               {entrance && year === overview.data.latestYear ? (
                 <span
                   className="chip y"
@@ -275,6 +274,11 @@ function AlbumBrowser() {
               ) : null}
             </h1>
           </div>
+          <Button
+            href={albumHref({ view: 'calendar', y: year, order: undefined })}
+          >
+            カレンダー
+          </Button>
         </div>
 
         <div data-motion="block">
@@ -489,5 +493,6 @@ export function AlbumView() {
   const view = url.get('view');
   if (view === 'photo') return <PhotoViewer />;
   if (view === 'slide') return <Slideshow />;
+  if (view === 'calendar') return <CalendarView />;
   return <AlbumBrowser />;
 }
