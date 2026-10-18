@@ -32,6 +32,8 @@ export type CommandContext = {
   shouldStop: () => boolean;
   /** 0 以上 1 未満の乱数(`verify --sample` の抜き取り)。テストでは、差し替える */
   random: () => number;
+  /** 結果を、色つきの枠(Ink)で出すか(端末で、`NO_COLOR` がないとき)。出さないときは、文字だけの行。テストでは、いつも false */
+  fancy: boolean;
   /** ログの表示に、色を付けるか(端末で、`NO_COLOR` がないとき)。テストでは、差し替える */
   useColor: boolean;
   /** 指定のミリ秒、待つ(`logs --follow`)。テストでは、差し替える */

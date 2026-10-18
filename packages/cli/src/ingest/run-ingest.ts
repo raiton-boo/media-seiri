@@ -10,6 +10,8 @@ import {
 } from '../copy/index.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
 import { createMetadataReader } from '../metadata/index.ts';
+import { renderReport } from '../present/report-view.tsx';
+import { formatTotals, totalsReport } from '../present/summary-report.ts';
 import {
   type IngestOptions,
   type IngestSession,
@@ -19,6 +21,7 @@ import { openLibraryForIngest } from './library.ts';
 import { acquireLockSession } from './lock-session.ts';
 import { checkDestinationVolume } from './preflight.ts';
 import { recoverUnrecordedCopies } from './recover.ts';
+import { dropOverlappingSources } from './sources.ts';
 
 export type { IngestOptions } from './ingest-source.ts';
 
@@ -74,6 +77,7 @@ const runIngestInner = async (
       write: (work) => library.ledger.transaction(work),
       lock: undefined,
       takeover: undefined,
+      collected: [],
     };
 
     if (!options.dryRun) {
@@ -104,15 +108,37 @@ const runIngestInner = async (
     }
 
     let worst: ExitCode = EXIT_CODES.ok;
-    for (const [index, source] of options.sources.entries()) {
+    // ほかの取り込み元の中にある取り込み元は、同じファイルを 2 度読むだけなので、外す
+    const { kept: sources, dropped } = dropOverlappingSources(options.sources);
+    for (const { source, parent } of dropped) {
+      context.stderr(
+        `警告: ${source} は、${parent} と重なるため、取り込み元から外しました(${parent} の中に、含まれます)。`
+      );
+    }
+    for (const [index, source] of sources.entries()) {
       const code = await ingestSource(session, source, {
         index,
-        count: options.sources.length,
+        count: sources.length,
       });
       if (code === EXIT_CODES.interrupted) return code;
       if (code > worst) worst = code;
       // ロックを失ったら、ほかのソースには、進まない
       if (lock?.isLost()) break;
+    }
+    if (session.collected.length > 1) {
+      if (context.fancy) {
+        const columns = process.stdout.columns ?? 100;
+        const text = renderReport(
+          totalsReport(session.collected, options.dryRun),
+          columns
+        );
+        if (context.report) context.report([text]);
+        else context.stdout(text);
+      } else {
+        const lines = formatTotals(session.collected, options.dryRun);
+        if (context.report) context.report(lines);
+        else for (const line of lines) context.stdout(line);
+      }
     }
     return worst;
   } finally {

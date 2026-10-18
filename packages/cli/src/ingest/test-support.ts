@@ -124,6 +124,7 @@ export const runIn = async (
     newLibraryId: () => 'lib-1',
     timeZone: 'Asia/Tokyo',
     isInteractive: false,
+    fancy: false,
     useColor: false,
     sleep: async () => {},
     thumbnailMaker: () => fakeThumbnailMaker(),

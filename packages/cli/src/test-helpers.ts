@@ -29,6 +29,7 @@ export const runCli = async (
     stdout: (text) => stdout.push(text),
     stderr: (text) => stderr.push(text),
     now: () => FIXED_NOW,
+    fancy: false,
     newLibraryId: options.newLibraryId ?? (() => 'lib-1'),
   };
   const code = await run(['--data-dir', options.dataDir, ...argv], environment);

@@ -8,8 +8,14 @@ import {
 import { CliError } from '../cli-error.ts';
 import type { CommandContext } from '../context.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
-import { formatEventLine } from '../log/format.ts';
+import {
+  formatEventLine,
+  formatEventLineFancy,
+  formatLocalTime,
+} from '../log/format.ts';
 import { openLibraryReadOnly } from '../log/open.ts';
+import { showReport } from '../present/index.ts';
+import { describeRunKind, STATUS_LABELS } from './status.ts';
 
 export type LogsArguments = {
   library: string | undefined;
@@ -92,8 +98,40 @@ export const logsCommand = async (
     const print = (events: readonly EventRecord[]): void => {
       for (const event of events)
         if (shown.has(event.level))
-          context.stdout(formatEventLine(event, style));
+          context.stdout(
+            context.fancy
+              ? formatEventLineFancy(event, context.timeZone)
+              : formatEventLine(event, style)
+          );
     };
+    if (context.fancy) {
+      showReport(context, {
+        title: 'ログ',
+        badge: {
+          label: STATUS_LABELS[run.status],
+          tone:
+            run.status === 'completed'
+              ? 'ok'
+              : run.status === 'running'
+                ? 'info'
+                : 'warn',
+        },
+        sections: [
+          {
+            title: `実行 #${run.runId}`,
+            tone: 'info',
+            rows: [
+              { label: '種類', value: describeRunKind(run) },
+              {
+                label: '開始',
+                value: formatLocalTime(run.startedAt, context.timeZone),
+              },
+              { label: '表示', value: `${minLevel} 以上` },
+            ],
+          },
+        ],
+      });
+    }
 
     // イベントは、すべてのレベルで読み、表示で絞る(追いかけの続きの位置を、見落とさないため)
     let events = listEvents(db, { runId: run.runId });

@@ -1,5 +1,6 @@
 import { epochToLocalParts } from '@file-seiri/core';
 import type { EventRecord } from '@file-seiri/ledger';
+import { ansi, type ColorName } from '../live/theme.ts';
 
 const pad = (value: number | undefined): string =>
   String(value ?? 0).padStart(2, '0');
@@ -35,4 +36,33 @@ export const formatEventLine = (
   const color = style.color ? COLORS[event.level] : undefined;
   const coloredLevel = color ? `\u001b[${color}m${level}\u001b[0m` : level;
   return `${formatLocalTime(event.occurredAt, style.timeZone)} ${coloredLevel} #${event.runId} ${event.code} ${event.message}`;
+};
+
+const BADGE: Record<
+  EventRecord['level'],
+  { bg: ColorName; fg: ColorName; message: ColorName }
+> = {
+  DEBUG: { bg: 'grey', fg: 'paper', message: 'subtle' },
+  INFO: { bg: 'blue', fg: 'ink', message: 'text' },
+  WARN: { bg: 'orange', fg: 'ink', message: 'orange' },
+  ERROR: { bg: 'red', fg: 'paper', message: 'red' },
+};
+
+/** ログの 1 行を、ライブ表示と同じ配色にする(レベルは、色つきの札。コードは、水色) */
+export const formatEventLineFancy = (
+  event: EventRecord,
+  timeZone: string
+): string => {
+  const badge = BADGE[event.level];
+  return [
+    ansi(formatLocalTime(event.occurredAt, timeZone), { fg: 'subtle' }),
+    ansi(` ${event.level.padEnd(5)} `, {
+      bg: badge.bg,
+      fg: badge.fg,
+      bold: true,
+    }),
+    ansi(`#${event.runId}`, { fg: 'subtle' }),
+    ansi(event.code, { fg: 'cyan' }),
+    ansi(event.message, { fg: badge.message }),
+  ].join(' ');
 };
