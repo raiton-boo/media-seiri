@@ -23,6 +23,37 @@ const setup = (): { dataDir: string; drive: string } => {
 };
 
 describe('使い方', () => {
+  test('コマンドごとの --help は、意味・オプション・例を出す', async () => {
+    const { dataDir } = setup();
+    const result = await runCli(['ingest', '--help'], { dataDir });
+    const text = result.stdout.join('\n');
+    expect(result.code).toBe(EXIT_CODES.ok);
+    expect(text).toContain('seiri ingest');
+    expect(text).toContain('--dry-run');
+    expect(text).toContain('例');
+  });
+
+  test('help <コマンド> も、同じ説明を出す', async () => {
+    const { dataDir } = setup();
+    const result = await runCli(['help', 'viewer'], { dataDir });
+    expect(result.code).toBe(EXIT_CODES.ok);
+    expect(result.stdout.join('\n')).toContain('--snapshot');
+  });
+
+  test('知らないコマンドの help は、一覧つきの失敗(2)', async () => {
+    const { dataDir } = setup();
+    const result = await runCli(['help', 'nothing'], { dataDir });
+    expect(result.code).toBe(EXIT_CODES.failed);
+    expect(result.stderr.join('\n')).toContain('知らないコマンド');
+  });
+
+  test('--version は、バージョンを出す', async () => {
+    const { dataDir } = setup();
+    const result = await runCli(['--version'], { dataDir });
+    expect(result.code).toBe(EXIT_CODES.ok);
+    expect(result.stdout.join('\n')).toMatch(/^seiri \d+\.\d+\.\d+/);
+  });
+
   test('--help は、説明を出して、0', async () => {
     const { dataDir } = setup();
     const result = await runCli(['--help'], { dataDir });
