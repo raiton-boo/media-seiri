@@ -50,6 +50,7 @@ export const runIngest = async (
     restoreSnapshot: options.restoreSnapshot,
   });
   const metadataReader = createMetadataReader();
+  const repairTools = context.repairTools();
   let lock: WriteLock | undefined;
   let stopHeartbeat = (): void => {};
   try {
@@ -58,6 +59,7 @@ export const runIngest = async (
       library,
       destinationVolume,
       metadataReader,
+      repairTools,
       options,
       write: (work) => library.ledger.transaction(work),
       lock: undefined,
@@ -118,6 +120,7 @@ export const runIngest = async (
     }
     lock?.release();
     await metadataReader.close();
+    await repairTools.close();
     library.ledger.close();
   }
 };

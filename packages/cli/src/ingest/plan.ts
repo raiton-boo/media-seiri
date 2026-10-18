@@ -3,13 +3,17 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   type Bucket,
+  buildPlacement,
   choosePlacements,
   type DateResolution,
+  extensionOf,
   type FileGroup,
   groupFiles,
+  type Placement,
   placementPath,
   resolveGroupDate,
   type SourceFile,
+  stemOf,
 } from '@file-seiri/core';
 import {
   libraryPathExists,
@@ -65,6 +69,50 @@ export type PlanEnvironment = {
 };
 
 const CASE_INSENSITIVE = (path: string): string => path.toLowerCase();
+
+/** 連番の上限(`choosePlacements` と同じ) */
+const MAX_SEQUENCE = 9999;
+
+/**
+ * 日付に関係なく、`_unknown/<理由>/` に、グループの全員を置く(語幹は、代表の元の語幹。衝突したら、連番)。
+ * `choosePlacements` は、日付の決定から、置き場所を決めるため、理由を指定する、この版を持つ。
+ */
+const chooseUnknownPlacements = (
+  group: FileGroup,
+  date: ReturnType<typeof resolveGroupDate>,
+  reason: 'repaired-nodate',
+  isTaken: (path: string) => boolean
+): {
+  sequence: number | undefined;
+  placements: { file: SourceFile; placement: Placement }[];
+} => {
+  for (let sequence: number | undefined = undefined; ; ) {
+    const placements = group.members.map((member) => {
+      const extension = extensionOf(member.file.fileName);
+      const original =
+        extension === ''
+          ? date.representative.stem
+          : `${date.representative.stem}.${extension}`;
+      return {
+        file: member.file,
+        placement: buildPlacement(
+          { kind: 'unknown', reason },
+          original,
+          sequence
+        ),
+      };
+    });
+    const paths = placements.map((entry) => placementPath(entry.placement));
+    if (new Set(paths.map((path) => path.toLowerCase())).size !== paths.length)
+      throw new Error(
+        `グループの中で、同じ名前になるメンバーがいる: ${group.key}`
+      );
+    if (paths.every((path) => !isTaken(path))) return { sequence, placements };
+    sequence = (sequence ?? 0) + 1;
+    if (sequence > MAX_SEQUENCE)
+      throw new Error(`空いている名前が見つからない: ${group.key}`);
+  }
+};
 
 /** 内容が、ライブラリにあるか・この実行の先のファイルと同じかで、重複を決める(ファイルの並びの順に、先のものを採用) */
 const decideDuplicates = (
@@ -132,10 +180,17 @@ export const buildPlan = (
     reserved.add(CASE_INSENSITIVE(path));
   };
 
-  // グループに入れるもの: バイトが読めて、重複でないもの(`.xmp` は、あとで RAW に従う)
+  // グループに入れるもの: バイトが読めて、重複でないもの(`.xmp` は、あとで RAW に従う)。
+  // 直せなかった破損は、グループに入れず、1 つずつ、`_unknown/読み取り不可/` へ(元の名前のまま)
   const groupable: SourceFile[] = [];
+  const unreadableIndexes: number[] = [];
   analyses.forEach((analysis, index) => {
     if (analysis.problem?.code === 'READ_FAILED') return;
+    if (analysis.corruption?.verdict === 'unreadable') {
+      if (analysis.content && !duplicates.has(index))
+        unreadableIndexes.push(index);
+      return;
+    }
     if (duplicates.has(index) && analysis.file.kind !== 'xmp') return;
     groupable.push({
       id: analysis.file.relPath,
@@ -162,7 +217,20 @@ export const buildPlan = (
         );
     }
     const date = resolveGroupDate(group, resolutions);
-    const placed = choosePlacements(group, date, isTaken);
+    // 修復したファイルを含み、修復後も日付が取れないグループは、`_unknown/修復後も日付なし/`(仕様書 §10-3)
+    const repairedWithoutDate =
+      (date.resolution.precision === 'none' ||
+        date.resolution.precision === 'invalid') &&
+      group.members.some((member) => {
+        const index = indexByRelPath.get(member.file.id);
+        return (
+          index !== undefined &&
+          analyses[index]?.corruption?.verdict === 'repaired'
+        );
+      });
+    const placed = repairedWithoutDate
+      ? chooseUnknownPlacements(group, date, 'repaired-nodate', isTaken)
+      : choosePlacements(group, date, isTaken);
     if (placed.sequence !== undefined) sequencedGroups += 1;
     const groupIndex = groups.length;
     groups.push({
@@ -185,6 +253,42 @@ export const buildPlan = (
     }
   };
 
+  /** 読み取り不可の 1 ファイル: 元のバイトのまま、元の名前で置く(衝突したら、連番) */
+  const placeUnreadable = (index: number): void => {
+    const analysis = analyses[index] as FileAnalysis;
+    for (let sequence: number | undefined = undefined; ; ) {
+      const placement = buildPlacement(
+        { kind: 'unknown', reason: 'unreadable' },
+        analysis.file.fileName,
+        sequence
+      );
+      const destinationPath = placementPath(placement);
+      if (isTaken(destinationPath)) {
+        sequence = (sequence ?? 0) + 1;
+        if (sequence > MAX_SEQUENCE)
+          throw new Error(
+            `空いている名前が見つからない: ${analysis.file.relPath}`
+          );
+        continue;
+      }
+      reserve(destinationPath);
+      if (sequence !== undefined) sequencedGroups += 1;
+      const groupIndex = groups.length;
+      groups.push({
+        stem: stemOf(analysis.file.fileName),
+        bucket: placement.bucket,
+      });
+      groupDates.push(analysis.resolution);
+      files[index] = {
+        action: 'copy',
+        destinationPath,
+        bucket: placement.bucket,
+        groupIndex,
+      };
+      return;
+    }
+  };
+
   for (const group of grouping.groups) {
     try {
       placeGroup(group);
@@ -192,6 +296,17 @@ export const buildPlan = (
       const detail = error instanceof Error ? error.message : String(error);
       for (const member of group.members)
         failures.push({ relPath: member.file.id, detail });
+    }
+  }
+
+  for (const index of unreadableIndexes) {
+    try {
+      placeUnreadable(index);
+    } catch (error) {
+      failures.push({
+        relPath: (analyses[index] as FileAnalysis).file.relPath,
+        detail: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

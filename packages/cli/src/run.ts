@@ -15,6 +15,7 @@ import { resolveDataDir } from './config/paths.ts';
 import { type CommandContext, newLibraryId } from './context.ts';
 import { EXIT_CODES, type ExitCode } from './exit-codes.ts';
 import { askYesNo } from './prompt.ts';
+import { createRepairTools, type RepairTools } from './repair/index.ts';
 import { createThumbnailMaker, type ThumbnailMaker } from './thumbs/index.ts';
 import {
   listMountedVolumes,
@@ -70,6 +71,7 @@ export type RunEnvironment = {
   useColor?: boolean;
   sleep?: (milliseconds: number) => Promise<void>;
   thumbnailMaker?: () => ThumbnailMaker;
+  repairTools?: () => RepairTools;
   viewerWebDir?: string;
   ingestHooks?: CommandContext['ingestHooks'];
 };
@@ -136,6 +138,7 @@ export const run = async (
         ((milliseconds) =>
           new Promise((resolve) => setTimeout(resolve, milliseconds))),
       thumbnailMaker: environment.thumbnailMaker ?? createThumbnailMaker,
+      repairTools: environment.repairTools ?? createRepairTools,
       viewerWebDir: environment.viewerWebDir ?? DEFAULT_WEB_DIR,
       ingestHooks: environment.ingestHooks,
     };

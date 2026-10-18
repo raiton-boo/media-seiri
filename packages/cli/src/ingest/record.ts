@@ -4,6 +4,7 @@ import {
   insertDuplicateLink,
   recordError,
   recordEvent,
+  recordRepairAttempt,
   setSourceFileContent,
   setSourceFileState,
   upsertMediaMetadata,
@@ -123,6 +124,41 @@ export const recordPlan = (
         analysis.problem.code,
         `${file.relPath}: ${analysis.problem.detail}`
       );
+    }
+    // 破損の検査・修復の結果: 試した手順を `repair_attempts` に残す。修復できたものは INFO、直せなかった・試みなかったものは、エラー一覧に
+    if (analysis.corruption) {
+      for (const attempt of analysis.corruption.attempts) {
+        recordRepairAttempt(db, {
+          sourceFileId,
+          method: attempt.method,
+          isSuccess: attempt.success,
+          ...(attempt.outputPath === undefined
+            ? {}
+            : { outputPath: attempt.outputPath }),
+          detail: attempt.detail,
+          attemptedAt: at,
+        });
+      }
+      if (analysis.corruption.verdict === 'repaired') {
+        event(
+          'INFO',
+          'REPAIRED',
+          `${file.relPath}: ${analysis.corruption.detail}`
+        );
+      } else {
+        recordError(db, {
+          runId,
+          sourceFileId,
+          code: analysis.corruption.code,
+          detail: analysis.corruption.detail,
+          occurredAt: at,
+        });
+        event(
+          'ERROR',
+          analysis.corruption.code,
+          `${file.relPath}: ${analysis.corruption.detail}`
+        );
+      }
     }
     switch (filePlan?.action) {
       case 'copy':

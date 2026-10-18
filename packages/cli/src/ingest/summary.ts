@@ -35,6 +35,10 @@ export type IngestSummary = {
   takeoutJson: number;
   /** ZIP(入れ子を含む) */
   archives: number;
+  /** 破損と分かったもの(修復できたもの・直せなかったもの・試みなかったものの合計) */
+  corrupted: number;
+  /** 修復できて、通常の流れで取り込むもの */
+  repaired: number;
   /** 開いた ZIP の数(入れ子を含む) */
   zipOpened: number;
   /** ZIP のことで、警告にしたもの(入れ子が深すぎて、開かなかったもの) */
@@ -85,6 +89,8 @@ export const emptySummary = (): IngestSummary => ({
   unsupported: 0,
   takeoutJson: 0,
   archives: 0,
+  corrupted: 0,
+  repaired: 0,
   zipOpened: 0,
   zipWarnings: 0,
   excluded: 0,
@@ -173,6 +179,14 @@ export const formatSummary = (
       line(
         'メタデータなし',
         `${count(summary.metadataUnreadable)} ファイル(読めなかった。日付は、ファイル名などで決めた)`
+      )
+    );
+  }
+  if (summary.corrupted > 0) {
+    lines.push(
+      line(
+        '破損',
+        `${count(summary.corrupted)} ファイル (修復 ${count(summary.repaired)} / 読み取り不可へ ${count(summary.corrupted - summary.repaired)})`
       )
     );
   }
