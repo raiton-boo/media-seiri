@@ -9,6 +9,7 @@ import { drivesCommand } from './commands/drives.ts';
 import { eventsCommand } from './commands/events.ts';
 import { ingestCommand } from './commands/ingest.ts';
 import { libraryInit } from './commands/library-init.ts';
+import { libraryList } from './commands/library-list.ts';
 import { logsCommand } from './commands/logs.ts';
 import { statusCommand } from './commands/status.ts';
 import { thumbsCommand } from './commands/thumbs.ts';
@@ -235,6 +236,9 @@ export const run = async (
     if (command === 'library' && subcommand === 'init' && rest.length <= 1) {
       return libraryInit(context, rest[0]);
     }
+    if (command === 'library' && subcommand === 'list' && rest.length === 0) {
+      return libraryList(context);
+    }
     if (command === 'drives' && positionals.length === 1) {
       return drivesCommand(context);
     }
@@ -250,7 +254,7 @@ export const run = async (
       });
     }
     if (command === 'status' && positionals.length === 1) {
-      return statusCommand(context, values.library);
+      return await statusCommand(context, values.library);
     }
     if (command === 'verify' && positionals.length === 1) {
       return await verifyCommand(context, {
@@ -272,7 +276,7 @@ export const run = async (
       });
     }
     if (command === 'viewer-install' && positionals.length === 1) {
-      return viewerInstallCommand(context, values.library);
+      return await viewerInstallCommand(context, values.library);
     }
     if (command === 'viewer' && positionals.length === 1) {
       return await viewerCommand(context, {

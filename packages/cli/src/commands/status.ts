@@ -45,11 +45,11 @@ const STATUS_TONES: Record<Run['status'], 'ok' | 'info' | 'warn' | 'error'> = {
  * `file-seiri status`: 現在の実行の状況と、ロックの保持者を表示する(`cli-logging.md` §7)。
  * 台帳は、読み取り専用で開く(取り込み中でも、見られる)。
  */
-export const statusCommand = (
+export const statusCommand = async (
   context: CommandContext,
   libraryOption: string | undefined
-): ExitCode => {
-  const { root, libraryId, ledger } = openLibraryReadOnly(
+): Promise<ExitCode> => {
+  const { root, libraryId, ledger } = await openLibraryReadOnly(
     context,
     libraryOption
   );

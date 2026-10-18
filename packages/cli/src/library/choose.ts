@@ -2,30 +2,68 @@ import { resolve } from 'node:path';
 import { CliError } from '../cli-error.ts';
 import { readConfig } from '../config/registry.ts';
 import type { CommandContext } from '../context.ts';
-import { readMarker } from './marker.ts';
+import { markerExists, readMarker } from './marker.ts';
 
-/** `--library` の指定、または、この Mac に登録されたライブラリが 1 つだけならそれ。ライブラリの根を返す */
-export const chooseLibraryRoot = (
+/** この Mac に登録されたライブラリと、ドライブが接続中か(目印があるか) */
+export type RegisteredLibrary = {
+  id: string;
+  root: string;
+  connected: boolean;
+};
+
+export const listRegisteredLibraries = (
+  context: CommandContext
+): RegisteredLibrary[] =>
+  Object.entries(readConfig(context.dataDir).libraries).map(([id, entry]) => ({
+    id,
+    root: entry.root,
+    connected: markerExists(entry.root),
+  }));
+
+/**
+ * 使うライブラリを決める。`--library` の指定があればそれ。なければ、この Mac に登録されたものから:
+ * - 1 つだけ → それ
+ * - 接続中のものが 1 つだけ → それ(ほかは、ドライブが外れているもの)
+ * - 複数 → 端末なら、一覧から選ぶ。端末でなければ、`--library` で指定するよう、一覧つきのエラー
+ * ライブラリの根を返す。
+ */
+export const chooseLibraryRoot = async (
   context: CommandContext,
   option: string | undefined
-): string => {
+): Promise<string> => {
   if (option) return resolve(option);
-  const registered = Object.entries(readConfig(context.dataDir).libraries);
-  const [only, ...others] = registered;
+  const registered = listRegisteredLibraries(context);
+  const [only] = registered;
   if (!only) {
     throw new CliError(
-      'この Mac に登録されたライブラリがありません。--library <ライブラリの根> で指定してください。'
+      'この Mac に登録されたライブラリがありません。--library <ライブラリの根> で指定してください(作るときは、seiri library init <保存先>)。'
     );
   }
-  if (others.length > 0) {
-    const list = registered
-      .map(([id, entry]) => `  ${id.slice(0, 8)}  ${entry.root}`)
-      .join('\n');
-    throw new CliError(
-      `ライブラリが複数あります。--library <ライブラリの根> で指定してください。\n${list}`
+  if (registered.length === 1) return only.root;
+  const connected = registered.filter((library) => library.connected);
+  if (connected.length === 1 && connected[0]) return connected[0].root;
+
+  // 複数あって、決められない。選んでもらう(接続中のものが複数なら、その中から。1 つもなければ、全部から)
+  const candidates = connected.length > 1 ? connected : registered;
+  if (context.isInteractive) {
+    return context.ask.select(
+      'どのライブラリにしますか?',
+      candidates.map((library) => ({
+        label: library.root,
+        hint: `(${library.id.slice(0, 8)}・${library.connected ? '接続中' : 'ドライブ未接続'})`,
+        value: library.root,
+      }))
     );
   }
-  return only[1].root;
+  const list = candidates
+    .map(
+      (library) =>
+        `  ${library.id.slice(0, 8)}  ${library.root}${library.connected ? '' : '(ドライブ未接続)'}`
+    )
+    .join('\n');
+  throw new CliError(
+    `ライブラリが複数あります。--library <ライブラリの根> で指定してください(一覧は、seiri library list)。\n${list}`
+  );
 };
 
 /**
