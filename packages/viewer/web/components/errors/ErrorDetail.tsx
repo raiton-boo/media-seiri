@@ -28,7 +28,7 @@ export function ErrorDetail({ id }: { id: number }) {
   const { error, attempts } = data;
   const fileName = error.source?.relPath.split('/').pop() ?? '';
   return (
-    <div className="card flex flex-col gap-4">
+    <div className="card y flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="h2">詳細</h2>
         <span className="chip r">{error.code}</span>

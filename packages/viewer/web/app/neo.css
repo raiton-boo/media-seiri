@@ -1166,3 +1166,29 @@ select.sel {
   gap: 4px;
   font-size: 13px;
 }
+
+/* エラー一覧の 1 件(ボタンカード): コードの札・ファイル・実行と日時 */
+.btn.block.errcard .face {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  align-items: center;
+  text-align: left;
+  padding: 10px 16px;
+}
+.errcard .chip {
+  justify-self: start;
+}
+.errcard-path {
+  font-size: 14px;
+  font-weight: 400;
+  word-break: break-all;
+}
+.errcard-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  font-weight: 400;
+  white-space: nowrap;
+}
