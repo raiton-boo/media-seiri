@@ -52,6 +52,10 @@ export type CommandContext = {
   report?: (lines: readonly string[]) => void;
   /** 破損の検査と修復に使う道具(ffmpeg・sips・ExifTool)。使い終わったら、`close` を呼ぶ。テストでは、差し替える */
   repairTools: () => RepairTools;
+  /** 既定のブラウザで、アドレスを開く(`viewer`)。テストでは、差し替える */
+  openBrowser: (url: string) => void;
+  /** 外のコマンド(ffmpeg・sips・perl)の場所を探す。なければ undefined。テストでは、差し替える */
+  findTool: (name: string) => string | undefined;
   /** 閲覧専用ビューアの実行ファイル一式の場所(ドライブの `viewer/` へ置くもの)。なければ、置かない。テストでは、差し替える */
   viewerBundleDir: string | undefined;
   /** 画面(ビューア)の静的ファイルの場所。テストでは、差し替える */

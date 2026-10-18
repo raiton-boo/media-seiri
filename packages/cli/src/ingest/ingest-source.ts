@@ -101,11 +101,9 @@ class StopRequested extends Error {
   }
 }
 
+import { terminalColumns } from '../live/terminal-size.ts';
 import { renderReport } from '../present/report-view.tsx';
 import { copyResultReport, summaryReport } from '../present/summary-report.ts';
-
-const DEFAULT_COLUMNS = 100;
-const terminalColumns = (): number => process.stdout.columns ?? DEFAULT_COLUMNS;
 
 /** 取り込みの結果(サマリー)を出す。ライブ表示の間は、画面を閉じてから、まとめて出す(`context.report`) */
 const reportLines = (

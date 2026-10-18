@@ -17,7 +17,7 @@ export const isPartFileName = (name: string): boolean =>
   PART_FILE.test(name) || APPLE_DOUBLE_PART_FILE.test(name);
 
 /** フォルダの下の、掃除の対象を、すべて集める(先に一覧を作る) */
-const listPartFiles = (root: string): string[] => {
+export const listPartFiles = (root: string): string[] => {
   const found: string[] = [];
   const walk = (directory: string): void => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -64,7 +64,7 @@ export const usesAppleDouble = (fsType: string): boolean =>
   APPLE_DOUBLE_FILESYSTEMS.has(fsType);
 
 /** 付属ファイル(`._X`)の候補を、すべて集める(先に一覧を作る)。本体(`X`)が、同じフォルダにあるものだけ */
-const listAppleDoubleFiles = (root: string): string[] => {
+export const listAppleDoubleFiles = (root: string): string[] => {
   const found: string[] = [];
   const walk = (directory: string): void => {
     const entries = readdirSync(directory, { withFileTypes: true });

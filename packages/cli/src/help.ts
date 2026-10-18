@@ -55,6 +55,64 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
     examples: [{ command: 'seiri library list', text: '一覧を見る' }],
   },
   {
+    name: 'doctor',
+    summary: 'トラブルを診断して、直し方を案内する(--fix で、安全なものを直す)',
+    usage: 'seiri doctor [--library <パス>] [--fix] [-y]',
+    about: [
+      '登録・ドライブの目印・この Mac の台帳・ロック・スナップショット・中断で残った一時ファイル・付属ファイル・外のコマンドを、調べます。',
+      '調べるだけでは、何も書き換えません。見つかった問題には、対処の方法が出ます。',
+      '--fix を付けると、安全に直せるもの(古い登録の削除・一時ファイルと付属ファイルの掃除)だけを直します。写真と台帳は、消しません。',
+      '終了コード: 0 問題なし / 1 要対応あり',
+    ],
+    options: [
+      LIBRARY,
+      { flag: '--fix', text: '安全に直せるものを、直す(直す前に、確認します)' },
+      {
+        flag: '--deep',
+        text: '深く調べる(台帳にある全ファイルの、存在・大きさ・サムネイル。時間がかかります。中身の照合は、seiri verify)',
+      },
+      { flag: '-y, --yes', text: '--fix の確認を、省く' },
+      DATA_DIR,
+    ],
+    examples: [
+      { command: 'seiri doctor', text: '診断だけ' },
+      {
+        command: 'seiri doctor --deep',
+        text: 'ファイルの存在・大きさまで、深く調べる',
+      },
+      { command: 'seiri doctor --fix', text: '診断して、直せるものを直す' },
+    ],
+  },
+  {
+    name: 'library remove',
+    summary: '空のライブラリ(間違えて作った目印)を、片づける',
+    usage: 'seiri library remove <ID または場所> [-y]',
+    about: [
+      '間違えて作った、写真の入っていないライブラリを、片づけます。目印・管理用のフォルダ(.file-seiri)・設定の登録・この Mac の空の台帳を、消します。',
+      '写真などが 1 つでも入っていれば、何も消さずに、断ります(設定から外すだけなら、library forget)。',
+    ],
+    options: [{ flag: '-y, --yes', text: '確認を、省く' }, DATA_DIR],
+    examples: [
+      {
+        command: 'seiri library remove /Volumes/Photos/Pictures',
+        text: '場所を指定して、片づける',
+      },
+    ],
+  },
+  {
+    name: 'library forget',
+    summary: 'ライブラリを、設定から外す(ファイルは、消さない)',
+    usage: 'seiri library forget <ID または場所>',
+    about: [
+      'この Mac の設定から、登録を外すだけです。ライブラリのファイル・目印・この Mac の台帳は、そのままです。',
+      'ID は、seiri library list の左の列(先頭 4 文字以上)で指定できます。',
+    ],
+    options: [DATA_DIR],
+    examples: [
+      { command: 'seiri library forget 35c0', text: 'ID の先頭で、指定する' },
+    ],
+  },
+  {
     name: 'library prune',
     summary: '古い登録(同じ場所に作り直したライブラリ)を、設定から外す',
     usage: 'seiri library prune [-y]',
@@ -136,6 +194,10 @@ export const COMMAND_HELPS: readonly CommandHelp[] = [
       {
         flag: '--port <番号>',
         text: '待ち受けるポート(既定 3939。0 なら、空いているもの)',
+      },
+      {
+        flag: '--no-open',
+        text: 'ブラウザを、自動で開かない(既定では、端末で動かすと、開きます)',
       },
       {
         flag: '--snapshot',

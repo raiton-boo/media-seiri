@@ -29,6 +29,8 @@ export type ViewerArguments = {
   library: string | undefined;
   port: string | undefined;
   snapshot: boolean;
+  /** ブラウザを、自動で開かない */
+  noOpen: boolean;
 };
 
 /** 台帳の鮮度: 台帳のファイルの更新時刻(WAL のファイルも含めて、いちばん新しいもの) */
@@ -185,6 +187,8 @@ export const viewerCommand = async (
       );
       context.stdout('終わるときは、Ctrl-C を押してください。');
     }
+    // 端末で動かしているときは、既定のブラウザで、自動で開く(--no-open で、開かない)
+    if (!args.noOpen && context.isInteractive) context.openBrowser(running.url);
     while (!context.shouldStop()) await context.sleep(200);
     running.stop();
     return EXIT_CODES.ok;

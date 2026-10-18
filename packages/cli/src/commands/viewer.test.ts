@@ -43,7 +43,8 @@ const withViewer = async (
   world: World,
   extraArgs: string[],
   work: (url: string) => Promise<void>,
-  webDir = makeWebDir()
+  webDir = makeWebDir(),
+  options: { interactive?: boolean; opened?: string[] } = {}
 ): Promise<{ code: number; stdout: string[]; stderr: string[] }> => {
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -56,7 +57,8 @@ const withViewer = async (
       stderr: (text) => stderr.push(text),
       now: () => NOW,
       timeZone: 'Asia/Tokyo',
-      isInteractive: false,
+      isInteractive: options.interactive ?? false,
+      openBrowser: (url) => options.opened?.push(url),
       resolveVolume: () => world.destVolume,
       shouldStop: () => stop,
       sleep: (milliseconds) =>
@@ -132,6 +134,37 @@ describe('viewer', () => {
     );
     expect(result.code).toBe(EXIT_CODES.ok);
     expect(result.stdout.join('\n')).toContain('この Mac の台帳');
+  });
+
+  test('端末では、ブラウザを自動で開く。--no-open・端末でないときは、開かない', async () => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);
+    await runIn(
+      world,
+      ['ingest', join(world.srcRoot, 'DCIM'), '--dest', world.library, '--yes'],
+      { thumbnailMaker: () => fakeThumbnailMaker() }
+    );
+    const opened: string[] = [];
+    await withViewer(world, [], async () => {}, makeWebDir(), {
+      interactive: true,
+      opened,
+    });
+    expect(opened).toHaveLength(1);
+    expect(opened[0]).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/$/);
+
+    const noOpen: string[] = [];
+    await withViewer(world, ['--no-open'], async () => {}, makeWebDir(), {
+      interactive: true,
+      opened: noOpen,
+    });
+    expect(noOpen).toEqual([]);
+
+    const notTerminal: string[] = [];
+    await withViewer(world, [], async () => {}, makeWebDir(), {
+      interactive: false,
+      opened: notTerminal,
+    });
+    expect(notTerminal).toEqual([]);
   });
 
   test('--snapshot: ライブラリのスナップショットを開く(家の PC と同じ見え方)', async () => {

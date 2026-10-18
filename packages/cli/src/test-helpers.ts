@@ -33,6 +33,12 @@ export const runCli = async (
     isInteractive: false,
     fancy: false,
     viewerBundleDir: undefined,
+    // この Mac の、本物のドライブは、見ない(試験では、ドライブなし。必要なら、差し替える)
+    listVolumes: () => [],
+    // ブラウザは、開かない(試験では、開いた回数を、確かめる)
+    openBrowser: () => {},
+    // 外のコマンドは、あるものとする(診断の試験で、差し替える)
+    findTool: (name) => `/usr/bin/${name}`,
     newLibraryId: options.newLibraryId ?? (() => 'lib-1'),
   };
   const code = await run(['--data-dir', options.dataDir, ...argv], environment);

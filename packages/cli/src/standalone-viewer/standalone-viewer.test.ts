@@ -133,6 +133,7 @@ describe('閲覧専用ビューア(単体)', () => {
         }
       },
       now: () => new Date(),
+      pause: async () => {},
       platform: 'win32',
       webDir: tempDir(),
       ...overrides,

@@ -10,6 +10,7 @@ import {
   usesAppleDouble,
 } from '../copy/index.ts';
 import { EXIT_CODES, type ExitCode } from '../exit-codes.ts';
+import { terminalColumns } from '../live/terminal-size.ts';
 import { createMetadataReader } from '../metadata/index.ts';
 import { renderReport } from '../present/report-view.tsx';
 import { formatTotals, totalsReport } from '../present/summary-report.ts';
@@ -154,7 +155,7 @@ const runIngestInner = async (
     }
     if (session.collected.length > 1) {
       if (context.fancy) {
-        const columns = process.stdout.columns ?? 100;
+        const columns = terminalColumns();
         const text = renderReport(
           totalsReport(session.collected, options.dryRun),
           columns
