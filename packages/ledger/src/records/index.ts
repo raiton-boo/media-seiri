@@ -67,6 +67,7 @@ export {
   type Run,
   type RunFinish,
   type RunInput,
+  type RunKind,
   type RunStatus,
   resumeRun,
   startRun,

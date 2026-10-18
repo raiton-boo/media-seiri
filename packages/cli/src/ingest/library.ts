@@ -24,11 +24,21 @@ export type OpenedLibrary = {
 export type OpenLibraryOptions = {
   /** スナップショットのほうが新しいとき、置き換えてよい(利用者が、確認済み) */
   restoreSnapshot: boolean;
+  /** 目印がないとき、端末なら、ライブラリを作るか確認する(取り込みの既定)。検査などは、false(作らず、案内して止める) */
+  createIfMissing?: boolean;
 };
 
 const SNAPSHOT_NEWER_HELP =
   'ライブラリのスナップショットのほうが、この Mac の台帳より新しい状態です(別の Mac で取り込んだ、または、この Mac の data/ が古い)。自動では、上書きしません。\n' +
   '置き換えるなら、--restore-snapshot を付けて、もう一度実行してください(いまの台帳は、別名で残します)。';
+
+/** 目印がないとき、ライブラリを作らずに、止める */
+const failMissingLibrary = (root: string): never => {
+  throw new CliError(
+    `ライブラリではありません(目印がありません): ${root}\n` +
+      '`file-seiri library init <保存先のパス>` で、ライブラリを作ってください。'
+  );
+};
 
 /**
  * 保存先に目印がないとき(仕様書 §9-2): 端末なら、ライブラリを作るか確認し、はいなら `library init` と同じ処理で作る。
@@ -76,7 +86,10 @@ export const openLibraryForIngest = async (
   const root = resolve(destination);
   if (!existsSync(root)) throw new CliError(`保存先がありません: ${root}`);
   const marker =
-    readMarker(root) ?? (await createLibraryAfterConfirm(context, root));
+    readMarker(root) ??
+    (options.createIfMissing === false
+      ? failMissingLibrary(root)
+      : await createLibraryAfterConfirm(context, root));
   const libraryId = marker.libraryId;
   const workingPath = ledgerPathFor(context.dataDir, libraryId);
   const snapshotPath = snapshotPathOf(root);

@@ -1,11 +1,6 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import {
-  acquireWriteLock,
-  interruptRunningRuns,
-  newHolderId,
-  type WriteLock,
-} from '@file-seiri/ledger';
+import type { WriteLock } from '@file-seiri/ledger';
 import { CliError } from '../cli-error.ts';
 import type { CommandContext } from '../context.ts';
 import {
@@ -21,6 +16,7 @@ import {
   ingestSource,
 } from './ingest-source.ts';
 import { openLibraryForIngest } from './library.ts';
+import { acquireLockSession } from './lock-session.ts';
 import { checkDestinationVolume } from './preflight.ts';
 import { recoverUnrecordedCopies } from './recover.ts';
 
@@ -69,45 +65,13 @@ export const runIngest = async (
     };
 
     if (!options.dryRun) {
-      const acquired = acquireWriteLock(library.ledger, {
-        holder: newHolderId(context.now()),
-        now: context.now(),
-      });
-      if (!acquired.acquired) {
-        const { holder, acquiredAt, heartbeatAt } = acquired.heldBy;
-        context.stderr(
-          `エラー: 別の実行が、このライブラリに書き込んでいます。\n  保持者: ${holder}\n  開始: ${acquiredAt}\n  最後の生存通知: ${heartbeatAt}\n` +
-            '終わるのを待つか、異常終了した場合は、60 秒たってから、もう一度実行してください(途絶えたロックは、自動で引き継ぎます)。'
-        );
-        return EXIT_CODES.failed;
-      }
+      const acquired = acquireLockSession(context, library.ledger);
+      if (!acquired) return EXIT_CODES.failed;
       lock = acquired.lock;
+      stopHeartbeat = acquired.stopHeartbeat;
       session.lock = lock;
       session.write = (work) => (lock as WriteLock).transaction(work);
-      stopHeartbeat = lock.startHeartbeat({
-        now: context.now,
-        onLost: () =>
-          context.stderr(
-            '警告: ロックを失いました(別の実行が、引き継ぎました)。書き込みを止めます。'
-          ),
-        onError: (error) =>
-          context.stderr(
-            `警告: ロックの生存通知を更新できませんでした: ${error instanceof Error ? error.message : String(error)}`
-          ),
-      });
-
-      if (acquired.takeover) {
-        const interrupted = session.write(() =>
-          interruptRunningRuns(library.ledger.db, context.now())
-        );
-        session.takeover = {
-          previous: acquired.takeover,
-          interruptedRuns: interrupted,
-        };
-        context.stdout(
-          `前の実行のロックが途絶えていたため、引き継ぎました(保持者 ${acquired.takeover.holder})。`
-        );
-      }
+      session.takeover = acquired.takeover;
       const cleaned = cleanupPartFiles(library.root);
       if (cleaned.removed.length > 0)
         context.stdout(

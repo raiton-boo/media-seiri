@@ -24,6 +24,7 @@ erDiagram
     }
     RUNS {
         int run_id PK
+        text kind "ingest / verify"
         int source_volume_id FK
         int is_dry_run "1 なら集計に含めない"
         text status "running / completed / interrupted / failed"
@@ -171,7 +172,7 @@ erDiagram
 | :---------------- | :------------------------------------------------------------------------------------------------- | :------------------- |
 | `meta`            | スキーマ版、ライブラリ ID、台帳のリビジョン番号を持つ(§8-2)                                        | [ライブラリの目印ファイル](requirements.md#m-05)、[スナップショットの保存](requirements.md#m-08)           |
 | `volumes`         | ソースの外付け・内蔵ストレージ。名前ではなく、固有 ID で識別する                                   | [ボリューム ID で識別](requirements.md#v-02)                 |
-| `runs`            | 実行ごとの記録。dry-run は `is_dry_run = 1` で区別する                                             | [実行 ID](requirements.md#m-03)、[dry-run を Web で確認](requirements.md#x-03)           |
+| `runs`            | 実行ごとの記録。dry-run は `is_dry_run = 1` で、種類(取り込み / 検査)は `kind` で区別する           | [実行 ID](requirements.md#m-03)、[dry-run を Web で確認](requirements.md#x-03)           |
 | `source_files`    | 実行ごとに検出したソース側のファイル。ZIP の中身は、親の ZIP を `container_id` で指す              | [ZIP 内のファイル](requirements.md#t-03)、[ZIP の入れ子](requirements.md#t-04)           |
 | `contents`        | ハッシュで識別する「内容」。同じハッシュは 1 行だけ                                                | [完全一致だけを重複とする](requirements.md#p-01)                 |
 | `hash_cache`      | ハッシュのキャッシュ。キーは(ボリューム, 相対パス, サイズ, mtime)                                  | [ハッシュのキャッシュ](requirements.md#h-02)、[キャッシュを使わない再計算](requirements.md#h-03)           |
@@ -203,6 +204,7 @@ erDiagram
 ### 3-3. dry-run の扱い(確定)
 
 - dry-run も `runs` と `source_files` に記録する(`runs.is_dry_run = 1`)。
+- 検査(`verify`)も、`runs` に記録する(`runs.kind = 'verify'`。エラー一覧・イベントが、実行に結びつくため)。ソースのファイルは、持たない。取り込みの再開の対象には、含めない。
 - 通常の集計(アルバム・地図・統計・重複)は、`is_dry_run = 0` の実行だけを対象にする。
 - dry-run では `library_files` は作らない。
 

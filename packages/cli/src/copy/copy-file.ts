@@ -70,7 +70,7 @@ const writeFully = async (
 };
 
 /** 保存先のファイルを、OS のキャッシュを避けて読み直し、ハッシュを返す */
-const hashWithoutCache = async (
+export const hashWithoutCache = async (
   path: string,
   chunkBytes: number
 ): Promise<string> => {

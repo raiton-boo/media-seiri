@@ -25,6 +25,8 @@ export type CommandContext = {
   confirm: (question: string) => Promise<boolean>;
   /** 中断の要求(Ctrl-C を 1 回)が、来ているか。取り込みは、今のファイルまで終えて、止まる */
   shouldStop: () => boolean;
+  /** 0 以上 1 未満の乱数(`verify --sample` の抜き取り)。テストでは、差し替える */
+  random: () => number;
   /** テストで、取り込みの途中に割り込むための差し込み口 */
   ingestHooks?: IngestHooks;
 };

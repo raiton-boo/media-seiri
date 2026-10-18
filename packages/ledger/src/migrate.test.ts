@@ -14,6 +14,23 @@ describe('MIGRATIONS', () => {
   });
 });
 
+describe('移行 0003(実行の種類)', () => {
+  test('版 2 の台帳(実行の行がある)を移行すると、既存の実行は、取り込みになる', () => {
+    const db = new Database(':memory:', { strict: true });
+    migrate(db, MIGRATIONS.slice(0, 2));
+    db.exec(
+      "INSERT INTO volumes (volume_uuid, last_seen_at) VALUES ('v', '2026-10-18T00:00:00Z')"
+    );
+    db.exec(
+      "INSERT INTO runs (source_volume_id, started_at) VALUES (1, '2026-10-18T00:00:00Z')"
+    );
+    expect(migrate(db)).toBe(MIGRATIONS.length - 2);
+    expect(db.query('SELECT kind FROM runs').all()).toEqual([
+      { kind: 'ingest' },
+    ]);
+  });
+});
+
 describe('migrate', () => {
   test('空の DB に、すべて適用する', () => {
     const db = new Database(':memory:', { strict: true });

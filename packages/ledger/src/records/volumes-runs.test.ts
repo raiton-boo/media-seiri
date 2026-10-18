@@ -70,6 +70,7 @@ describe('runs', () => {
     const { volumeId, runId } = seedRun(db);
     expect(getRun(db, runId)).toEqual({
       runId,
+      kind: 'ingest',
       sourceVolumeId: volumeId,
       isDryRun: false,
       status: 'running',
@@ -196,5 +197,38 @@ describe('resumeRun・interruptRunningRuns', () => {
     expect(getRun(db, dry)?.status).toBe('running');
     expect(getRun(db, done)?.status).toBe('completed');
     expect(interruptRunningRuns(db, T1)).toEqual([]);
+  });
+});
+
+describe('実行の種類(kind)', () => {
+  test('既定は取り込み。検査(verify)の実行は、再開の対象にも、未完了の一覧にも、含めない', () => {
+    const db = openDb();
+    const { volumeId, runId: ingest } = seedRun(db);
+    const verify = startRun(db, {
+      kind: 'verify',
+      sourceVolumeId: volumeId,
+      isDryRun: false,
+      startedAt: T0,
+    });
+    expect(getRun(db, ingest)?.kind).toBe('ingest');
+    expect(getRun(db, verify)?.kind).toBe('verify');
+    expect(listUnfinishedRuns(db, volumeId).map((run) => run.runId)).toEqual([
+      ingest,
+    ]);
+    finishRun(db, verify, { status: 'interrupted', finishedAt: T1 });
+    expect(() => resumeRun(db, verify)).toThrow('再開できる実行ではありません');
+  });
+
+  test('知らない種類は、制約で断られる', () => {
+    const db = openDb();
+    const { volumeId } = seedRun(db);
+    expect(() =>
+      startRun(db, {
+        kind: 'repair' as never,
+        sourceVolumeId: volumeId,
+        isDryRun: false,
+        startedAt: T0,
+      })
+    ).toThrow();
   });
 });
