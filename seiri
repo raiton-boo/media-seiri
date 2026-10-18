@@ -1,0 +1,3 @@
+#!/bin/sh
+# このディレクトリの中だけで使う、seiri の起動用(PATH には入れない)。どこから呼んでも、動く
+exec bun "$(dirname "$0")/packages/cli/src/main.ts" "$@"
