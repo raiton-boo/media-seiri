@@ -13,6 +13,7 @@ import {
 import {
   type AlbumLocation,
   albumHref as buildHref,
+  calendarHref,
 } from '../../lib/album-url';
 import {
   useAlbumEvent,
@@ -31,7 +32,6 @@ import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
 import { RevealPage } from '../motion/Reveal';
 import { AllView } from './AllView';
-import { CalendarView } from './CalendarView';
 import { EventDesk } from './EventDesk';
 import { FilterBar } from './FilterBar';
 import { FilterDrawer } from './FilterDrawer';
@@ -274,9 +274,7 @@ function AlbumBrowser() {
               ) : null}
             </h1>
           </div>
-          <Button
-            href={albumHref({ view: 'calendar', y: year, order: undefined })}
-          >
+          <Button href={calendarHref({ y: year, filter, drawer })}>
             カレンダー
           </Button>
         </div>
@@ -493,6 +491,5 @@ export function AlbumView() {
   const view = url.get('view');
   if (view === 'photo') return <PhotoViewer />;
   if (view === 'slide') return <Slideshow />;
-  if (view === 'calendar') return <CalendarView />;
   return <AlbumBrowser />;
 }

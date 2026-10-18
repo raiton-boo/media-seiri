@@ -3,15 +3,7 @@ import { queryString } from './api';
 
 export type AlbumLocation = {
   /** 省くと、入口(最新の年の机) */
-  view?:
-    | 'year'
-    | 'month'
-    | 'event'
-    | 'all'
-    | 'search'
-    | 'photo'
-    | 'slide'
-    | 'calendar';
+  view?: 'year' | 'month' | 'event' | 'all' | 'search' | 'photo' | 'slide';
   y?: number;
   m?: number;
   /** できごとの ID(拡大表示では、前後に動く範囲) */
@@ -22,8 +14,6 @@ export type AlbumLocation = {
   order?: 'new' | 'old';
   /** 「すべて」の配置。`masonry`(既定)は、URL に出さない */
   layout?: 'masonry' | 'rows';
-  /** カレンダーで選んだ日(`YYYY-MM-DD`) */
-  d?: string;
   /** スライドショーの速度(秒)。既定(3 秒)は、URL に出さない */
   speed?: number;
   /** スライドショーを、シャッフルする */
@@ -46,7 +36,6 @@ export const albumHref = (location: AlbumLocation = {}): string =>
     m: location.m,
     e: location.e,
     p: location.p,
-    d: location.d,
     speed: location.speed && location.speed !== 3 ? location.speed : undefined,
     shuffle: location.shuffle ? 1 : undefined,
     order: location.order === 'old' ? 'old' : undefined,
@@ -55,4 +44,23 @@ export const albumHref = (location: AlbumLocation = {}): string =>
     drawer: location.drawer ? 1 : undefined,
     small: location.small ? 1 : undefined,
     more: location.more,
+  })}`;
+
+/** カレンダーの場所(アルバムとは別のページ) */
+export type CalendarLocation = {
+  y?: number;
+  /** 選んだ日(`YYYY-MM-DD`) */
+  d?: string;
+  /** 絞り込みの条件(移っても、引き継ぐ) */
+  filter?: FilterState;
+  drawer?: boolean;
+};
+
+/** カレンダーの URL。年・選んだ日・条件は、クエリ文字列で表す */
+export const calendarHref = (location: CalendarLocation = {}): string =>
+  `/calendar${queryString({
+    y: location.y,
+    d: location.d,
+    ...(location.filter ? filterParams(location.filter) : {}),
+    drawer: location.drawer ? 1 : undefined,
   })}`;

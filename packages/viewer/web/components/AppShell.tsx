@@ -9,7 +9,8 @@ import { formatDateTime } from '../lib/format';
 /** 上のナビ。すべての画面が、ここでつながっている(design.md §5) */
 export const NAV_ITEMS = [
   { href: '/', label: 'ダッシュボード' },
-  { href: '/album', label: 'アルバム' },
+  // カレンダーは、アルバムの見方の 1 つ(別のページだが、ナビは「アルバム」のまま)
+  { href: '/album', label: 'アルバム', also: ['/calendar'] },
   { href: '/map', label: '地図' },
   { href: '/stats', label: '統計' },
   { href: '/dupes', label: '重複比較' },
@@ -18,8 +19,14 @@ export const NAV_ITEMS = [
   { href: '/runs', label: '実行履歴' },
 ] as const;
 
-const isActive = (pathname: string, href: string): boolean =>
-  href === '/' ? pathname === '/' : pathname.startsWith(href);
+const isActive = (
+  pathname: string,
+  href: string,
+  also: readonly string[] = []
+): boolean =>
+  href === '/'
+    ? pathname === '/'
+    : [href, ...also].some((path) => pathname.startsWith(path));
 
 /** 右上のチップ: ライブラリの名前と、台帳の鮮度(この Mac は最新、家の PC などは、スナップショットの時刻) */
 function LibraryChip() {
@@ -56,8 +63,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              className={isActive(pathname, item.href) ? 'on' : undefined}
-              aria-current={isActive(pathname, item.href) ? 'page' : undefined}
+              className={
+                isActive(pathname, item.href, 'also' in item ? item.also : [])
+                  ? 'on'
+                  : undefined
+              }
+              aria-current={
+                isActive(pathname, item.href, 'also' in item ? item.also : [])
+                  ? 'page'
+                  : undefined
+              }
             >
               {item.label}
             </Link>

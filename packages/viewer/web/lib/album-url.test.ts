@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { albumHref } from './album-url.ts';
+import { albumHref, calendarHref } from './album-url.ts';
 
 describe('albumHref', () => {
   test('入口は、クエリなし。新しい順(既定)は、出さない', () => {
@@ -17,5 +17,32 @@ describe('albumHref', () => {
     expect(albumHref({ view: 'event', e: 12, more: 24 })).toBe(
       '/album?view=event&e=12&more=24'
     );
+  });
+});
+
+describe('calendarHref', () => {
+  test('カレンダーは、/calendar のページ。年・選んだ日・条件を、クエリにする', () => {
+    expect(calendarHref()).toBe('/calendar');
+    expect(calendarHref({ y: 2016, d: '2016-08-13' })).toBe(
+      '/calendar?y=2016&d=2016-08-13'
+    );
+    expect(
+      calendarHref({
+        y: 2016,
+        filter: {
+          kinds: ['video'],
+          cameras: [],
+          years: [],
+          precisions: [],
+          sources: [],
+          volumes: [],
+          dates: [],
+          names: [],
+          places: [],
+          areas: [],
+        },
+        drawer: true,
+      })
+    ).toBe('/calendar?y=2016&kind=video&drawer=1');
   });
 });
