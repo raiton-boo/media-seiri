@@ -1,0 +1,3 @@
+#!/bin/sh
+# mise が、このリポジトリの中だけ PATH に足す(seiri / file-seiri)。どこから呼んでも、動く
+exec bun "$(dirname "$0")/../packages/cli/src/main.ts" "$@"
