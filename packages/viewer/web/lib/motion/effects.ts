@@ -38,11 +38,12 @@ export const pulse = (element: Element | null): Cleanup =>
     });
   });
 
-/** 進捗バーを、いまの幅から、新しい幅へ、伸ばす(動きなしのときは、すぐ、その幅) */
+/** 進捗バーを、いまの幅から、新しい幅へ、伸ばす。`delay`(秒)のあいだは、いまの幅のまま(動きなしのときは、すぐ、その幅) */
 export const growBar = (
   element: HTMLElement | null,
   percent: number,
-  from: number
+  from: number,
+  delay = 0
 ): Cleanup => {
   if (!element) return NOOP;
   const width = `${percent}%`;
@@ -53,7 +54,7 @@ export const growBar = (
   const tween = gsap.fromTo(
     element,
     { width: `${from}%` },
-    { width, duration: 0.6, ease: EASE }
+    { width, duration: 0.6, delay, ease: EASE }
   );
   return () => {
     tween.kill();
@@ -61,12 +62,13 @@ export const growBar = (
   };
 };
 
-/** 数字を、いまの値から、新しい値へ、数え上げる(動きなしのときは、すぐ、その値) */
+/** 数字を、いまの値から、新しい値へ、数え上げる。`delay`(秒)のあいだは、いまの値のまま(動きなしのときは、すぐ、その値) */
 export const countUp = (
   element: HTMLElement | null,
   to: number,
   from: number,
-  format: (value: number) => string
+  format: (value: number) => string,
+  delay = 0
 ): Cleanup => {
   if (!element) return NOOP;
   if (!isMotionEnabled() || from === to) {
@@ -78,6 +80,7 @@ export const countUp = (
   const tween = gsap.to(state, {
     value: to,
     duration: 0.9,
+    delay,
     ease: EASE,
     onUpdate: () => {
       element.textContent = format(Math.round(state.value));
