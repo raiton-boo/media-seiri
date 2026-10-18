@@ -345,6 +345,8 @@ a {
   font-family: var(--disp);
   font-size: 56px;
   line-height: 1;
+  /* 1 行のまま。はみ出す分は、NumFit が縮める */
+  white-space: nowrap;
 }
 .num.m {
   font-size: 38px;
@@ -2042,33 +2044,33 @@ img {
 }
 
 /* 重複比較: 画面に固定して、左の一覧だけを、スクロールにする(選ぶたびに、下まで動かさなくてよい) */
-.dupes-split {
+.split-view {
   position: sticky;
   top: 8px;
   height: calc(100dvh - 24px);
   min-height: 480px;
   display: grid;
-  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  grid-template-columns: var(--split-cols);
   gap: 24px;
 }
-.dupes-list {
+.split-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 0;
 }
-.dupes-items {
+.split-items {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   /* 影が切れないように、余白を取る */
   padding: 4px 10px 10px 4px;
 }
-.dupes-pager {
+.split-pager {
   flex: none;
   padding: 0 10px 4px 4px;
 }
-.dupes-detail {
+.split-detail {
   min-height: 0;
   overflow-y: auto;
   padding: 4px 10px 10px 4px;
@@ -2077,39 +2079,67 @@ img {
   gap: 16px;
 }
 /* 前へ・次へ: 詳細の上に、貼り付いて、大きく */
-.dupes-nav {
+.split-nav {
   position: sticky;
   top: 0;
   z-index: 3;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   padding: 10px 12px;
   background: var(--paper);
   border: var(--bd);
   box-shadow: var(--shs);
 }
-.dupes-nav-pos {
+.split-nav-pos {
   text-align: center;
   font-size: 14px;
   font-weight: 700;
+  white-space: nowrap;
 }
-.dupes-nav .btn .face,
-.dupes-nav-btn .face {
+.split-nav .btn {
+  width: 100%;
+}
+.split-nav .btn .face {
   min-height: 56px;
-  min-width: 150px;
-  font-size: 18px;
-  padding: 0 22px;
+  min-width: 0;
+  justify-content: center;
+  /* 狭い欄でも、1 行に収める */
+  white-space: nowrap;
+  font-size: 17px;
+  padding: 0 12px;
 }
 @media (max-width: 960px) {
-  .dupes-split {
+  .split-view {
     position: static;
     height: auto;
     grid-template-columns: minmax(0, 1fr);
   }
-  .dupes-items,
-  .dupes-detail {
+  .split-items,
+  .split-detail {
     overflow: visible;
   }
+}
+
+/* ページ送り(狭い欄用): 件数は 1 行目、前へ・次へは、2 行目に半分ずつ */
+.pager-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pager-stacked > span {
+  white-space: nowrap;
+}
+.pager-buttons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.pager-buttons .btn {
+  width: 100%;
+}
+.pager-buttons .btn .face {
+  justify-content: center;
+  min-height: 44px;
 }

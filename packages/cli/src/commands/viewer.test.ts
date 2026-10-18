@@ -167,6 +167,88 @@ describe('viewer', () => {
     expect(notTerminal).toEqual([]);
   });
 
+  /** 取り込み済みの世界で、2 つ目の `viewer` を、同じポートで動かす(1 つ目は、動いたまま) */
+  const secondViewer = async (
+    occupy: 'viewer' | 'other'
+  ): Promise<{
+    code: number;
+    stdout: string[];
+    stderr: string[];
+    opened: string[];
+    first: string;
+  }> => {
+    const world = await newWorld();
+    await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);
+    await runIn(
+      world,
+      ['ingest', join(world.srcRoot, 'DCIM'), '--dest', world.library, '--yes'],
+      { thumbnailMaker: () => fakeThumbnailMaker() }
+    );
+    const opened: string[] = [];
+    const result = { code: -1, stdout: [] as string[], stderr: [] as string[] };
+    let first = '';
+    const second = async (port: number): Promise<void> => {
+      result.code = await run(
+        [
+          '--data-dir',
+          world.dataDir,
+          'viewer',
+          '--library',
+          world.library,
+          '--port',
+          String(port),
+        ],
+        {
+          env: {},
+          stdout: (text) => result.stdout.push(text),
+          stderr: (text) => result.stderr.push(text),
+          now: () => NOW,
+          timeZone: 'Asia/Tokyo',
+          isInteractive: true,
+          openBrowser: (url) => opened.push(url),
+          resolveVolume: () => world.destVolume,
+          shouldStop: () => true,
+          sleep: async () => {},
+          viewerWebDir: makeWebDir(),
+        }
+      );
+    };
+    if (occupy === 'viewer') {
+      await withViewer(world, ['--library', world.library], async (url) => {
+        first = url;
+        await second(Number(new URL(url).port));
+      });
+    } else {
+      const occupant = Bun.serve({
+        hostname: '127.0.0.1',
+        port: 0,
+        fetch: () => new Response('other'),
+      });
+      try {
+        await second(occupant.port ?? 0);
+      } finally {
+        occupant.stop(true);
+      }
+    }
+    return { ...result, opened, first };
+  };
+
+  test('すでに同じライブラリのビューアが動いていれば、起動せず、そのアドレスを開く(エラーにしない)', async () => {
+    const result = await secondViewer('viewer');
+    expect(result.code).toBe(EXIT_CODES.ok);
+    expect(result.stdout.join('\n')).toContain('すでに起動しています');
+    expect(result.opened).toEqual([result.first]);
+  });
+
+  test('ポートを、ほかのプログラムが使っているときは、--port を指定していれば、わかる言葉で、止まる', async () => {
+    const result = await secondViewer('other');
+    expect(result.code).toBe(EXIT_CODES.failed);
+    expect(result.stderr.join('\n')).toContain(
+      'ほかのプログラムが使っています'
+    );
+    expect(result.opened).toEqual([]);
+  });
+
   test('--snapshot: ライブラリのスナップショットを開く(家の PC と同じ見え方)', async () => {
     const world = await newWorld();
     await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);

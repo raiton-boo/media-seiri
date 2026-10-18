@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { useViewerInfo } from '../lib/api';
 import { formatDateTime } from '../lib/format';
 import { Button } from './Button';
+import { NumFit } from './NumFit';
 
 /** 上のナビ。すべての画面が、ここでつながっている(design.md §5) */
 export const NAV_ITEMS = [
@@ -99,6 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   return (
     <div className="app">
+      <NumFit />
       <div className="top">
         <div className="logo">file-seiri</div>
         <nav className="nav" aria-label="画面">
