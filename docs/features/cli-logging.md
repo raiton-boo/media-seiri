@@ -146,6 +146,7 @@ btop 風の画面に決定(PoC #4。8 つの案から選んだ。[技術選定 �
 | `file-seiri logs --level WARN`      | 指定したレベル以上を表示する(`--verbose` は DEBUG 以上、`--quiet` は WARN 以上)        |
 | `file-seiri logs --tail <N>`        | 最後の N 行だけを表示する                                                              |
 | `file-seiri logs --follow`(`-f`)    | 実行中のログを、追いかけて表示する。実行が終わったら終了する(Ctrl-C でも終了する)      |
+| `file-seiri events`                 | アルバムのできごとを、全体、計算し直す(取り込みの最後に、自動でも計算される)                               |
 | `file-seiri thumbs`                 | サムネイルのないファイルに、サムネイルを作る(既存のライブラリ用。実行として記録され、`status`・`logs` に出る) |
 | `file-seiri status`                 | ロックの保持者(途絶していれば、そう表示)と、直近の実行の状況・最近の実行の一覧を表示する |
 

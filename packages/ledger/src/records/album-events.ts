@@ -129,3 +129,25 @@ export const countAlbumEvents = (db: Database): number =>
   db
     .query<{ count: number }, []>('SELECT count(*) AS count FROM album_events')
     .get()?.count ?? 0;
+
+/** できごとの計算に使う、ライブラリのファイル(日付の精度が `full` / `date` で、撮影日時があるもの) */
+export type EventSourceRow = {
+  libraryFileId: number;
+  /** `formatTakenAt` の形式(精度 `date` は、日付だけ) */
+  takenAt: string;
+  precision: 'full' | 'date';
+  lat: number | null;
+  lon: number | null;
+};
+
+/** ライブラリのファイルすべてのうち、できごとにできるもの(登録の順)。サイドカーなど、メタデータのないものは、含まない */
+export const listFilesForEvents = (db: Database): EventSourceRow[] =>
+  db
+    .query<EventSourceRow, []>(
+      `SELECT f.library_file_id AS libraryFileId, m.taken_at AS takenAt, m.date_precision AS precision,
+              m.gps_lat AS lat, m.gps_lon AS lon
+       FROM library_files AS f JOIN media_metadata AS m ON m.content_id = f.content_id
+       WHERE m.date_precision IN ('full', 'date') AND m.taken_at IS NOT NULL
+       ORDER BY f.library_file_id`
+    )
+    .all();

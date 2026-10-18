@@ -3,6 +3,7 @@ import { systemTimeZone } from '@file-seiri/core';
 import { DEFAULT_WEB_DIR } from '@file-seiri/viewer';
 import { CliError } from './cli-error.ts';
 import { drivesCommand } from './commands/drives.ts';
+import { eventsCommand } from './commands/events.ts';
 import { ingestCommand } from './commands/ingest.ts';
 import { libraryInit } from './commands/library-init.ts';
 import { logsCommand } from './commands/logs.ts';
@@ -31,6 +32,7 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
   status                        ロックの保持者と、直近の実行の状況を表示する
   verify [--library <パス>] [--sample <割合>]
                                 ライブラリの全ファイルを読み直して、台帳と照合する(修復・削除はしない)
+  events [--library <パス>]     アルバムのできごとを、計算し直す(取り込みの最後に、自動でも計算される)
   thumbs [--library <パス>]     サムネイルのないファイルに、サムネイルを作る(何度でも実行できる)
   viewer [--library <パス>] [--port <番号>] [--snapshot]
                                 ライブラリを、ブラウザで見る(閲覧専用。本機の 127.0.0.1 だけで配信する)
@@ -41,7 +43,7 @@ const USAGE = `使い方: file-seiri [--data-dir <パス>] <コマンド>
   --data-dir <パス>   作業用の領域(data/)の場所。環境変数 FILE_SEIRI_DATA_DIR でも指定できる
   --dest <パス>       ingest の保存先(ライブラリの根)
   --dry-run           ingest で、コピーせずに、結果だけを見る
-  --library <パス>    verify・thumbs・logs・status の対象のライブラリの根(登録が 1 つだけなら、省ける)
+  --library <パス>    verify・thumbs・events・logs・status の対象のライブラリの根(登録が 1 つだけなら、省ける)
   --run <ID> / --level <レベル> / --tail <N> / -f, --follow / --verbose / --quiet   logs の絞り込み・追いかけ
   --sample <割合>     verify を、抜き取りで行う(例: 0.1、10%)
   --port <番号>       viewer の待ち受けポート(既定 3939。0 なら、空いているものを選ぶ)
@@ -162,6 +164,12 @@ export const run = async (
       return await verifyCommand(context, {
         library: values.library,
         sample: values.sample,
+        restoreSnapshot: values['restore-snapshot'] ?? false,
+      });
+    }
+    if (command === 'events' && positionals.length === 1) {
+      return await eventsCommand(context, {
+        library: values.library,
         restoreSnapshot: values['restore-snapshot'] ?? false,
       });
     }

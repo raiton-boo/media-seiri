@@ -2,8 +2,10 @@ export {
   type AlbumEvent,
   type AlbumEventInput,
   countAlbumEvents,
+  type EventSourceRow,
   getAlbumEvent,
   listAlbumEvents,
+  listFilesForEvents,
   replaceAlbumEvents,
 } from './album-events.ts';
 export {
