@@ -24,6 +24,7 @@ import { formatPhotoDate } from '../../lib/photo';
 import { useAlbumFilterState } from '../../lib/use-album-filter';
 import { FilterBar } from '../album/FilterBar';
 import { FilterDrawer } from '../album/FilterDrawer';
+import { NoThumb } from '../album/NoThumb';
 import { Button } from '../Button';
 import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
@@ -132,7 +133,7 @@ function PlaceCard({
                 alt={name}
               />
             ) : (
-              <div className="lb">{name} — サムネイルなし</div>
+              <NoThumb relPath={current.relPath} name={name} />
             )}
             {list.length > 1 ? (
               <>

@@ -71,6 +71,12 @@ export {
   type PhotoStrip,
 } from './album-photo.ts';
 export {
+  listSameDayOtherYears,
+  listSourceCopies,
+  type SameDayYear,
+  type SourceCopy,
+} from './album-photo-extras.ts';
+export {
   countFilteredPhotos,
   describeDate,
   describePlace,

@@ -21,6 +21,9 @@ import { chooseLibraryRoot, libraryIdOf } from '../library/choose.ts';
 import { showReport } from '../present/index.ts';
 import { libraryThumbsDir, thumbsDirFor } from '../thumbs/index.ts';
 
+/** 接続中のドライブの一覧を、覚えておく時間(ミリ秒) */
+const MOUNT_CACHE_MS = 10_000;
+
 export type ViewerArguments = {
   library: string | undefined;
   port: string | undefined;
@@ -90,6 +93,22 @@ const openViewerSource = (
       freeBytes: stats.bavail * stats.bsize,
     };
   };
+  // ソース側のコピーを探すための、接続中のドライブの根。ドライブの一覧は、調べるのに少し時間がかかるので、短く覚えておく
+  let mounted: { at: number; roots: ReadonlyMap<string, string> } | undefined;
+  const mountedRoots = (): ReadonlyMap<string, string> => {
+    const nowMs = context.now().getTime();
+    if (!mounted || nowMs - mounted.at > MOUNT_CACHE_MS) {
+      mounted = {
+        at: nowMs,
+        roots: new Map(
+          context
+            .listVolumes()
+            .map((item) => [item.volumeUuid, item.rootPath] as const)
+        ),
+      };
+    }
+    return mounted.roots;
+  };
   return {
     library: {
       id: libraryId,
@@ -105,6 +124,7 @@ const openViewerSource = (
       : libraryThumbsDir(root),
     asOf: () => latestMtime(path),
     disk,
+    mountedRoots,
     now: context.now,
   };
 };

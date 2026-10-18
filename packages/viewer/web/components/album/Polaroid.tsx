@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { CSSProperties, ReactNode } from 'react';
 import { aspectClass, clockOf, rotationOf } from '../../lib/album';
 import { thumbUrl } from '../../lib/api';
+import { NoThumb } from './NoThumb';
 
 type Props = {
   photo: Pick<AlbumPhoto, 'thumbRelPath' | 'relPath' | 'width' | 'height'>;
@@ -58,7 +59,7 @@ export function Polaroid({
             loading="lazy"
           />
         ) : (
-          <div className="lb">{name} — サムネイルなし</div>
+          <NoThumb relPath={photo.relPath} name={name} />
         )}
       </div>
       {caption ? (

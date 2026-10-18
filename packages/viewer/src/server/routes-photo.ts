@@ -6,11 +6,14 @@ import {
   getPhotoDetail,
   getPhotoStrip,
   listFilteredPhotos,
+  listSameDayOtherYears,
+  listSourceCopies,
 } from '@file-seiri/ledger';
 import type { Context, Hono } from 'hono';
 import type {
   PhotoDetailResponse,
   PhotoStripResponse,
+  SameDayResponse,
   SlideshowResponse,
 } from '../api-types.ts';
 import { albumFilterOf } from './filter.ts';
@@ -57,6 +60,49 @@ const originalPath = (
   }
 };
 
+/** 読む原本の場所と、どこのものか */
+type ResolvedOriginal = {
+  path: string;
+  from: 'library' | 'source';
+  sourceLabel: string | null;
+};
+
+/**
+ * 原本を探す(仕様書 §16-7)。ライブラリのファイルが読めればそれ。読めなければ、同じ内容のソース側のコピーが、
+ * いま接続中のドライブにあり、サイズと更新日が記録と一致するときだけ、それ。どちらもなければ undefined。
+ */
+const resolveOriginal = (
+  source: ViewerSource,
+  libraryFileId: number,
+  relPath: string
+): ResolvedOriginal | undefined => {
+  const inLibrary = originalPath(source, relPath);
+  if (inLibrary) return { path: inLibrary, from: 'library', sourceLabel: null };
+  const mounted = source.mountedRoots?.();
+  if (!mounted || mounted.size === 0) return undefined;
+  for (const copy of listSourceCopies(source.ledger.db, libraryFileId)) {
+    const root = mounted.get(copy.volumeUuid);
+    if (!root) continue;
+    const base = resolve(root);
+    const path = resolve(join(base, copy.relPath));
+    // 台帳の値が壊れていても、ドライブの外は、読ませない
+    if (!path.startsWith(base + sep)) continue;
+    try {
+      const stat = statSync(path);
+      if (
+        stat.isFile() &&
+        stat.size === copy.sizeBytes &&
+        Math.floor(stat.mtimeMs) === copy.mtimeMs
+      ) {
+        return { path, from: 'source', sourceLabel: copy.volumeLabel };
+      }
+    } catch {
+      // 読めない・なくなった: 次の候補へ
+    }
+  }
+  return undefined;
+};
+
 /** `Range: bytes=a-b` を読む。読めなければ undefined(全体を返す)。範囲外なら null */
 const parseRange = (
   header: string | undefined,
@@ -76,6 +122,7 @@ const parseRange = (
 /**
  * 拡大表示の API(読み取り専用)。
  * - `GET /api/album/photo/:id`: 写真の情報
+ * - `GET /api/album/photo/:id/same-day`: この日の他の年
  * - `GET /api/album/photo/:id/strip`: 前後の写真(絞り込みの条件・`event`・`order`・`radius`)
  * - `GET /api/album/slideshow`: スライドショーの写真(条件・`event`・`order`)
  * - `GET /api/files/:id`: 原本(台帳にあるファイルだけ。ブラウザで表示できる形だけ。動画は範囲指定に答える)
@@ -89,6 +136,11 @@ export const registerPhotoRoutes = (app: Hono, source: ViewerSource): void => {
     const photo = id === undefined ? undefined : getPhotoDetail(db, id);
     if (!photo) return context.json({ error: 'not found' }, 404);
     const displayable = DISPLAYABLE[extname(photo.relPath).toLowerCase()];
+    const resolved = resolveOriginal(
+      source,
+      photo.libraryFileId,
+      photo.relPath
+    );
     const city = photo.gps
       ? nearestCity(photo.gps.lat, photo.gps.lon)
       : undefined;
@@ -97,9 +149,22 @@ export const registerPhotoRoutes = (app: Hono, source: ViewerSource): void => {
       place: city ? { label: cityLabel(city), ref: `city:${city.id}` } : null,
       original: {
         viewKind: displayable?.kind ?? null,
-        available: originalPath(source, photo.relPath) !== undefined,
+        available: resolved !== undefined,
+        from: resolved?.from ?? null,
+        sourceLabel: resolved?.sourceLabel ?? null,
       },
     };
+    return context.json(body);
+  });
+
+  // 「この日の他の年」
+  app.get('/api/album/photo/:id/same-day', (context) => {
+    const id = parseId(context.req.param('id'));
+    if (id === undefined) return context.json({ error: 'bad id' }, 400);
+    const found = listSameDayOtherYears(db, id);
+    const body: SameDayResponse = found
+      ? { monthDay: found.monthDay, years: found.years }
+      : { monthDay: null, years: [] };
     return context.json(body);
   });
 
@@ -139,9 +204,13 @@ export const registerPhotoRoutes = (app: Hono, source: ViewerSource): void => {
     if (!photo) return context.notFound();
     const displayable = DISPLAYABLE[extname(photo.relPath).toLowerCase()];
     if (!displayable) return context.json({ error: 'unsupported type' }, 415);
-    const path = originalPath(source, photo.relPath);
-    if (!path) return context.json({ error: 'original unavailable' }, 404);
-    const file = Bun.file(path);
+    const resolved = resolveOriginal(
+      source,
+      photo.libraryFileId,
+      photo.relPath
+    );
+    if (!resolved) return context.json({ error: 'original unavailable' }, 404);
+    const file = Bun.file(resolved.path);
     const size = file.size;
     const headers = {
       'content-type': displayable.type,

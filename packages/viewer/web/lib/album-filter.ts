@@ -10,6 +10,9 @@ export type FilterState = {
   volumes: string[];
   /** 地図の範囲(`南,西,北,東`の度)。範囲の中に GPS のある写真 */
   bbox?: string;
+  /** 期間(`YYYY-MM-DD`。両端を含む)。日まで分かる写真だけが、対象 */
+  from?: string;
+  to?: string;
   /** ライブフォト(同名グループに、写真と動画がある組)。'1' = 絞る */
   live?: '1';
   /** 検索の条件。日付(`YYYY-MM-DD` など)・ファイル名の一部・場所(`緯度:経度`) */
@@ -66,6 +69,8 @@ export const readFilter = (getAll: (key: string) => string[]): FilterState => {
     areas: getAll(LIST_KEYS.areas),
     live: getAll('live')[0] === '1' ? '1' : undefined,
     bbox: getAll('bbox')[0] || undefined,
+    from: getAll('from')[0] || undefined,
+    to: getAll('to')[0] || undefined,
   };
 };
 
@@ -86,6 +91,8 @@ export const filterParams = (
   [LIST_KEYS.areas]: filter.areas,
   live: filter.live,
   bbox: filter.bbox,
+  from: filter.from,
+  to: filter.to,
 });
 
 /** 絞り込み(引き出しの項目)の条件の数。複数の値を選んでいても、項目で 1 件。検索の条件は、数えない */
@@ -100,6 +107,7 @@ export const countFilter = (filter: FilterState): number =>
     filter.volumes.length,
     filter.live ? 1 : 0,
     filter.bbox ? 1 : 0,
+    filter.from || filter.to ? 1 : 0,
   ].filter(Boolean).length;
 
 /** 一覧に、値があれば外し、なければ足す(順は、保つ) */
@@ -136,7 +144,7 @@ export const removeLastCondition = (filter: FilterState): FilterState => {
     'areas',
   ] as const;
   // 後ろにあるものから探す(gps・live は、絞り込みの並びの途中・最後に入る)
-  const order: (ListField | 'gps' | 'live' | 'bbox')[] = [
+  const order: (ListField | 'gps' | 'live' | 'bbox' | 'period')[] = [
     'kinds',
     'cameras',
     'gps',
@@ -146,13 +154,17 @@ export const removeLastCondition = (filter: FilterState): FilterState => {
     'volumes',
     'live',
     'bbox',
+    'period',
     'dates',
     'names',
     'places',
     'areas',
   ];
   for (const key of [...order].reverse()) {
-    if (key === 'gps' || key === 'live' || key === 'bbox') {
+    if (key === 'period') {
+      if (filter.from || filter.to)
+        return { ...filter, from: undefined, to: undefined };
+    } else if (key === 'gps' || key === 'live' || key === 'bbox') {
       if (filter[key]) return { ...filter, [key]: undefined };
     } else if (
       (lists as readonly string[]).includes(key) &&

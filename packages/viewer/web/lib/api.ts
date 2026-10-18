@@ -29,6 +29,7 @@ import type {
   PhotoStripResponse,
   RunDetailResponse,
   RunsResponse,
+  SameDayResponse,
   SearchPhotosResponse,
   SearchSuggestResponse,
   SlideshowResponse,
@@ -317,6 +318,15 @@ export const usePhotoDetail = (id: number | undefined) =>
     queryFn: () => fetchJson<PhotoDetailResponse>(`/api/album/photo/${id}`),
     enabled: id !== undefined,
     placeholderData: keepPreviousData,
+  });
+
+/** 「この日の他の年」: 同じ月日に撮った、ほかの年の写真 */
+export const useSameDay = (id: number | undefined) =>
+  useQuery({
+    queryKey: ['album-photo-same-day', id],
+    queryFn: () =>
+      fetchJson<SameDayResponse>(`/api/album/photo/${id}/same-day`),
+    enabled: id !== undefined,
   });
 
 /** 前後の写真。できごとの中だけで動くときは、`eventId` */

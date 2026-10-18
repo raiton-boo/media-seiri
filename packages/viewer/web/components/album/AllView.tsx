@@ -13,6 +13,7 @@ import {
 } from '../../lib/api';
 import { formatCount } from '../../lib/format';
 import { layoutRows } from '../../lib/layout-rows';
+import { NoThumb } from './NoThumb';
 
 export type AllLayout = 'masonry' | 'rows';
 
@@ -60,7 +61,7 @@ function Tile({
           loading="lazy"
         />
       ) : (
-        <div className="lb">{name} — サムネイルなし</div>
+        <NoThumb relPath={photo.relPath} name={name} />
       )}
     </Link>
   );

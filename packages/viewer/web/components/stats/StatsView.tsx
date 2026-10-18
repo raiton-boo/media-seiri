@@ -7,7 +7,7 @@ import {
   type FilterState,
   toggleValue,
 } from '../../lib/album-filter';
-import { useStats } from '../../lib/api';
+import { useAlbumFilters, useStats } from '../../lib/api';
 import { formatBytes, formatCount } from '../../lib/format';
 import {
   barHeight,
@@ -134,6 +134,8 @@ export function StatsView() {
   const unit = url.get('unit') === 'year' ? 'year' : 'month';
   const yearParam = Number(url.get('y')) || undefined;
   const { data, isError } = useStats(yearParam, filter);
+  // ソース(取り込み元のドライブ)の選択肢。件数は、ほかの条件のもとで
+  const options = useAlbumFilters(filter, true);
 
   if (isError) {
     return (
@@ -146,6 +148,9 @@ export function StatsView() {
 
   const { periods } = data;
   const kindOn = (kind: string) => filter.kinds.includes(kind);
+  const volumes = options.data?.volumes ?? [];
+  const setVolumes = (ids: string[]): void =>
+    url.set({ volume: ids.length > 0 ? ids : undefined });
   const setKinds = (kinds: string[]): void =>
     url.set({ kind: kinds.length > 0 ? kinds : undefined });
 
@@ -225,13 +230,39 @@ export function StatsView() {
                 {KIND_LABELS[kind]}
               </FilterChip>
             ))}
+            {volumes.length > 1 ? (
+              <>
+                <span className="mono" aria-hidden>
+                  ／
+                </span>
+                <FilterChip
+                  selected={filter.volumes.length === 0}
+                  onClick={() => setVolumes([])}
+                >
+                  全ソース
+                </FilterChip>
+                {volumes.map((volume) => (
+                  <FilterChip
+                    key={volume.volumeId}
+                    selected={filter.volumes.includes(String(volume.volumeId))}
+                    onClick={() =>
+                      setVolumes(
+                        toggleValue(filter.volumes, String(volume.volumeId))
+                      )
+                    }
+                  >
+                    {volume.label ?? `ドライブ #${volume.volumeId}`}
+                  </FilterChip>
+                ))}
+              </>
+            ) : null}
           </div>
         </div>
 
         {data.total === 0 ? (
           <div className="card">
             <div className="h2">
-              {filter.kinds.length > 0
+              {filter.kinds.length > 0 || filter.volumes.length > 0
                 ? '条件に合う写真は、0 件'
                 : 'まだ、写真が、ありません'}
             </div>

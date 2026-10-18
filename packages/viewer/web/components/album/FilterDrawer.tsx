@@ -97,6 +97,43 @@ export function FilterDrawer({
               />
             ))}
           </Group>
+          <Group title="期間">
+            <div className="flex flex-col gap-2">
+              <label className="mono flex items-center gap-2">
+                <span style={{ width: 40 }}>開始</span>
+                <input
+                  type="date"
+                  className="sel"
+                  value={filter.from ?? ''}
+                  max={filter.to}
+                  onChange={(event) =>
+                    onChange({
+                      ...filter,
+                      from: event.target.value || undefined,
+                    })
+                  }
+                />
+              </label>
+              <label className="mono flex items-center gap-2">
+                <span style={{ width: 40 }}>終了</span>
+                <input
+                  type="date"
+                  className="sel"
+                  value={filter.to ?? ''}
+                  min={filter.from}
+                  onChange={(event) =>
+                    onChange({
+                      ...filter,
+                      to: event.target.value || undefined,
+                    })
+                  }
+                />
+              </label>
+              <div className="mono" style={{ fontSize: 12 }}>
+                日まで分かる写真だけが、対象です
+              </div>
+            </div>
+          </Group>
           <Group title="カメラ">
             {data.cameras.map((item) => (
               <Row

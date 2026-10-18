@@ -68,6 +68,16 @@ export const parseBbox = (
   return valid ? { south, west, north, east } : undefined;
 };
 
+/** `YYYY-MM-DD`(実在する日)だけを通す。それ以外は、undefined */
+const parseDay = (value: string | undefined): string | undefined => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+    ? undefined
+    : value;
+};
+
 /**
  * アルバムの絞り込みの条件を、クエリから読む(`kind`・`camera`・`gps`・`year`・`precision`・`source`・`volume`)。
  * 同じ名前を、くり返して、複数の値を渡せる(`kind=photo&kind=video`)。知らない値・不正な値は、無視する。
@@ -101,6 +111,8 @@ export const parseAlbumFilter = (
   const livePhotos = list('live')[0] === '1';
   // 範囲は、カンマ区切りの 4 つの数なので、カンマで割らず、そのまま渡す
   const bbox = parseBbox(queries('bbox')?.[0]);
+  const from = parseDay(list('from')[0]);
+  const to = parseDay(list('to')[0]);
   const names = (queries('name') ?? []).filter(Boolean);
   const places = list('place').flatMap((value) => {
     const [lat, lon] = value.split(':').map(Number);
@@ -123,6 +135,8 @@ export const parseAlbumFilter = (
     ...(volumeIds.length > 0 ? { volumeIds } : {}),
     ...(livePhotos ? { livePhotos } : {}),
     ...(bbox ? { bbox } : {}),
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
     ...(eventId !== undefined ? { eventId } : {}),
     ...(dates.length > 0 ? { dates } : {}),
     ...(names.length > 0 ? { names } : {}),

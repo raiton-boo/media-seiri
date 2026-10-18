@@ -27,6 +27,7 @@ import type {
   RunDetail,
   RunningProgress,
   RunSummary,
+  SameDayYear,
   SearchSuggestion,
 } from '@file-seiri/ledger';
 
@@ -200,9 +201,20 @@ export type PhotoDetailResponse = {
   original: {
     /** ブラウザで表示できる形か: 画像・動画・なし(HEIC・RAW など) */
     viewKind: 'image' | 'video' | null;
-    /** ライブラリの原本が、いま読めるか(ドライブが接続されているか) */
+    /** 原本が、いま読めるか(ライブラリのファイル、または、ソース側のコピーが) */
     available: boolean;
+    /** どこから読むか。`source` は、ライブラリのドライブがなく、ソース側のコピー(サイズと更新日が一致するもの)から読むとき */
+    from: 'library' | 'source' | null;
+    /** `from` が `source` のとき、そのドライブの名前 */
+    sourceLabel: string | null;
   };
+};
+
+/** 「この日の他の年」: 同じ月日に撮った、ほかの年の写真(新しい年が先。年ごとに、枚数と代表の 1 枚) */
+export type SameDayResponse = {
+  /** `MM-DD`。日まで分からない写真は、null */
+  monthDay: string | null;
+  years: SameDayYear[];
 };
 
 /** 前後の並び(フィルムストリップ) */
