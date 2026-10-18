@@ -1,2 +1,6 @@
 [tools]
 bun = "1.4.3"
+
+# このリポジトリの中だけ、seiri / file-seiri を、PATH に足す(外へ出ると、外れる)
+[env]
+_.path = ["{{config_root}}/bin"]
