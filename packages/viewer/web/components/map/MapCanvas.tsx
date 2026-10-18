@@ -29,6 +29,8 @@ type Props = {
   onViewChange: (view: MapView) => void;
   /** まとまり・ピンを押した */
   onSelect: (cluster: MapCluster) => void;
+  /** 印のない所(地図の上)を押した(ミニプレビューを閉じる)。動かすための、ドラッグでは、呼ばない */
+  onBackgroundClick?: () => void;
   /** この範囲へ、動かす(`key` が変わるたびに) */
   fit?: { bounds: Bounds; key: number };
   /** 押した位置の印(選択中)を強調する */
@@ -92,6 +94,7 @@ export function MapCanvas({
   clusters,
   onViewChange,
   onSelect,
+  onBackgroundClick,
   fit,
   selected,
   children,
@@ -102,8 +105,8 @@ export function MapCanvas({
   const [failed, setFailed] = useState<string | null>(null);
   const [tilesFailed, setTilesFailed] = useState(false);
   // コールバックは、最新のものを使う(地図は、1 回だけ作る)
-  const callbacks = useRef({ onViewChange, onSelect });
-  callbacks.current = { onViewChange, onSelect };
+  const callbacks = useRef({ onViewChange, onSelect, onBackgroundClick });
+  callbacks.current = { onViewChange, onSelect, onBackgroundClick };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 地図は、最初に 1 回だけ作る(位置・設定は、そのときの値)
   useEffect(() => {
@@ -145,6 +148,8 @@ export function MapCanvas({
     created.on('load', () =>
       callbacks.current.onViewChange(currentView(created))
     );
+    // 印は、自分のクリックを止めている(stopPropagation)ので、ここに来るのは、印のない所を押したとき
+    created.on('click', () => callbacks.current.onBackgroundClick?.());
     created.on('error', (event) => {
       if ((event as { sourceId?: string }).sourceId === 'base')
         setTilesFailed(true);

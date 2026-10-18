@@ -94,14 +94,15 @@ function PlaceCard({
       const target = event.target as HTMLElement | null;
       if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
         return;
-      if (event.key === 'ArrowLeft')
+      if (event.key === 'Escape') onClose();
+      else if (event.key === 'ArrowLeft')
         setIndex((value) => Math.max(value - 1, 0));
       else if (event.key === 'ArrowRight')
         setIndex((value) => Math.min(value + 1, Math.max(last, 0)));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [last]);
+  }, [last, onClose]);
 
   const name = current?.relPath.split('/').pop() ?? '';
   return (
@@ -350,6 +351,7 @@ export function MapView() {
             selected={selected}
             fit={fit}
             onSelect={onSelect}
+            onBackgroundClick={() => setSelected(undefined)}
             onViewChange={(next) => {
               setView(next);
               url.set({
