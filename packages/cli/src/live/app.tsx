@@ -13,7 +13,7 @@ const DEFAULT_ROWS = 40;
 const MICROSECONDS_PER_MILLISECOND = 1000;
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 const WEB_NOTICE =
-  'w: 結果は Web で見られます(別の端末で `file-seiri viewer` を実行して、ブラウザで開く)';
+  'w: 結果は Web で見られます(別の端末で `seiri viewer` を実行して、ブラウザで開く)';
 
 type Props = {
   feed: LiveFeed;
