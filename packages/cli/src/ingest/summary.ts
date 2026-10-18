@@ -33,8 +33,12 @@ export type IngestSummary = {
   /** 取り込みの対象外(件数のみ) */
   unsupported: number;
   takeoutJson: number;
-  /** ZIP(中身は、まだ取り込めない) */
+  /** ZIP(入れ子を含む) */
   archives: number;
+  /** 開いた ZIP の数(入れ子を含む) */
+  zipOpened: number;
+  /** ZIP のことで、警告にしたもの(入れ子が深すぎて、開かなかったもの) */
+  zipWarnings: number;
   /** 管理用ファイル・除外した場所・シンボリックリンクなど */
   excluded: number;
   emptyFiles: number;
@@ -81,6 +85,8 @@ export const emptySummary = (): IngestSummary => ({
   unsupported: 0,
   takeoutJson: 0,
   archives: 0,
+  zipOpened: 0,
+  zipWarnings: 0,
   excluded: 0,
   emptyFiles: 0,
   errorFiles: 0,
@@ -173,7 +179,7 @@ export const formatSummary = (
   const excluded = [
     `対象外 ${count(summary.unsupported)}`,
     `Takeout の json ${count(summary.takeoutJson)}`,
-    `ZIP(未対応) ${count(summary.archives)}`,
+    `ZIP ${count(summary.archives)}(開いた ${count(summary.zipOpened)}${summary.zipWarnings > 0 ? ` / 警告 ${count(summary.zipWarnings)}` : ''})`,
     `除外 ${count(summary.excluded)}`,
   ];
   if (summary.orphanSidecars > 0)

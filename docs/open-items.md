@@ -32,12 +32,12 @@
 | 項目               | 内容                                                                                                               | 正本                                                                       | いつ     |
 | :----------------- | :----------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------- | :------- |
 | 必要容量の余裕分   | `max(5%, 10GB)`(仮)                                                                                                | [仕様書 §9](specification.md)                                              | 実データ |
-| 展開サイズの上限   | ZIP の展開サイズの値(仮)                                                                                           | [仕様書 §10-1](specification.md)、[zip-handling](features/zip-handling.md) | 実データ |
+| 展開サイズの上限   | ZIP の展開サイズの値(仮。いまは、1 エントリ 32 GiB)                                                                                           | [仕様書 §10-1](specification.md)、[zip-handling](features/zip-handling.md) | 実データ |
 | Takeout の json    | ファイル名の形式。実際の ZIP をサンプルで確認                                                                      | [zip-handling](features/zip-handling.md)                                   | 実データ |
 | 修復の手順         | 動画の再構築 → メタデータの再書込み → 切れた画像の救出(仮)。使うツールは技術選定で                                 | [仕様書 §10-3](specification.md)、[repair](features/repair.md)             | PoC      |
 | 「一部のみ救出」   | 扱いと、試行の上限(時間・回数)(仮)                                                                                 | [repair](features/repair.md)                                               | 実装時   |
 | 修復の再実行       | 前回の結果があれば再試行せず、`--retry-repair` で再試行(仮)                                                        | [repair](features/repair.md)                                               | 実装時   |
-| ZIP の文字コード   | 判定が曖昧なときは cp932 を優先(仮)                                                                                | [zip-handling](features/zip-handling.md)                                   | 実データ |
+| ZIP の文字コード   | 判定が曖昧なときの扱い(仮。いまは、UTF-8 として読めれば UTF-8、読めなければ cp932)                                                                                | [zip-handling](features/zip-handling.md)                                   | 実データ |
 
 ## 4. CLI・ログ・dry-run・統計・地図
 

@@ -5,6 +5,7 @@ import {
   findSourceFileInRun,
   insertSourceFile,
   recordError,
+  recordEvent,
   setSourceFileState,
   toSourceFileKind,
 } from '@file-seiri/ledger';
@@ -62,7 +63,8 @@ export const recordScan = (
   summary.unsupported = countKind(scan.files, 'unsupported');
   summary.takeoutJson = countKind(scan.files, 'json');
   summary.archives = countKind(scan.files, 'archive');
-  summary.excluded = scan.skipped.length;
+  summary.excluded = scan.skipped.length + (scan.archive?.excluded ?? 0);
+  summary.zipOpened = scan.archive?.opened ?? 0;
 
   const count = (file: ScannedFile): void => {
     summary.detected += 1;
@@ -119,6 +121,29 @@ export const recordScan = (
 
   // 空ファイル・読めなかった場所は、エラー一覧に記録する(仕様書 §1-2)。再開で、記録済みの空ファイルは、記録し直さない
   write(() => {
+    // ZIP のこと: 暗号化・危険なパス・壊れた ZIP は、エラー。入れ子が深すぎるものは、警告(開かない)
+    for (const problem of scan.archive?.problems ?? []) {
+      if (problem.code === 'ZIP_DEPTH_EXCEEDED') {
+        recordEvent(db, {
+          runId,
+          level: 'WARN',
+          code: problem.code,
+          message: `${problem.relPath}: ${problem.detail}`,
+          occurredAt: at,
+        });
+        summary.zipWarnings += 1;
+        continue;
+      }
+      recordError(db, {
+        runId,
+        code: problem.code,
+        detail: `${problem.relPath}: ${problem.detail}`,
+        occurredAt: at,
+      });
+      summary.errorsByCode[problem.code] =
+        (summary.errorsByCode[problem.code] ?? 0) + 1;
+      summary.errorFiles += 1;
+    }
     for (const file of scan.emptyFiles) {
       const kind = sourceKindOf(file);
       if (!kind) continue;

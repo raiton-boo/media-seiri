@@ -13,6 +13,7 @@ import {
   startRun,
   upsertVolume,
 } from '@file-seiri/ledger';
+import { buildZip } from '../archive/test-zip.ts';
 import { EXIT_CODES } from '../exit-codes.ts';
 import {
   addFile,
@@ -504,13 +505,14 @@ describe('ingest --dry-run: エラー・対象外', () => {
     const world = await newWorld();
     await addPhoto(world, 'DCIM/a.jpg', DATE_2024_03_05);
     addFile(world, 'DCIM/a.aae', 'x');
-    addFile(world, 'DCIM/photos.zip', 'PK');
+    // 中身のない、正しい ZIP(開けて、中は、何もない)
+    addFile(world, 'DCIM/photos.zip', buildZip([]));
     addFile(world, 'DCIM/.DS_Store', 'x');
     addFile(world, 'DCIM/._a.jpg', 'x');
     addFile(world, 'DCIM/lonely.xmp', '<x/>');
     const result = await ingestDry(world);
     expect(text(result)).toMatch(
-      /対象外 1 \/ Takeout の json 0 \/ ZIP\(未対応\) 1 \/ 除外 2 \/ RAW のない \.xmp 1/
+      /対象外 1 \/ Takeout の json 0 \/ ZIP 1\(開いた 1\) \/ 除外 2 \/ RAW のない \.xmp 1/
     );
     expect(
       rows(world, 'SELECT rel_path FROM source_files ORDER BY rel_path').map(
