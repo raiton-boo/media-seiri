@@ -10,6 +10,8 @@ import { formatDateTime } from '../lib/format';
 export const NAV_ITEMS = [
   { href: '/', label: 'ダッシュボード' },
   { href: '/album', label: 'アルバム' },
+  // アルバムの見方の 1 つ。別のページなので、ナビでも、アルバムの右に並べる
+  { href: '/calendar', label: 'カレンダー' },
   { href: '/map', label: '地図' },
   { href: '/stats', label: '統計' },
   { href: '/dupes', label: '重複比較' },
