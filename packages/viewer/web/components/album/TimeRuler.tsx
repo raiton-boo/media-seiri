@@ -14,7 +14,7 @@ type Props = {
   overview: AlbumOverviewResponse;
   order: AlbumOrderParam;
   /** いまのズーム */
-  zoom: 'year' | 'month' | 'event';
+  zoom: 'year' | 'month' | 'event' | 'all';
   /** いま開いている年と、その年の 12 か月(`order` の並び) */
   year: number;
   months: MonthSummary[];
@@ -32,7 +32,7 @@ const BAR_MAX = 40;
 
 /**
  * 時間の定規: 年の札が、枚数に比例した幅で並ぶ。いまの年は、月の棒グラフに開き、**つまみ**が、位置を示す。
- * 年・月は、押すと、その机へ。右に、並び順(新しい順 / 古い順)。「すべて」は、まだ作っていない。
+ * 年・月は、押すと、その机へ。右に、並び順(新しい順 / 古い順)。
  */
 export function TimeRuler({
   overview,
@@ -44,17 +44,18 @@ export function TimeRuler({
   eventHref,
   onToggleOrder,
 }: Props) {
+  // 年・「すべて」は、月を決めない(つまみは、真ん中)
+  const atYear = zoom === 'year' || zoom === 'all';
   const maxCount = Math.max(1, ...months.map((item) => item.count));
   const latestMonth =
     [...months]
       .filter((item) => item.count > 0)
       .sort((a, b) => b.month - a.month)[0]?.month ?? 1;
   const currentMonth = month ?? latestMonth;
-  const markerIndex =
-    zoom === 'year'
-      ? -1
-      : months.findIndex((item) => item.month === currentMonth);
-  const markerLeft = zoom === 'year' ? 50 : ((markerIndex + 0.5) / 12) * 100;
+  const markerIndex = atYear
+    ? -1
+    : months.findIndex((item) => item.month === currentMonth);
+  const markerLeft = atYear ? 50 : ((markerIndex + 0.5) / 12) * 100;
   const total = Math.max(1, overview.total);
   const root = useRef<HTMLDivElement>(null);
 
@@ -95,9 +96,12 @@ export function TimeRuler({
               できごと
             </span>
           )}
-          <span className="off" aria-disabled="true" title="まだ作っていません">
+          <Link
+            href={albumHref({ view: 'all', order })}
+            className={zoom === 'all' ? 'on' : undefined}
+          >
             すべて
-          </span>
+          </Link>
         </div>
       </div>
 
@@ -134,7 +138,8 @@ export function TimeRuler({
             </div>
             <div className="mbars">
               <div className="thumb" style={{ left: `${markerLeft}%` }}>
-                ▼ {zoom === 'year' ? '年' : `${currentMonth}月`}
+                ▼{' '}
+                {atYear ? (zoom === 'all' ? '全' : '年') : `${currentMonth}月`}
               </div>
               {months.map((entry) => (
                 <Link
@@ -150,9 +155,7 @@ export function TimeRuler({
                 >
                   <i
                     className={
-                      zoom !== 'year' && entry.month === currentMonth
-                        ? 'on'
-                        : undefined
+                      !atYear && entry.month === currentMonth ? 'on' : undefined
                     }
                     style={{
                       height: `${entry.count === 0 ? 4 : Math.max(BAR_MIN, Math.round((entry.count / maxCount) * BAR_MAX))}px`,

@@ -1,6 +1,12 @@
 export { avoidReservedName, cleanOriginalName } from './clean-name.ts';
 export { isExcludedName } from './exclusion.ts';
-export { classifyFile, extensionOf, type FileKind, stemOf } from './files.ts';
+export {
+  classifyFile,
+  EXTENSIONS_BY_KIND,
+  extensionOf,
+  type FileKind,
+  stemOf,
+} from './files.ts';
 export {
   type Bucket,
   buildPlacement,

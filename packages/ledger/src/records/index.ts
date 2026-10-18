@@ -1,4 +1,9 @@
 export {
+  type AlbumSection,
+  listAlbumSections,
+  listSectionPhotos,
+} from './album-all.ts';
+export {
   type AlbumOrder,
   type AlbumPhoto,
   type EventDetail,
@@ -22,6 +27,12 @@ export {
   listFilesForEvents,
   replaceAlbumEvents,
 } from './album-events.ts';
+export {
+  type AlbumFilter,
+  albumFilterSql,
+  countAlbumFilters,
+  UNKNOWN_CAMERA,
+} from './album-filter.ts';
 export {
   type Content,
   findContentByHash,

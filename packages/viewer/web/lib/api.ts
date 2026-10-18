@@ -8,6 +8,8 @@ import type {
   AlbumMemoriesResponse,
   AlbumMonthResponse,
   AlbumOverviewResponse,
+  AlbumSectionPhotosResponse,
+  AlbumSectionsResponse,
   AlbumYearResponse,
   DashboardResponse,
   DupeDetailResponse,
@@ -203,4 +205,31 @@ export const useAlbumMemories = (date: string, salt: number) =>
         `/api/album/memories${queryString({ date, salt: salt || undefined })}`
       ),
     placeholderData: keepPreviousData,
+  });
+
+export const useAlbumSections = (order: AlbumOrderParam) =>
+  useQuery({
+    queryKey: ['album-all-sections', order],
+    queryFn: () =>
+      fetchJson<AlbumSectionsResponse>(
+        `/api/album/all/sections${queryString({ order })}`
+      ),
+    placeholderData: keepPreviousData,
+  });
+
+/** 「すべて」の 1 区画(年・月)の写真。画面に近づいたときだけ、読む */
+export const useSectionPhotos = (
+  year: number,
+  month: number,
+  order: AlbumOrderParam,
+  enabled: boolean
+) =>
+  useQuery({
+    queryKey: ['album-all-photos', year, month, order],
+    queryFn: () =>
+      fetchJson<AlbumSectionPhotosResponse>(
+        `/api/album/all/photos${queryString({ y: year, m: month, order })}`
+      ),
+    enabled,
+    staleTime: 60_000,
   });
