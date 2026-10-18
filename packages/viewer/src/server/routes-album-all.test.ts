@@ -309,6 +309,15 @@ describe('自動アルバム', () => {
     ).json()) as AutoAlbumsResponse;
     expect(body.eventTotal).toBe(0);
     expect(body.events).toEqual([]);
+    // 日付なしの 1 枚だけ(ほかは、日時まで分かる)
+    expect(body.dateGaps).toEqual([
+      {
+        key: 'none',
+        label: '日付なし',
+        precisions: ['none', 'invalid'],
+        count: 1,
+      },
+    ]);
     expect(body.albums.find((album) => album.title === '動画')).toMatchObject({
       kind: 'video',
       count: 1,

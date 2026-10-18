@@ -31,6 +31,7 @@ import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
 import { RevealPage } from '../motion/Reveal';
 import { AllView } from './AllView';
+import { EmptyResult } from './EmptyResult';
 import { EventDesk } from './EventDesk';
 import { FilterBar } from './FilterBar';
 import { FilterDrawer } from './FilterDrawer';
@@ -80,6 +81,25 @@ function AlbumBrowser() {
   // 条件を変えたら、「もっと広げる」は、最初に戻す
   const changeFilter = (next: FilterState): void =>
     url.set({ ...filterParams(next), more: undefined });
+  // 検索の札の決定: 検索結果の画面へ。札を外したとき、検索の条件が、すべてなくなったら、検索結果の画面から、入口へ戻る
+  const pickSearch = (next: FilterState): void =>
+    url.set({
+      ...filterParams(next),
+      view: 'search',
+      y: undefined,
+      m: undefined,
+      e: undefined,
+      more: undefined,
+      small: undefined,
+    });
+  const removeSearch = (next: FilterState): void =>
+    url.set({
+      ...filterParams(next),
+      ...(view === 'search' && countSearch(next) === 0
+        ? { view: undefined }
+        : {}),
+      more: undefined,
+    });
   const facets = useAlbumFilters(filter, drawer || filter.volumes.length > 0);
   const volumeLabels = new Map(
     (facets.data?.volumes ?? []).map((volume) => [
@@ -134,6 +154,11 @@ function AlbumBrowser() {
         {filtered ? (
           <>
             <h1 className="h1">アルバム</h1>
+            <SearchBox
+              filter={filter}
+              onPick={pickSearch}
+              onRemove={removeSearch}
+            />
             <FilterBar
               filter={filter}
               volumeLabels={volumeLabels}
@@ -143,9 +168,7 @@ function AlbumBrowser() {
               }
               onChange={changeFilter}
             />
-            <div className="card">
-              <div className="h2">条件に合う写真は、ありません</div>
-            </div>
+            <EmptyResult filter={filter} onChange={changeFilter} />
           </>
         ) : (
           <div className="card g">
@@ -278,27 +301,8 @@ function AlbumBrowser() {
         <div data-motion="block">
           <SearchBox
             filter={filter}
-            onPick={(next) =>
-              url.set({
-                ...filterParams(next),
-                view: 'search',
-                y: undefined,
-                m: undefined,
-                e: undefined,
-                more: undefined,
-                small: undefined,
-              })
-            }
-            onRemove={(next) =>
-              url.set({
-                ...filterParams(next),
-                // 検索の条件を、すべて外したら、検索結果の画面から、入口へ戻る
-                ...(searching && countSearch(next) === 0
-                  ? { view: undefined }
-                  : {}),
-                more: undefined,
-              })
-            }
+            onPick={pickSearch}
+            onRemove={removeSearch}
           />
         </div>
 
@@ -376,7 +380,9 @@ function AlbumBrowser() {
                     ▶ スライドショー
                   </Button>
                 </div>
-                {allSections.data ? (
+                {allSections.data && allSections.data.sections.length === 0 ? (
+                  <EmptyResult filter={filter} onChange={changeFilter} />
+                ) : allSections.data ? (
                   <AllView
                     sections={allSections.data.sections}
                     order={order}
@@ -390,6 +396,8 @@ function AlbumBrowser() {
               <>
                 <SearchDesk
                   data={searchResult.data}
+                  filter={filter}
+                  onChange={changeFilter}
                   onMore={() =>
                     url.set({
                       more: String(

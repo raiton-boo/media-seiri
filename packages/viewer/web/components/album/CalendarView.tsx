@@ -21,6 +21,7 @@ import { Button } from '../Button';
 import { ListSkeleton } from '../ListSkeleton';
 import { LoadError } from '../motion/LoadError';
 import { RevealPage } from '../motion/Reveal';
+import { EmptyResult } from './EmptyResult';
 import { FilterBar } from './FilterBar';
 import { FilterDrawer } from './FilterDrawer';
 import { SearchBox } from './SearchBox';
@@ -138,13 +139,15 @@ export function CalendarView() {
         />
 
         {year === undefined ? (
-          <div className="card">
-            <div className="h2">
-              {state.hasSearch || filter.kinds.length > 0
-                ? '条件に合う、日付のわかる写真は、ありません'
-                : '日付のわかる写真が、まだありません'}
-            </div>
-          </div>
+          <EmptyResult
+            filter={filter}
+            onChange={state.changeFilter}
+            title={
+              state.hasSearch || filter.kinds.length > 0
+                ? '条件に合う、日付のわかる写真は、0 件'
+                : '日付のわかる写真が、まだありません'
+            }
+          />
         ) : (
           <div
             className="grid items-start gap-6"

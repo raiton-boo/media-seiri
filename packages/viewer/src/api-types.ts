@@ -7,6 +7,7 @@ import type {
   BrowsedError,
   CalendarDay,
   DashboardSummary,
+  DateGap,
   DaySummary,
   DuplicateGroup,
   DuplicateGroupDetail,
@@ -45,6 +46,8 @@ export type ViewerInfo = {
   source: LedgerSource;
   /** 台帳の鮮度(UTC の ISO 8601)。スナップショットなら、その保存時刻 */
   asOf: string;
+  /** ライブラリのドライブが、いま接続されているか(原本を開けるか。サムネイルの一覧は、外れていても見られる) */
+  libraryConnected: boolean;
 };
 
 /** ライブラリのドライブの容量。ドライブが接続されていなければ、null */
@@ -229,4 +232,6 @@ export type AutoAlbumsResponse = {
   eventTotal: number;
   events: AutoEvent[];
   albums: AutoAlbum[];
+  /** 日付が不明なものの、区分ごとの枚数 */
+  dateGaps: DateGap[];
 };

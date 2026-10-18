@@ -7,7 +7,9 @@ export {
   type AutoAlbum,
   type AutoAlbumKind,
   type AutoEvent,
+  type DateGap,
   listAutoAlbums,
+  listDateGaps,
   listLatestEvents,
 } from './album-auto.ts';
 export {

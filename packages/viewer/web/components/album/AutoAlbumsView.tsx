@@ -208,6 +208,29 @@ export function AutoAlbumsView() {
           </section>
         ) : null}
 
+        {data.dateGaps.length > 0 ? (
+          <div className="card y flex flex-col gap-3" data-motion="block">
+            <div className="h2">日付が不明なもの</div>
+            <div className="flex flex-wrap gap-2">
+              {data.dateGaps.map((gap) => (
+                <Link
+                  key={gap.key}
+                  className={`chip lg${gap.key === 'none' ? ' r' : ''}`}
+                  href={albumHref({
+                    view: 'all',
+                    filter: { ...EMPTY_FILTER, precisions: gap.precisions },
+                  })}
+                >
+                  {gap.label} {formatCount(gap.count)}
+                </Link>
+              ))}
+            </div>
+            <div className="mono" style={{ fontSize: 13 }}>
+              精度ごとに、各期間の末尾か、「日付なし」にまとめて出します。カレンダーには載りません。押すと、その精度の写真を、すべてで見られます。
+            </div>
+          </div>
+        ) : null}
+
         <div className="note">
           アルバムは、自動で作ります(写真の顔認識や AI
           は使いません)。数は、少数に絞っています。自分で作るアルバム・お気に入りは、ありません(完全に読み取り専用)。
