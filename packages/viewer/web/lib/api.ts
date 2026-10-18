@@ -32,6 +32,7 @@ import type {
   SearchPhotosResponse,
   SearchSuggestResponse,
   SlideshowResponse,
+  StatsResponse,
   ViewerInfo,
 } from '../../src/api-types.ts';
 import { type FilterState, filterParams } from './album-filter';
@@ -428,5 +429,16 @@ export const useMapPlaces = (text: string) =>
         `/api/map/places${queryString({ q: text })}`
       ),
     enabled: text.trim() !== '',
+    placeholderData: keepPreviousData,
+  });
+
+/** 統計: 期間別(月別は `year` の年。省くと、最新の年)・カメラ別・撮影時間帯・全体の概要。条件が効く */
+export const useStats = (year: number | undefined, filter: FilterState) =>
+  useQuery({
+    queryKey: ['stats', year, filter],
+    queryFn: () =>
+      fetchJson<StatsResponse>(
+        `/api/stats${queryString({ year, ...filterParams(filter) })}`
+      ),
     placeholderData: keepPreviousData,
   });

@@ -1,5 +1,10 @@
-import { ComingSoon } from '../../components/ComingSoon';
+import { AppShell } from '../../components/AppShell';
+import { StatsLoader } from '../../components/stats/StatsLoader';
 
-export default function Page() {
-  return <ComingSoon kicker="STATISTICS" title="統計" />;
+export default function StatsPage() {
+  return (
+    <AppShell>
+      <StatsLoader />
+    </AppShell>
+  );
 }

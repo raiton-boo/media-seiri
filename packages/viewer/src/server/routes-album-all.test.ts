@@ -16,6 +16,7 @@ import type {
   CalendarResponse,
   SearchPhotosResponse,
   SearchSuggestResponse,
+  StatsResponse,
 } from '../api-types.ts';
 import { createViewerApp } from './app.ts';
 import { parseAlbumFilter } from './query.ts';
@@ -327,5 +328,26 @@ describe('自動アルバム', () => {
     const live = parseAlbumFilter((name) => ({ live: ['1'] })[name]);
     expect(live).toEqual({ livePhotos: true });
     expect(parseAlbumFilter((name) => ({ live: ['0'] })[name])).toEqual({});
+  });
+});
+
+describe('統計', () => {
+  test('stats: 全体と期間別。年を選べる。絞り込みが効く。不正な年は、最新の年', async () => {
+    const app = createViewerApp(seed());
+    const stats = async (query: string) =>
+      (await (await get(app, `/api/stats${query}`)).json()) as StatsResponse;
+    const all = await stats('');
+    expect(all.total).toBe(4);
+    expect(all.kinds).toEqual({ photo: 3, video: 1, raw: 0 });
+    expect(all.periods.monthsYear).toBe(2024);
+    expect(all.periods.months[2]).toMatchObject({ month: 3, count: 2 });
+    expect((await stats('?year=2023')).periods.months[11]).toMatchObject({
+      month: 12,
+      count: 1,
+    });
+    expect((await stats('?year=abc')).periods.monthsYear).toBe(2024);
+    // 日付なしの 1 枚は、「不明」(合計が、全体と合う)
+    expect(all.periods.yearUnknown.count).toBe(1);
+    expect((await stats('?kind=video')).total).toBe(1);
   });
 });

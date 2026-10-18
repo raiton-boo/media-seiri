@@ -81,6 +81,13 @@ export {
   suggestSearch,
 } from './album-search.ts';
 export {
+  getLibraryStats,
+  type KindCounts,
+  type LibraryStats,
+  type PeriodBucket,
+  type StatsPeriods,
+} from './album-stats.ts';
+export {
   type Content,
   findContentByHash,
   getContent,

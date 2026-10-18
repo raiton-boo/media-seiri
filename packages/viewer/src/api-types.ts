@@ -16,6 +16,7 @@ import type {
   FallbackRow,
   FallbackSource,
   FilterOptions,
+  LibraryStats,
   MapCluster,
   MediaKind,
   MonthSummary,
@@ -267,3 +268,6 @@ export type MapConfigResponse = {
   label: string;
   maxZoom: number;
 };
+
+/** 統計(期間別・カメラ別・撮影時間帯・全体の概要) */
+export type StatsResponse = LibraryStats;

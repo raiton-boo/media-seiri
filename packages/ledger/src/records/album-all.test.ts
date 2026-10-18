@@ -28,6 +28,7 @@ import {
   parseDateQuery,
   suggestSearch,
 } from './album-search.ts';
+import { getLibraryStats } from './album-stats.ts';
 import { getOrCreateContent } from './contents.ts';
 import { insertFileGroup } from './file-groups.ts';
 import { openDb, seedRun, seedSourceFile, T0 } from './fixtures.ts';
@@ -740,5 +741,83 @@ describe('地図(クラスタ・範囲)', () => {
 
   test('地図に出せる枚数と、GPS のない枚数', () => {
     expect(countMapPhotos(ctx.db)).toEqual({ withGps: 3, withoutGps: 1 });
+  });
+});
+
+describe('統計(getLibraryStats)', () => {
+  const ctx = build(SPECS);
+  test('全体: 件数・総サイズ・期間・種別・GPS・精度・取得元', () => {
+    const stats = getLibraryStats(ctx.db, {});
+    expect(stats).toMatchObject({
+      total: 7,
+      sizeBytes: 7,
+      period: { from: '2014', to: '2016-12-31T09:00:00' },
+      kinds: { photo: 5, video: 1, raw: 1 },
+      gps: { with: 1, without: 6 },
+    });
+    expect(stats.precisions).toEqual({ full: 4, date: 1, year: 1, none: 1 });
+    expect(stats.sources).toEqual({
+      exif: 3,
+      video: 1,
+      filename: 1,
+      json: 1,
+      none: 1,
+    });
+  });
+
+  test('期間別: 年ごと(古い年から)と、年が取れないもの。内訳つき。合計が、全体と合う', () => {
+    const { periods } = getLibraryStats(ctx.db, {});
+    expect(periods.years.map((y) => [y.year, y.count])).toEqual([
+      [2014, 2],
+      [2016, 4],
+    ]);
+    expect(periods.years[1]).toMatchObject({ photo: 2, video: 1, raw: 1 });
+    expect(periods.yearUnknown.count).toBe(1);
+    const sum =
+      periods.years.reduce((total, y) => total + y.count, 0) +
+      periods.yearUnknown.count;
+    expect(sum).toBe(7);
+  });
+
+  test('月別: 選んだ年(省くと、最新の年)の 12 か月。月が取れないもの(年だけ)は、別', () => {
+    const latest = getLibraryStats(ctx.db, {}).periods;
+    expect(latest.monthsYear).toBe(2016);
+    expect(latest.months).toHaveLength(12);
+    expect(latest.months[11]).toMatchObject({ month: 12, count: 3 });
+    expect(latest.months[7]).toMatchObject({ month: 8, count: 1 });
+    const y2014 = getLibraryStats(ctx.db, {}, 2014).periods;
+    expect(y2014.months[3]).toMatchObject({ month: 4, count: 1 });
+    // 2014 年の年だけ(精度 year)の 1 枚
+    expect(y2014.monthUnknown.count).toBe(1);
+    expect(
+      y2014.months.reduce((t, m) => t + m.count, 0) + y2014.monthUnknown.count
+    ).toBe(2);
+  });
+
+  test('カメラ別(不明は最後)・時間帯(full だけ。対象外の件数)', () => {
+    const stats = getLibraryStats(ctx.db, {});
+    expect(stats.cameras).toEqual([
+      { name: 'Canon', count: 2 },
+      { name: 'Sony', count: 1 },
+      { name: UNKNOWN_CAMERA, count: 4 },
+    ]);
+    expect(stats.hours[18]).toBe(2);
+    expect(stats.hours[9]).toBe(1);
+    expect(stats.hours[10]).toBe(1);
+    expect(stats.hoursExcluded).toBe(3);
+  });
+
+  test('絞り込みが効く。種別の件数だけは、種別の条件を外して数える', () => {
+    const stats = getLibraryStats(ctx.db, { kinds: ['video'] });
+    expect(stats.total).toBe(1);
+    expect(stats.kinds).toEqual({ photo: 5, video: 1, raw: 1 });
+    expect(stats.cameras).toEqual([{ name: 'Canon', count: 1 }]);
+  });
+
+  test('写真がなければ、空', () => {
+    const empty = getLibraryStats(build([]).db, {});
+    expect(empty).toMatchObject({ total: 0, period: null, cameras: [] });
+    expect(empty.periods.monthsYear).toBeNull();
+    expect(empty.periods.months).toEqual([]);
   });
 });
