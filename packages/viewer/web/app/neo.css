@@ -1270,7 +1270,7 @@ select.sel {
   opacity: 0.75;
 }
 
-/* 重複比較: 採用側とスキップ側を、線とスタンプで見分ける(採用 ◀ 同じ内容 ＝ スキップ) */
+/* 重複比較: 採用側とスキップ側を、線とスタンプで見分ける(採用 ── ＝ ── スキップ) */
 .cmp-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 140px minmax(0, 1fr);
@@ -1294,7 +1294,7 @@ select.sel {
 .cmp-skipped > :not(.cmp-stamp) {
   opacity: 0.9;
 }
-/* つなぎ: 左右の線の上に、矢印・＝・札を重ねる */
+/* つなぎ: 左右の線の上に、＝・札を重ねる */
 .cmp-mid {
   position: relative;
   display: flex;
@@ -1314,14 +1314,6 @@ select.sel {
 }
 .cmp-mid > * {
   position: relative;
-}
-.cmp-arrow {
-  padding: 0 10px;
-  border: var(--bd);
-  background: var(--paper);
-  font-family: var(--disp);
-  font-size: 26px;
-  line-height: 1.3;
 }
 .cmp-eq {
   display: flex;

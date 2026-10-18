@@ -104,7 +104,6 @@ export function DupeDetail({ id }: { id: number }) {
           </div>
         </div>
         <div className="cmp-mid" aria-hidden="true">
-          <span className="cmp-arrow">◀</span>
           <span className="cmp-eq">＝</span>
           <span className="chip g">ハッシュ一致</span>
         </div>
