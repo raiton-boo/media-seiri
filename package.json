@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "seiri": "bun packages/cli/src/main.ts",
     "check": "biome check .",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test packages"

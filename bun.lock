@@ -11,6 +11,7 @@
     },
     "packages/cli": {
       "name": "@file-seiri/cli",
+      "version": "0.1.0",
       "dependencies": {
         "@file-seiri/core": "workspace:*",
         "@file-seiri/ledger": "workspace:*",
