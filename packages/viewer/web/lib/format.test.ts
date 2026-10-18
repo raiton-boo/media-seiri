@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatDuration,
   formatPeriodEnd,
+  formatShortDateTime,
   shortenPath,
   splitBytes,
 } from './format.ts';
@@ -83,5 +84,14 @@ describe('format', () => {
     expect(shortenPath('/private/tmp/x/DCIM/e.jpg')).toBe('…/DCIM/e.jpg');
     // ZIP の中身(`!` の後ろ)も、区切り(`/`)で数える
     expect(shortenPath('A/B/C/z.zip ! in/f.jpg')).toBe('…/z.zip ! in/f.jpg');
+  });
+
+  test('formatShortDateTime: 月日と分まで。読めない文字列は、そのまま', () => {
+    const date = new Date('2026-10-10T12:40:00.000Z');
+    const pad = (n: number) => String(n).padStart(2, '0');
+    expect(formatShortDateTime('2026-10-10T12:40:00.000Z')).toBe(
+      `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+    );
+    expect(formatShortDateTime('不明')).toBe('不明');
   });
 });

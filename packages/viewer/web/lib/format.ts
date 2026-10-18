@@ -131,3 +131,10 @@ export const shortenPath = (path: string): string => {
   if (parts.length <= 3) return parts.join('/');
   return `…/${parts.slice(-2).join('/')}`;
 };
+
+/** UTC の ISO 8601 を、この PC の時刻で、`10-10 21:40`(月日と、分まで)にする。表のように、狭いところ用 */
+export const formatShortDateTime = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};

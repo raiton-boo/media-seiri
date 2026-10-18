@@ -17,7 +17,7 @@ export function Pager({
   const to = Math.min(offset + limit, total);
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <span className="mono" style={{ fontSize: 12 }}>
+      <span className="mono" style={{ fontSize: 13 }}>
         {formatCount(from)}–{formatCount(to)} / {formatCount(total)} 件
       </span>
       <div className="flex gap-2">

@@ -70,9 +70,7 @@ export function ErrorsView() {
 
       <div className="card s flex flex-wrap items-end gap-4">
         <div className="field">
-          <span className="kicker" style={{ fontSize: 11 }}>
-            コード
-          </span>
+          <span className="flabel">コード</span>
           <div className="flex flex-wrap gap-2">
             <FilterChip
               selected={code === undefined}
@@ -123,46 +121,50 @@ export function ErrorsView() {
           style={{ gridTemplateColumns: 'minmax(0,7fr) minmax(0,5fr)' }}
         >
           <div className="flex flex-col gap-4">
-            <div className="hatch">
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>コード</th>
-                    <th>ファイル</th>
-                    <th>実行</th>
-                    <th>日時</th>
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>コード</th>
+                  <th>ファイル</th>
+                  <th>実行</th>
+                  <th>日時</th>
+                  <th className="chev">
+                    <span className="sr-only">選択</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((item) => (
+                  <tr
+                    key={item.errorId}
+                    className={
+                      item.errorId === selected?.errorId ? 'hl' : undefined
+                    }
+                  >
+                    <td>
+                      <button
+                        type="button"
+                        className="rowbtn"
+                        aria-pressed={item.errorId === selected?.errorId}
+                        onClick={() => url.set({ sel: String(item.errorId) })}
+                      >
+                        <span className="chip r">{item.code}</span>
+                      </button>
+                    </td>
+                    <td className="m" title={describeSource(item.source)}>
+                      {shortenSource(item.source)}
+                    </td>
+                    <td className="m">#{item.runId}</td>
+                    <td className="m">
+                      {formatDateTimeSeconds(item.occurredAt)}
+                    </td>
+                    <td className="chev" aria-hidden="true">
+                      {item.errorId === selected?.errorId ? '▶' : '›'}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {data.items.map((item) => (
-                    <tr
-                      key={item.errorId}
-                      className={
-                        item.errorId === selected?.errorId ? 'hl' : undefined
-                      }
-                    >
-                      <td>
-                        <button
-                          type="button"
-                          className="rowbtn"
-                          aria-pressed={item.errorId === selected?.errorId}
-                          onClick={() => url.set({ sel: String(item.errorId) })}
-                        >
-                          <span className="chip r">{item.code}</span>
-                        </button>
-                      </td>
-                      <td className="m" title={describeSource(item.source)}>
-                        {shortenSource(item.source)}
-                      </td>
-                      <td className="m">#{item.runId}</td>
-                      <td className="m">
-                        {formatDateTimeSeconds(item.occurredAt)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
             <Pager
               total={data.total}
               limit={data.limit}

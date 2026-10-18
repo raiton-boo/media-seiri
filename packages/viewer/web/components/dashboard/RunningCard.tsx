@@ -23,12 +23,12 @@ export function RunningCard({
       <div className="card flex flex-col gap-4">
         <div className="kicker">NO RUN IN PROGRESS</div>
         <div className="h2">いま、実行中の取り込みは、ありません</div>
-        <div className="mono" style={{ fontSize: 12 }}>
+        <div className="mono" style={{ fontSize: 13 }}>
           {lastRun
             ? `直近の実行: #${lastRun.runId}(${formatDateTime(lastRun.startedAt)})`
             : 'まだ実行の記録がありません'}
         </div>
-        <div className="mono muted" style={{ fontSize: 12 }}>
+        <div className="mono muted" style={{ fontSize: 13 }}>
           ※ 実行中だけ表示(この Mac)。他の PC では、最後の snapshot の内容。
         </div>
       </div>
@@ -81,7 +81,7 @@ export function RunningCard({
         <Counter label="FALLBACK" value={running.dateFallback} />
         <Counter label="ERROR" value={running.errors} />
       </div>
-      <div className="mono muted" style={{ fontSize: 12 }}>
+      <div className="mono muted" style={{ fontSize: 13 }}>
         ※ 実行中だけ表示(この Mac)。他の PC では、最後の snapshot の内容。
       </div>
     </div>
@@ -91,7 +91,7 @@ export function RunningCard({
 function Counter({ label, value }: { label: string; value: number }) {
   return (
     <div className="card s">
-      <div className="mono" style={{ fontSize: 11 }}>
+      <div className="mono" style={{ fontSize: 12 }}>
         {label}
       </div>
       <div className="num m">{formatCount(value)}</div>

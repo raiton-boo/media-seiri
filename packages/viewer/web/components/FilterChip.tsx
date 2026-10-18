@@ -18,7 +18,7 @@ export function FilterChip({
   return (
     <button
       type="button"
-      className={selected ? 'chip on' : 'chip'}
+      className={selected ? 'chip lg on' : 'chip lg'}
       aria-pressed={selected}
       onClick={onClick}
     >

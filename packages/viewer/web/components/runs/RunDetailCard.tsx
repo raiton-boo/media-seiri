@@ -14,7 +14,7 @@ import { RUN_KIND_LABELS } from '../RunLabels';
 function Count({ label, value }: { label: string; value: number }) {
   return (
     <div className="card s">
-      <div className="mono" style={{ fontSize: 11 }}>
+      <div className="mono" style={{ fontSize: 12 }}>
         {label}
       </div>
       <div className="num m">{formatCount(value)}</div>
@@ -54,7 +54,7 @@ export function RunDetailCard({ id }: { id: number }) {
           {run.isDryRun ? <span className="chip on">DRY-RUN</span> : null}
         </span>
       </div>
-      <div className="mono" style={{ fontSize: 12, lineHeight: 1.9 }}>
+      <div className="mono" style={{ fontSize: 13, lineHeight: 1.9 }}>
         ソース {run.sourceLabel ?? '—'}
         <br />
         開始 {formatDateTime(run.startedAt)}
@@ -79,7 +79,7 @@ export function RunDetailCard({ id }: { id: number }) {
             <Count label="対象外" value={run.ignored} />
           </div>
           <div className="card s">
-            <div className="mono" style={{ fontSize: 12, lineHeight: 1.8 }}>
+            <div className="mono" style={{ fontSize: 13, lineHeight: 1.8 }}>
               {run.capacity ? (
                 <>
                   必要な容量 {formatBytes(run.capacity.requiredBytes)}

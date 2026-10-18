@@ -75,7 +75,7 @@ export function Button({
   const content = (
     <span className="face">
       {loading ? <LoadingMark /> : null}
-      {children}
+      {block ? children : <span className="blabel">{children}</span>}
     </span>
   );
 

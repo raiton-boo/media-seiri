@@ -86,7 +86,7 @@ a {
   padding: 0 20px;
   border-left: var(--bd);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
 }
 .page {
   width: 100%;
@@ -112,7 +112,7 @@ a {
 }
 .kicker {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -121,49 +121,16 @@ a {
   font-family: var(--mono);
 }
 .muted {
-  opacity: 0.65;
-}
-/* 押せるもの(.btn)の影は、ベタの黒。カード・表の影は、斜線(ハッチ)。立体感は残して、押せるかどうかを、影の質で見分けられるようにする
-   (arcana-members の「影は、押せるものだけ」の原則を、ネオブルータリズムの立体感と両立させた)。
-   斜線の影は、擬似要素で作る */
-.card,
-.hatch {
-  position: relative;
-  isolation: isolate;
-  --hs: 8px;
-}
-.card.s {
-  --hs: 5px;
-}
-/* 影(斜線)は、いちばん後ろ(-2)。面(カードの色)は、その上(-1)。中身は、その上。
-   カードごとに重なりの文脈を作る(isolation)ので、カードの中の小さなカードの影も、親の面に隠れない */
-.card::before,
-.hatch::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  transform: translate(var(--hs), var(--hs));
-  border: 2px solid var(--ink);
-  background: repeating-linear-gradient(
-    135deg,
-    var(--ink) 0 2px,
-    transparent 2px 6px
-  );
-}
-.card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: inherit;
+  opacity: 0.75;
 }
 .card {
   background: var(--paper);
   border: var(--bd);
+  box-shadow: var(--sh);
   padding: 20px;
 }
 .card.s {
+  box-shadow: var(--shs);
   padding: 14px;
 }
 .card.y {
@@ -251,8 +218,8 @@ a {
   --sh: 6px;
 }
 .btn.t-r {
+  /* 赤の上の文字は、黒(コントラスト比 6.3)。白は 3.1 で、小さい文字には足りない */
   --btn-bg: var(--r);
-  --btn-fg: var(--paper);
 }
 .btn.t-o {
   --btn-bg: var(--o);
@@ -315,7 +282,7 @@ a {
   border: 2px solid var(--ink);
   background: var(--paper);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -343,7 +310,6 @@ a {
 }
 .chip.r {
   background: var(--r);
-  color: var(--paper);
 }
 .field {
   display: flex;
@@ -351,11 +317,12 @@ a {
   gap: 4px;
   min-width: 130px;
 }
+/* 絞り込みの欄のラベル(.flabel と同じ大きさ) */
 .field label {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
 }
 .field .sel {
   border: var(--bd);
@@ -422,7 +389,7 @@ a {
   background: var(--ink);
   color: var(--paper);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -436,7 +403,7 @@ a {
 }
 .ph .bd span {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   border: 2px solid var(--ink);
   background: var(--paper);
@@ -447,6 +414,7 @@ a {
   border-collapse: collapse;
   background: var(--paper);
   border: var(--bd);
+  box-shadow: var(--sh);
 }
 .tbl th {
   background: var(--ink);
@@ -454,20 +422,20 @@ a {
   text-align: left;
   padding: 10px 12px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   font-weight: 700;
 }
 .tbl td {
   padding: 10px 12px;
   border-top: 2px solid var(--ink);
-  font-size: 13px;
+  font-size: 14px;
   vertical-align: top;
 }
 .tbl td.m,
 .tbl .m {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
 }
 .tbl tr.hl td {
   background: var(--y);
@@ -477,7 +445,7 @@ a {
   background: var(--y);
   padding: 10px 14px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
 }
 .hr {
   height: 3px;
@@ -523,7 +491,7 @@ a {
   background: var(--ink);
   color: var(--term-fg);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   border: var(--bd);
   box-shadow: var(--sh);
@@ -582,7 +550,7 @@ a {
 }
 .mon small {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 .mon.p {
@@ -686,7 +654,7 @@ a {
   border: var(--bd);
   background: var(--paper);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
 }
 .fchip.on {
   background: var(--b);
@@ -694,7 +662,7 @@ a {
 }
 .fchip b {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* アルバムの部品: ポラロイド / 机 / 行ぞろえ / 時間の定規 */
@@ -743,7 +711,7 @@ a {
   right: 12px;
   bottom: 10px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   display: flex;
   justify-content: space-between;
@@ -815,7 +783,7 @@ a {
 }
 .yt small {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 .yt.on {
@@ -844,7 +812,7 @@ a {
   background: var(--ink);
   color: var(--paper);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 8px;
   border: 2px solid var(--ink);
@@ -869,7 +837,7 @@ a {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 .fdr .bx2 {
@@ -908,7 +876,7 @@ a {
 .big-scr .yb small {
   display: block;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   margin-top: 4px;
 }
@@ -928,7 +896,7 @@ a {
   height: 18px;
   border: 2px solid var(--ink);
   background: var(--paper);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -1007,7 +975,7 @@ a {
   border: 2px solid var(--ink);
   background: var(--paper);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 3px;
   line-height: 1.1;
@@ -1105,4 +1073,50 @@ select.sel {
 /* 絞り込みの札: 選んでいるものは、黒く塗って、✓ を付ける */
 .chip .tick {
   font-weight: 900;
+}
+
+/* ボタンのラベルは、下線を引く(カードと、押せるものを、見分けるため) */
+.blabel {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.btn:disabled .blabel {
+  text-decoration: none;
+}
+
+/* 絞り込みの欄: ラベルも、部品(札・選択欄)も、同じ大きさにそろえる */
+.flabel {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.chip.lg,
+.field select.sel {
+  min-height: 44px;
+  font-size: 14px;
+}
+.chip.lg {
+  padding: 6px 14px;
+}
+
+/* 選べる行の右端の目印(›: 押せる、▶: 選んでいる) */
+.tbl .chev {
+  width: 44px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+}
+.tbl th.chev {
+  padding: 0;
+}
+.tbl tr:has(.rowbtn):hover .chev {
+  transform: translateX(3px);
+}
+
+/* 折り返さない(日時・ドライブ名など、1 行で読みたいセル) */
+.tbl .nw {
+  white-space: nowrap;
 }

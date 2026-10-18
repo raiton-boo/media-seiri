@@ -42,7 +42,7 @@ export function Attention({
       <h2 className="h2">要チェック</h2>
       {items.map((item) => (
         <Button key={item.label} href={item.href} tone={item.tone} block>
-          <span>{item.label} →</span>
+          <span className="blabel">{item.label} →</span>
           <span className="num m">{formatCount(item.count)}</span>
         </Button>
       ))}

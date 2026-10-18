@@ -54,7 +54,7 @@ export function ErrorDetail({ id }: { id: number }) {
       </div>
       <div
         className="mono"
-        style={{ fontSize: 12, lineHeight: 1.9, wordBreak: 'break-all' }}
+        style={{ fontSize: 13, lineHeight: 1.9, wordBreak: 'break-all' }}
       >
         場所 {describeSource(error.source)}
         {error.detail.split('\n').map((line, index) => (
@@ -73,7 +73,7 @@ export function ErrorDetail({ id }: { id: number }) {
           <hr className="hr" />
           <div className="kicker">REPAIR ATTEMPTS</div>
           {attempts.length === 0 ? (
-            <div className="mono muted" style={{ fontSize: 12 }}>
+            <div className="mono muted" style={{ fontSize: 13 }}>
               修復は、試していません
             </div>
           ) : (
@@ -83,7 +83,7 @@ export function ErrorDetail({ id }: { id: number }) {
                   key={attempt.attemptId}
                   className="card s flex items-center justify-between"
                 >
-                  <span className="mono" style={{ fontSize: 12 }}>
+                  <span className="mono" style={{ fontSize: 13 }}>
                     {index + 1} {METHOD_LABELS[attempt.method]}
                   </span>
                   <span className={attempt.isSuccess ? 'chip g' : 'chip r'}>
