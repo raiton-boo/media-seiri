@@ -229,6 +229,12 @@ export const findCommandHelp = (
   COMMAND_HELPS.find((help) => help.name === words.join(' ')) ??
   COMMAND_HELPS.find((help) => help.name.split(' ')[0] === words[0]);
 
+/** コマンド名(「もしかして」の候補)。`library init` は、`library` */
+export const COMMAND_NAMES: readonly string[] = [
+  ...new Set(COMMAND_HELPS.map((help) => help.name.split(' ')[0] ?? help.name)),
+  'help',
+];
+
 /** コマンドの一覧(`seiri --help`) */
 export const renderOverview = (color: boolean): string => {
   const p = painter(color);
