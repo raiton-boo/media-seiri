@@ -27,6 +27,10 @@ export type CommandContext = {
   shouldStop: () => boolean;
   /** 0 以上 1 未満の乱数(`verify --sample` の抜き取り)。テストでは、差し替える */
   random: () => number;
+  /** ログの表示に、色を付けるか(端末で、`NO_COLOR` がないとき)。テストでは、差し替える */
+  useColor: boolean;
+  /** 指定のミリ秒、待つ(`logs --follow`)。テストでは、差し替える */
+  sleep: (milliseconds: number) => Promise<void>;
   /** テストで、取り込みの途中に割り込むための差し込み口 */
   ingestHooks?: IngestHooks;
 };

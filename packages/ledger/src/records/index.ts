@@ -24,7 +24,15 @@ export {
   listErrors,
   recordError,
 } from './error-records.ts';
-export { type EventRecord, listEventsAfter, recordEvent } from './events.ts';
+export {
+  type EventQuery,
+  type EventRecord,
+  lastEventId,
+  levelsAtLeast,
+  listEvents,
+  listEventsAfter,
+  recordEvent,
+} from './events.ts';
 export {
   type FileGroupRecord,
   getFileGroup,
@@ -61,8 +69,10 @@ export {
 } from './repair-attempts.ts';
 export {
   finishRun,
+  getLatestRun,
   getRun,
   interruptRunningRuns,
+  listRecentRuns,
   listUnfinishedRuns,
   type Run,
   type RunFinish,

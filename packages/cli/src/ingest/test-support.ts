@@ -93,6 +93,8 @@ export const runIn = async (
     newLibraryId: () => 'lib-1',
     timeZone: 'Asia/Tokyo',
     isInteractive: false,
+    useColor: false,
+    sleep: async () => {},
     resolveVolume: (path) =>
       path.startsWith(world.srcRoot) ? world.sourceVolume : world.destVolume,
     ...options,

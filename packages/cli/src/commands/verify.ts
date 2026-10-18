@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import {
   createSnapshot,
   finishRun,
@@ -9,7 +8,6 @@ import {
   startRun,
 } from '@file-seiri/ledger';
 import { CliError } from '../cli-error.ts';
-import { readConfig } from '../config/registry.ts';
 import type { CommandContext } from '../context.ts';
 import {
   COPY_CHUNK_BYTES,
@@ -22,6 +20,8 @@ import { readConcurrency } from '../ingest/concurrency.ts';
 import { openLibraryForIngest } from '../ingest/library.ts';
 import { acquireLockSession } from '../ingest/lock-session.ts';
 import { formatBytes } from '../ingest/preflight.ts';
+import { chooseLibraryRoot } from '../library/choose.ts';
+import { exportRunLog } from '../log/export.ts';
 import { parseSampleRatio } from '../verify/sample.ts';
 import {
   type FileProblem,
@@ -38,30 +38,6 @@ export type VerifyArguments = {
 
 /** 問題のファイルを、画面に出す最大の数(全件は、エラー一覧に記録する) */
 const SHOWN_PROBLEMS = 20;
-
-/** `--library` の指定、または、この Mac に登録されたライブラリが 1 つだけならそれ */
-const chooseLibraryRoot = (
-  context: CommandContext,
-  option: string | undefined
-): string => {
-  if (option) return resolve(option);
-  const registered = Object.entries(readConfig(context.dataDir).libraries);
-  const [only, ...others] = registered;
-  if (!only) {
-    throw new CliError(
-      'この Mac に登録されたライブラリがありません。--library <ライブラリの根> で指定してください。'
-    );
-  }
-  if (others.length > 0) {
-    const list = registered
-      .map(([id, entry]) => `  ${id.slice(0, 8)}  ${entry.root}`)
-      .join('\n');
-    throw new CliError(
-      `ライブラリが複数あります。--library <ライブラリの根> で指定してください。\n${list}`
-    );
-  }
-  return only[1].root;
-};
 
 const printProblems = (
   context: CommandContext,
@@ -249,13 +225,29 @@ export const verifyCommand = async (
         'VERIFY_RESULT',
         `検査 ${report.checked} 件: 一致 ${report.matched}・不一致 ${report.mismatched.length}・欠落 ${report.missing.length}・読み取り不可 ${report.unreadable.length}・未登録 ${report.unregistered.length}`
       );
+      const status = report.stopped ? 'interrupted' : 'completed';
+      log('INFO', 'RUN_END', `検査を終えました(${status})`);
       const revision = incrementRevision(db);
       finishRun(db, runId, {
-        status: report.stopped ? 'interrupted' : 'completed',
+        status,
         finishedAt: context.now(),
         revisionAfter: revision,
       });
     });
+    // ログのファイル(実行ごとに 1 つ)。書き出せなくても、台帳には残っているため、警告だけ(要件 L-02)
+    try {
+      exportRunLog({
+        db,
+        dataDir: context.dataDir,
+        libraryId: library.libraryId,
+        runId,
+        timeZone: context.timeZone,
+      });
+    } catch (error) {
+      context.stderr(
+        `警告: ログファイルを書き出せませんでした: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     let snapshotFailed = false;
     try {
       createSnapshot(library.ledger, library.snapshotPath);

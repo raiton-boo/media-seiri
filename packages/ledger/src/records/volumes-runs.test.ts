@@ -2,8 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { openDb, seedRun, T0, T1 } from './fixtures.ts';
 import {
   finishRun,
+  getLatestRun,
   getRun,
   interruptRunningRuns,
+  listRecentRuns,
   listUnfinishedRuns,
   resumeRun,
   startRun,
@@ -230,5 +232,35 @@ describe('実行の種類(kind)', () => {
         startedAt: T0,
       })
     ).toThrow();
+  });
+});
+
+describe('getLatestRun・listRecentRuns', () => {
+  test('いちばん新しい実行(種類・dry-run を問わない)と、新しい順の一覧', () => {
+    const db = openDb();
+    expect(getLatestRun(db)).toBeUndefined();
+    expect(listRecentRuns(db, 5)).toEqual([]);
+    const { volumeId, runId: first } = seedRun(db);
+    const second = startRun(db, {
+      sourceVolumeId: volumeId,
+      isDryRun: true,
+      startedAt: T0,
+    });
+    const third = startRun(db, {
+      kind: 'verify',
+      sourceVolumeId: volumeId,
+      isDryRun: false,
+      startedAt: T1,
+    });
+    expect(getLatestRun(db)?.runId).toBe(third);
+    expect(listRecentRuns(db, 2).map((run) => run.runId)).toEqual([
+      third,
+      second,
+    ]);
+    expect(listRecentRuns(db, 10).map((run) => run.runId)).toEqual([
+      third,
+      second,
+      first,
+    ]);
   });
 });

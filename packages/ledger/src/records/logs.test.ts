@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { countErrorsByCode, listErrors, recordError } from './error-records.ts';
-import { listEventsAfter, recordEvent } from './events.ts';
+import {
+  lastEventId,
+  levelsAtLeast,
+  listEvents,
+  listEventsAfter,
+  recordEvent,
+} from './events.ts';
 import { openDb, seedRun, seedSourceFile, T0 } from './fixtures.ts';
 
 describe('errors', () => {
@@ -111,5 +117,68 @@ describe('events', () => {
         occurredAt: '2026-10-18T00:00:00.000Z',
       },
     ]);
+  });
+});
+
+describe('listEvents・lastEventId・levelsAtLeast', () => {
+  const seed = () => {
+    const db = openDb();
+    const seedRun1 = seedRun(db);
+    const other = seedRun(db, { uuid: 'vol-2' });
+    const add = (
+      runId: number,
+      level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR',
+      message: string
+    ): number =>
+      recordEvent(db, { runId, level, code: 'X', message, occurredAt: T0 });
+    return { db, run: seedRun1.runId, other: other.runId, add };
+  };
+
+  test('レベルで絞れる(指定以上)。古い順。ほかの実行は、含めない', () => {
+    const { db, run, other, add } = seed();
+    add(run, 'DEBUG', 'd');
+    add(run, 'INFO', 'i');
+    add(run, 'WARN', 'w');
+    add(run, 'ERROR', 'e');
+    add(other, 'ERROR', 'other');
+    expect(listEvents(db, { runId: run }).map((e) => e.message)).toEqual([
+      'd',
+      'i',
+      'w',
+      'e',
+    ]);
+    expect(
+      listEvents(db, { runId: run, minLevel: 'INFO' }).map((e) => e.message)
+    ).toEqual(['i', 'w', 'e']);
+    expect(
+      listEvents(db, { runId: run, minLevel: 'WARN' }).map((e) => e.message)
+    ).toEqual(['w', 'e']);
+    expect(
+      listEvents(db, { runId: run, minLevel: 'ERROR' }).map((e) => e.message)
+    ).toEqual(['e']);
+  });
+
+  test('続き(afterEventId)と件数(limit)で読める。最後の ID は、追いかけの開始位置', () => {
+    const { db, run, add } = seed();
+    const ids = ['a', 'b', 'c', 'd'].map((m) => add(run, 'INFO', m));
+    expect(lastEventId(db, run)).toBe(ids[3] ?? -1);
+    expect(
+      listEvents(db, { runId: run, afterEventId: ids[1] ?? 0 }).map(
+        (e) => e.message
+      )
+    ).toEqual(['c', 'd']);
+    expect(
+      listEvents(db, { runId: run, limit: 2 }).map((e) => e.message)
+    ).toEqual(['a', 'b']);
+    expect(listEvents(db, { runId: run, afterEventId: ids[3] ?? 0 })).toEqual(
+      []
+    );
+    expect(lastEventId(db, 999)).toBe(0);
+  });
+
+  test('levelsAtLeast', () => {
+    expect(levelsAtLeast('DEBUG')).toEqual(['DEBUG', 'INFO', 'WARN', 'ERROR']);
+    expect(levelsAtLeast('WARN')).toEqual(['WARN', 'ERROR']);
+    expect(levelsAtLeast('ERROR')).toEqual(['ERROR']);
   });
 });
