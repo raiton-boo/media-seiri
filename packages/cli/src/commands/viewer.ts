@@ -9,6 +9,7 @@ import {
 import {
   DEFAULT_PORT,
   type DiskUsage,
+  embeddedWeb,
   startViewer,
   type ViewerSource,
 } from '@file-seiri/viewer';
@@ -139,7 +140,7 @@ export const viewerCommand = async (
   args: ViewerArguments
 ): Promise<ExitCode> => {
   const port = parsePort(args.port);
-  if (!existsSync(context.viewerWebDir)) {
+  if (!embeddedWeb() && !existsSync(context.viewerWebDir)) {
     throw new CliError(
       `画面が、まだ作られていません: ${context.viewerWebDir}\n` +
         '`bun run --filter @file-seiri/viewer build:web` で、画面を作ってください。'

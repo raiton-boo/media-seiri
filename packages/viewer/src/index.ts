@@ -1,5 +1,6 @@
 export type * from './api-types.ts';
 export { createViewerApp } from './server/app.ts';
+export { embeddedWeb, setEmbeddedWeb } from './server/embedded.ts';
 export type { ViewerSource } from './server/source.ts';
 export {
   DEFAULT_PORT,

@@ -1,5 +1,6 @@
 import { rmSync } from 'node:fs';
-import { ExifTool } from 'exiftool-vendored';
+import type { ExifTool } from 'exiftool-vendored';
+import { createExifTool } from '../exiftool.ts';
 
 /** サムネイルにするファイルの区分 */
 export type ThumbnailKind = 'photo' | 'raw' | 'video';
@@ -163,7 +164,7 @@ const makeFromVideo = async (source: string, output: string): Promise<void> => {
 export const createThumbnailMaker = (): ThumbnailMaker => {
   let exiftool: ExifTool | undefined;
   const exifTool = (): ExifTool => {
-    exiftool ??= new ExifTool({ maxProcs: 1 });
+    exiftool ??= createExifTool({ maxProcs: 1 });
     return exiftool;
   };
 

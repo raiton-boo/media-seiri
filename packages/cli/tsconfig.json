@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "include": ["src"],
+  // 単一の実行ファイルの入口と、その一覧(ビルドのときに作る)は、通常の検査に含めない
+  "exclude": ["src/main-compiled.ts", "src/embedded/assets.generated.ts"],
   "compilerOptions": {
     "jsx": "react-jsx"
   }
