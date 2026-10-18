@@ -222,7 +222,7 @@ export function CalendarView() {
                   <i
                     key={level}
                     className={`cd${level > 0 ? ` h${level}` : ' off'}`}
-                    style={{ width: 20, display: 'block' }}
+                    style={{ width: 20, display: 'block', cursor: 'default' }}
                   />
                 ))}
                 <span>多</span>
