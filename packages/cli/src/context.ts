@@ -34,6 +34,8 @@ export type CommandContext = {
   sleep: (milliseconds: number) => Promise<void>;
   /** サムネイルを作るもの(sips・ffmpeg・ExifTool を使う)。使い終わったら、`close` を呼ぶ。テストでは、差し替える */
   thumbnailMaker: () => ThumbnailMaker;
+  /** 画面(ビューア)の静的ファイルの場所。テストでは、差し替える */
+  viewerWebDir: string;
   /** テストで、取り込みの途中に割り込むための差し込み口 */
   ingestHooks?: IngestHooks;
 };

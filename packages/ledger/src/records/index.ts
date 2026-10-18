@@ -13,6 +13,14 @@ export {
   getOrCreateContent,
 } from './contents.ts';
 export {
+  type DashboardSummary,
+  getDashboardSummary,
+  getRunningProgress,
+  listRunSummaries,
+  type RunningProgress,
+  type RunSummary,
+} from './dashboard.ts';
+export {
   type DuplicateLink,
   findDuplicateLinkBySource,
   insertDuplicateLink,

@@ -1,4 +1,11 @@
-import { describePackage } from '@file-seiri/core';
-
-/** このパッケージの説明。core の関数を呼べること(ワークスペースのつながり)を確かめるための、最小の例 */
-export const describeSelf = (): string => describePackage('viewer');
+export type * from './api-types.ts';
+export { createViewerApp } from './server/app.ts';
+export type { ViewerSource } from './server/source.ts';
+export {
+  DEFAULT_PORT,
+  DEFAULT_WEB_DIR,
+  type RunningViewer,
+  startViewer,
+  VIEWER_HOST,
+} from './server/start.ts';
+export { staticFiles } from './server/static.ts';

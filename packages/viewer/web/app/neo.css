@@ -1,0 +1,916 @@
+/* ネオブルータリズム — 共通の部品。ワイヤーフレーム(Artifact「file-seiri ネオブルータリズム」)の neo.css が元。
+   詳細度の順の lint(noDescendingSpecificity)は、見た目の確認を終えた CSS の順を変えないよう、biome.json で外している。
+   変えたのは、フォントの指定だけ(外部通信をしないよう、next/font でビルド時に取り込み、CSS 変数で渡す) */
+:root {
+  --bg: #f2eedf;
+  --ink: #0d0d0d;
+  --paper: #ffffff;
+  --y: #ffd93b;
+  --p: #ff86b5;
+  --b: #6c9bff;
+  --g: #6edb8f;
+  --o: #ff9f5a;
+  --l: #c1aeff;
+  --r: #ff5a4d;
+  --y2: #fff0a3;
+  --desk: #ede6d0;
+  --map: #dce9d5;
+  --sk: #e6e0cc;
+  --term-fg: #ededed;
+  --term-dim: #666666;
+  --bd: 3px solid var(--ink);
+  --sh: 6px 6px 0 var(--ink);
+  --shs: 3px 3px 0 var(--ink);
+  --disp: var(--font-dela), "Noto Sans JP", sans-serif;
+  --mono: var(--font-mono), "Noto Sans JP", ui-monospace, monospace;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-noto), "Noto Sans JP", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border-bottom: var(--bd);
+  background: var(--paper);
+}
+.logo {
+  background: var(--y);
+  border-right: var(--bd);
+  padding: 14px 22px;
+  font-family: var(--disp);
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+}
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.nav a {
+  padding: 16px 20px;
+  border-right: var(--bd);
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+.nav a.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+.libchip {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-left: var(--bd);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.page {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 32px 40px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.h1 {
+  font-family: var(--disp);
+  font-size: 44px;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+.h2 {
+  font-family: var(--disp);
+  font-size: 24px;
+  line-height: 1.2;
+  margin: 0;
+}
+.kicker {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.mono {
+  font-family: var(--mono);
+}
+.muted {
+  opacity: 0.65;
+}
+.card {
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh);
+  padding: 20px;
+}
+.card.s {
+  box-shadow: var(--shs);
+  padding: 14px;
+}
+.card.y {
+  background: var(--y);
+}
+.card.p {
+  background: var(--p);
+}
+.card.b {
+  background: var(--b);
+}
+.card.g {
+  background: var(--g);
+}
+.card.o {
+  background: var(--o);
+}
+.card.l {
+  background: var(--l);
+}
+.card.ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+.card.bg {
+  background: var(--bg);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: var(--bd);
+  background: var(--paper);
+  box-shadow: var(--shs);
+  font-weight: 900;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn.y {
+  background: var(--y);
+}
+.btn.ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chip.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+.chip.y {
+  background: var(--y);
+}
+.chip.p {
+  background: var(--p);
+}
+.chip.b {
+  background: var(--b);
+}
+.chip.g {
+  background: var(--g);
+}
+.chip.o {
+  background: var(--o);
+}
+.chip.l {
+  background: var(--l);
+}
+.chip.r {
+  background: var(--r);
+  color: var(--paper);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 130px;
+}
+.field label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.field .sel {
+  border: var(--bd);
+  background: var(--paper);
+  padding: 8px 12px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.num {
+  font-family: var(--disp);
+  font-size: 56px;
+  line-height: 1;
+}
+.num.m {
+  font-size: 38px;
+}
+.bar {
+  height: 26px;
+  border: var(--bd);
+  background: var(--paper);
+  position: relative;
+}
+.bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ink);
+}
+.bar.y i {
+  background: var(--y);
+}
+.bar.p i {
+  background: var(--p);
+}
+.bar.b i {
+  background: var(--b);
+}
+.bar.g i {
+  background: var(--g);
+}
+.ph {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border: var(--bd);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(13, 13, 13, 0.09) 0 8px,
+      transparent 8px 16px
+    ),
+    var(--c, #ddd);
+  overflow: hidden;
+}
+.ph.sq {
+  aspect-ratio: 1;
+}
+.ph .lb {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  padding: 2px 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ph .bd {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  display: flex;
+  gap: 4px;
+}
+.ph .bd span {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  padding: 0 5px;
+}
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh);
+}
+.tbl th {
+  background: var(--ink);
+  color: var(--paper);
+  text-align: left;
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.tbl td {
+  padding: 10px 12px;
+  border-top: 2px solid var(--ink);
+  font-size: 13px;
+  vertical-align: top;
+}
+.tbl td.m,
+.tbl .m {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.tbl tr.hl td {
+  background: var(--y);
+}
+.note {
+  border: var(--bd);
+  background: var(--y);
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.hr {
+  height: 3px;
+  background: var(--ink);
+  border: 0;
+  margin: 0;
+}
+.dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--ink);
+  background: var(--g);
+}
+.dot.r {
+  background: var(--r);
+}
+.dot.y {
+  background: var(--y);
+}
+.c1 {
+  --c: var(--y);
+}
+.c2 {
+  --c: var(--p);
+}
+.c3 {
+  --c: var(--b);
+}
+.c4 {
+  --c: var(--g);
+}
+.c5 {
+  --c: var(--o);
+}
+.c6 {
+  --c: var(--l);
+}
+.c7 {
+  --c: #e8e2cf;
+}
+.term {
+  background: var(--ink);
+  color: var(--term-fg);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+  border: var(--bd);
+  box-shadow: var(--sh);
+}
+
+/* 写真の並べ方 — Pinterest 風のマソンリー / Apple Photos 風のモザイク / ズーム / スクラバー / アルバムのカード */
+
+/* 縦横の比率(切り抜かずに、比率で高さが変わる) */
+.ph.a43 {
+  aspect-ratio: 4 / 3;
+}
+.ph.a34 {
+  aspect-ratio: 3 / 4;
+}
+.ph.a11 {
+  aspect-ratio: 1;
+}
+.ph.a169 {
+  aspect-ratio: 16 / 9;
+}
+.ph.a23 {
+  aspect-ratio: 2 / 3;
+}
+.ph.a32 {
+  aspect-ratio: 3 / 2;
+}
+.ph.a54 {
+  aspect-ratio: 5 / 4;
+}
+
+.msn {
+  column-count: 5;
+  column-gap: 18px;
+}
+.msn > * {
+  break-inside: avoid;
+  margin: 0 0 18px;
+  display: block;
+  box-shadow: var(--shs);
+}
+
+.mon {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 6px 18px;
+  border: var(--bd);
+  box-shadow: var(--shs);
+  background: var(--y);
+  font-family: var(--disp);
+  font-size: 26px;
+  position: sticky;
+  top: 12px;
+  z-index: 3;
+  align-self: flex-start;
+}
+.mon small {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+.mon.p {
+  background: var(--p);
+}
+.mon.b {
+  background: var(--b);
+}
+.mon.g {
+  background: var(--g);
+}
+.mon.o {
+  background: var(--o);
+}
+
+/* 切り替え(ズーム・配置) */
+.seg {
+  display: inline-flex;
+  border: var(--bd);
+  box-shadow: var(--shs);
+  background: var(--paper);
+}
+.seg span,
+.seg a {
+  padding: 7px 16px;
+  font-weight: 900;
+  font-size: 14px;
+  border-right: var(--bd);
+  white-space: nowrap;
+}
+.seg > :last-child {
+  border-right: 0;
+}
+.seg .on {
+  background: var(--ink);
+  color: var(--paper);
+}
+.seg.y .on {
+  background: var(--y);
+  color: var(--ink);
+}
+
+/* 検索 */
+.srch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: var(--bd);
+  box-shadow: var(--shs);
+  background: var(--paper);
+  padding: 9px 16px;
+  min-width: 340px;
+  font-weight: 700;
+}
+.srch .ic {
+  font-family: var(--mono);
+  font-weight: 900;
+}
+
+/* 重ねたカード(アルバム) */
+.pile {
+  position: relative;
+}
+.pile::before,
+.pile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: var(--bd);
+  background: var(--paper);
+  z-index: 0;
+}
+.pile::before {
+  transform: translate(12px, 12px) rotate(2deg);
+}
+.pile::after {
+  transform: translate(6px, 6px) rotate(-1.5deg);
+  background: var(--bg);
+}
+.pile > * {
+  position: relative;
+  z-index: 1;
+}
+
+.tab {
+  display: inline-block;
+  padding: 9px 22px;
+  border: var(--bd);
+  font-weight: 900;
+  background: var(--paper);
+}
+.tab.on {
+  background: var(--y);
+  box-shadow: var(--shs);
+}
+.fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: var(--bd);
+  background: var(--paper);
+  font-weight: 700;
+  font-size: 13px;
+}
+.fchip.on {
+  background: var(--b);
+  color: var(--paper);
+}
+.fchip b {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+/* アルバムの部品: ポラロイド / 机 / 行ぞろえ / 時間の定規 */
+
+.stk {
+  position: absolute;
+  z-index: 3;
+  border: var(--bd);
+  box-shadow: var(--shs);
+  background: var(--y);
+  font-weight: 900;
+  padding: 3px 12px;
+  font-size: 14px;
+}
+
+/* 机の上に広げたポラロイド */
+.desk {
+  position: relative;
+  background-color: var(--desk);
+  background-image: radial-gradient(
+    rgba(13, 13, 13, 0.28) 1.6px,
+    transparent 1.6px
+  );
+  background-size: 24px 24px;
+  border: var(--bd);
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+.pol {
+  position: absolute;
+  background: var(--paper);
+  border: var(--bd);
+  box-shadow: var(--sh);
+  padding: 10px 10px 40px;
+}
+.pol > .ph {
+  aspect-ratio: auto;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--ink);
+  box-shadow: none;
+}
+.pol .cp {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+}
+.tape {
+  position: absolute;
+  width: 78px;
+  height: 24px;
+  background: var(--y);
+  border: 2px solid var(--ink);
+  z-index: 3;
+}
+
+/* 行の高さをそろえた配置(比率で、幅が変わる) */
+.jr {
+  display: flex;
+  gap: 12px;
+}
+.jr > .ph {
+  aspect-ratio: auto;
+  height: 210px;
+  box-shadow: var(--shs);
+}
+.fx {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.fx.g67 {
+  flex-grow: 0.67;
+}
+.fx.g75 {
+  flex-grow: 0.75;
+}
+.fx.g100 {
+  flex-grow: 1;
+}
+.fx.g133 {
+  flex-grow: 1.33;
+}
+.fx.g150 {
+  flex-grow: 1.5;
+}
+.fx.g178 {
+  flex-grow: 1.78;
+}
+
+/* 時間の定規(机の上の、年・月の切り替え) */
+.ruler {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  border: var(--bd);
+  box-shadow: var(--shs);
+  background: var(--paper);
+  padding: 8px;
+}
+.yt {
+  border: var(--bd);
+  background: var(--bg);
+  padding: 5px 10px;
+  font-family: var(--disp);
+  font-size: 16px;
+  line-height: 1.1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+.yt small {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+.yt.on {
+  background: var(--y);
+}
+.mbars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 46px;
+  position: relative;
+}
+.mbars i {
+  flex: 1;
+  display: block;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+.mbars i.on {
+  background: var(--p);
+}
+.thumb {
+  position: absolute;
+  top: -14px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border: 2px solid var(--ink);
+  white-space: nowrap;
+}
+.fdr {
+  border: var(--bd);
+  box-shadow: var(--sh);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+}
+.fdr .gp {
+  padding: 12px 16px;
+  border-bottom: var(--bd);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fdr .rw {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.fdr .bx2 {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  margin-right: 8px;
+  vertical-align: -3px;
+}
+.fdr .bx2.on {
+  background: var(--ink);
+  box-shadow: inset 0 0 0 3px var(--paper);
+}
+
+/* 太いスクラバー */
+.big-scr {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 92px;
+  position: sticky;
+  top: 16px;
+  align-self: flex-start;
+}
+.big-scr .yb {
+  border: var(--bd);
+  background: var(--paper);
+  padding: 6px 8px;
+  font-family: var(--disp);
+  font-size: 18px;
+  line-height: 1;
+  box-shadow: var(--shs);
+}
+.big-scr .yb small {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.big-scr .yb.on {
+  background: var(--y);
+  box-shadow: var(--sh);
+  transform: translateX(-10px);
+}
+.big-scr .tk {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 2px;
+}
+.big-scr .tk span {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.big-scr .tk span.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* 机の配置(重ならない): 格子の上に、傾けて置く。机の幅を、はみ出さない */
+.deskgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 52px 46px;
+  padding: 100px 56px 84px;
+  align-items: center;
+  grid-auto-flow: dense;
+}
+.deskgrid.c3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 48px 40px;
+  padding: 100px 44px 84px;
+}
+.deskgrid > .pol {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  left: auto;
+  top: auto;
+  width: auto;
+  height: auto;
+}
+.deskgrid > .pol > .ph {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  width: auto;
+}
+.deskgrid > .pol.r43 {
+  aspect-ratio: 1.12;
+}
+.deskgrid > .pol.r34 {
+  aspect-ratio: 0.7;
+}
+.deskgrid > .pol.r11 {
+  aspect-ratio: 0.89;
+}
+.deskgrid > .pol.r32 {
+  aspect-ratio: 1.23;
+}
+.deskgrid > .pol.sp2 {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+/* できごとの束(格子の 1 マスに、重ねて置く) */
+.stack {
+  position: relative;
+  display: block;
+  height: 300px;
+}
+.stack > .pol {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+}
+.stack > .pol > .ph {
+  aspect-ratio: auto;
+  width: 100%;
+  height: 100%;
+}
+
+/* カレンダーのマス(濃さ 4 段階) */
+.cd {
+  aspect-ratio: 1;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 3px;
+  line-height: 1.1;
+}
+.cd.h1 {
+  background: var(--y2);
+}
+.cd.h2 {
+  background: var(--y);
+}
+.cd.h3 {
+  background: var(--o);
+}
+.cd.h4 {
+  background: var(--p);
+}
+.cd.e {
+  border-color: transparent;
+  background: transparent;
+}
+.cd.sel {
+  outline: 4px solid var(--ink);
+  outline-offset: -4px;
+  box-shadow: var(--shs);
+}
+/* 読み込み中(スケルトン) */
+.sk {
+  background-color: var(--sk);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(13, 13, 13, 0.07) 0 10px,
+    transparent 10px 20px
+  );
+  border: var(--bd);
+}
